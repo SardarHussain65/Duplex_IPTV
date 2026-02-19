@@ -101,6 +101,7 @@ export const KeyboardButton: React.FC<KeyboardButtonProps> = ({
                 style={[getButtonStyle(), style]}
                 testID={testID}
                 hasTVPreferredFocus={false}
+                focusable={true}
                 tvParallaxProperties={{
                     enabled: true,
                     shiftDistanceX: 2,

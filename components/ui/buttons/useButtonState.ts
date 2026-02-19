@@ -5,6 +5,7 @@
  * ─────────────────────────────────────────────────────────────
  */
 
+import { router } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { Animated } from 'react-native';
 
@@ -83,24 +84,24 @@ export const useButtonState = ({
         }).start();
     }, [disabled, scaleAnim]);
 
-    const handlePressOut = useCallback(() => {
-        setIsPressed(false);
+const handlePressOut = useCallback(() => {
+    setIsPressed(false);
+
+    const toValue = isFocused ? 1.05 : 1;
+
+    Animated.spring(scaleAnim, {
+        toValue,
+        useNativeDriver: true,
+        friction: 8,
+        tension: 100,
+    }).start(() => {
         if (isFocused) {
-            Animated.spring(scaleAnim, {
-                toValue: 1.05,
-                useNativeDriver: true,
-                friction: 8,
-                tension: 100,
-            }).start();
-        } else {
-            Animated.spring(scaleAnim, {
-                toValue: 1,
-                useNativeDriver: true,
-                friction: 8,
-                tension: 100,
-            }).start();
+            router.push('/playlistList');
         }
-    }, [isFocused, scaleAnim]);
+    });
+
+}, [isFocused, scaleAnim, router]);
+
 
     const handlePress = useCallback(() => {
         if (disabled) return;

@@ -91,6 +91,7 @@ export const ActionFilledButton: React.FC<ActionFilledButtonProps> = ({
                 style={[getButtonStyle(), style]}
                 testID={testID}
                 hasTVPreferredFocus={false}
+                focusable={true}
                 tvParallaxProperties={{
                     enabled: true,
                     shiftDistanceX: 2,
