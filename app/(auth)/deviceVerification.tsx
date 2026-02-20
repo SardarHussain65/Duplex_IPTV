@@ -14,6 +14,9 @@ const STEPS = [
     "Preparing home screen...",
 ];
 
+
+//I have make somme changes for just testing purposes
+
 const DeviceVerification = () => {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState(0);
