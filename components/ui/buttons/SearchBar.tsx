@@ -35,7 +35,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         alignItems: 'center',
         gap: Spacing.sm,
         paddingHorizontal: Spacing.md,
-        paddingVertical: Spacing.sm,
+        paddingVertical: Spacing.xxs,
         borderRadius: 8,
         backgroundColor: isFocused ? Colors.dark[8] : Colors.dark[10],
         borderWidth: 2,

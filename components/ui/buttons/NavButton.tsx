@@ -6,7 +6,8 @@
  * ─────────────────────────────────────────────────────────────
  */
 
-import { Colors, Spacing } from '@/constants';
+import { Colors } from '@/constants';
+import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import React from 'react';
 import { Animated, Pressable, Text, TextStyle, ViewStyle } from 'react-native';
 import { useButtonState } from './useButtonState';
@@ -49,18 +50,18 @@ export const NavButton: React.FC<NavButtonProps> = ({
         const baseStyle: ViewStyle = {
             flexDirection: 'row',
             alignItems: 'center',
-            gap: Spacing.sm,
-            paddingVertical: Spacing.sm,
-            paddingHorizontal: Spacing.md,
-            borderRadius: 24,
-            minWidth: 120
+            gap: xdWidth(8),
+            paddingVertical: xdHeight(8),
+            paddingHorizontal: xdWidth(12),
+            borderRadius: scale(20),
+            minWidth: xdWidth(90)
         };
 
         switch (state) {
             case 'active':
                 return {
                     ...baseStyle,
-                    backgroundColor: Colors.primary[950], // Neon green
+                    backgroundColor: Colors.primaryBlue[950], // Neon green
                     borderWidth: 0,
                 };
             case 'focused':
@@ -94,26 +95,26 @@ export const NavButton: React.FC<NavButtonProps> = ({
         switch (state) {
             case 'active':
                 return {
-                    color: Colors.dark[11], // Dark text on green background
-                    fontSize: 16,
-                    fontWeight: '600',
+                    color: Colors.dark[1],
+                    fontSize: scale(12),
+                    fontWeight: '500',
                 };
             case 'focused':
                 return {
-                    color: Colors.gray[100], // White text
-                    fontSize: 16,
+                    color: Colors.dark[1],
+                    fontSize: scale(14),
                     fontWeight: '600',
                 };
             case 'pressed':
                 return {
-                    color: Colors.gray[400], // Dimmed
-                    fontSize: 16,
-                    fontWeight: '600',
+                    color: Colors.dark[1],
+                    fontSize: scale(12),
+                    fontWeight: '500',
                 };
             default:
                 return {
-                    color: Colors.gray[500], // Light gray
-                    fontSize: 16,
+                    color: Colors.dark[2],
+                    fontSize: scale(12),
                     fontWeight: '500',
                 };
         }
@@ -122,13 +123,13 @@ export const NavButton: React.FC<NavButtonProps> = ({
     const getIconColor = (): string => {
         switch (state) {
             case 'active':
-                return Colors.dark[11]; // Dark icon on green background
+                return Colors.dark[1]; // Dark icon on green background
             case 'focused':
-                return Colors.gray[100]; // White icon
+                return Colors.dark[1]; // White icon
             case 'pressed':
-                return Colors.gray[400]; // Dimmed
+                return Colors.dark[1]; // Dimmed
             default:
-                return Colors.gray[500]; // Light gray
+                return Colors.dark[2]; // Light gray
         }
     };
 

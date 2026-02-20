@@ -93,7 +93,7 @@ const ActivationScreen = () => {
                 />
 
                 {/* Title */}
-                <Text style={[styles.title, { fontSize: s(20), marginBottom: s(6) }]} onPress={() => router.push("/(auth)/deviceVerification")}>
+                <Text style={[styles.title, { fontSize: s(20), marginBottom: s(6) }]} onPress={() => router.push("/(home)")}>
                     Device Activation
                 </Text>
 

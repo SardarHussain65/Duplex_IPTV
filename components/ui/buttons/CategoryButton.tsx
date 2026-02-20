@@ -55,7 +55,7 @@ export const CategoryButton: React.FC<CategoryButtonProps> = ({
             case 'active':
                 return {
                     ...baseStyle,
-                    backgroundColor: Colors.primary[950],
+                    backgroundColor: Colors.dark[1],
                 };
             case 'focused':
                 return {
@@ -86,7 +86,7 @@ export const CategoryButton: React.FC<CategoryButtonProps> = ({
         switch (state) {
             case 'active':
                 return {
-                    color: Colors.dark[11],
+                    color: Colors.dark[12],
                     fontSize: 14,
                     fontWeight: '600',
                 };
