@@ -20,6 +20,7 @@ export interface NavButtonProps {
     onLongPress?: () => void;
     style?: ViewStyle;
     testID?: string;
+    hasTVPreferredFocus?: boolean;
 }
 
 export const NavButton: React.FC<NavButtonProps> = ({
@@ -31,6 +32,7 @@ export const NavButton: React.FC<NavButtonProps> = ({
     onLongPress,
     style,
     testID,
+    hasTVPreferredFocus = false,
 }) => {
     const {
         state,
@@ -142,7 +144,8 @@ export const NavButton: React.FC<NavButtonProps> = ({
                 disabled={disabled}
                 style={[getButtonStyle(), style]}
                 testID={testID}
-                hasTVPreferredFocus={false}
+                hasTVPreferredFocus={hasTVPreferredFocus}
+                focusable={!disabled}
                 tvParallaxProperties={{
                     enabled: true,
                     shiftDistanceX: 2,

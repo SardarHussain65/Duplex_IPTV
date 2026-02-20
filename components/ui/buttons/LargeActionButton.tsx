@@ -96,6 +96,7 @@ export const LargeActionButton: React.FC<LargeActionButtonProps> = ({
                 style={[getButtonStyle(), style]}
                 testID={testID}
                 hasTVPreferredFocus={false}
+                focusable={true}
                 tvParallaxProperties={{
                     enabled: true,
                     shiftDistanceX: 2,
