@@ -30,8 +30,8 @@ export interface BackdropCardProps {
     style?: ViewStyle;
 }
 
-const WIDTH = 240;
-const HEIGHT = 135;
+const WIDTH = 200;
+const HEIGHT = 110;
 
 export const BackdropCard: React.FC<BackdropCardProps> = ({
     image,
@@ -112,7 +112,7 @@ export const BackdropCard: React.FC<BackdropCardProps> = ({
 
 const styles = StyleSheet.create({
     container: {
-        marginBottom: Spacing.md,
+        marginBottom: Spacing.xxs,
     },
     image: {
         width: '100%',
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.dark[7],
     },
     info: {
-        marginTop: Spacing.xs,
+        marginTop: 0,
     },
     title: {
         fontSize: 14,

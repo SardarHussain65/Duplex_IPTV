@@ -85,22 +85,18 @@ export const useButtonState = ({
 
     const handlePressOut = useCallback(() => {
         setIsPressed(false);
-        if (isFocused) {
-            Animated.spring(scaleAnim, {
-                toValue: 1.05,
-                useNativeDriver: true,
-                friction: 8,
-                tension: 100,
-            }).start();
-        } else {
-            Animated.spring(scaleAnim, {
-                toValue: 1,
-                useNativeDriver: true,
-                friction: 8,
-                tension: 100,
-            }).start();
-        }
+
+        const toValue = isFocused ? 1.05 : 1;
+
+        Animated.spring(scaleAnim, {
+            toValue,
+            useNativeDriver: true,
+            friction: 8,
+            tension: 100,
+        }).start();
+
     }, [isFocused, scaleAnim]);
+
 
     const handlePress = useCallback(() => {
         if (disabled) return;
