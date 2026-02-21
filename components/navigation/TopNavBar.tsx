@@ -29,12 +29,13 @@ const NAV_TABS: { id: Tab; label: string; icon: keyof typeof MaterialCommunityIc
 // ── Component ─────────────────────────────────────────────────
 
 export const TopNavBar: React.FC = () => {
-    const { activeTab, setActiveTab } = useTab();
+    const { activeTab, setActiveTab, isScrolled, setIsScrolled } = useTab();
     const router = useRouter();
     const pathname = usePathname();
 
     const handleTabPress = (tabId: Tab) => {
         setActiveTab(tabId);
+        setIsScrolled(false);
         // If we are not on the main screen (index), navigate back to it
         if (pathname !== '/') {
             router.replace('/');
@@ -42,7 +43,7 @@ export const TopNavBar: React.FC = () => {
     };
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, isScrolled && styles.containerScrolled]}>
             {/* Logo */}
             <Image
                 source={require('@/assets/images/ActivationImage.png')}
@@ -93,6 +94,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: xdWidth(32),
         paddingVertical: xdHeight(12),
+    },
+    containerScrolled: {
+        backgroundColor: 'rgba(20, 20, 22, 0.85)',
     },
     logo: {
         width: xdWidth(32),

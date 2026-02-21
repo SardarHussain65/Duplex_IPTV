@@ -244,6 +244,7 @@ const styles = StyleSheet.create({
     screen: {
         flex: 1,
         backgroundColor: '#141416',
+
     },
 
     // ── Top section ──────────────────────────────────────────
@@ -271,6 +272,7 @@ const styles = StyleSheet.create({
         right: 0,
         bottom: 0,
         backgroundColor: 'rgba(20,20,22,0.55)',
+
     },
 
     // Right info panel

@@ -89,13 +89,13 @@ export const NavIconButton: React.FC<NavIconButtonProps> = ({
     const getIconColor = (): string => {
         switch (state) {
             case 'active':
-                return Colors.gray[100]; // White icon on blue background
+                return Colors.dark[1]; // Dark icon on green background
             case 'focused':
-                return Colors.gray[100];
+                return Colors.dark[1]; // White icon
             case 'pressed':
-                return Colors.gray[400];
+                return Colors.dark[1]; // Dimmed
             default:
-                return Colors.gray[500];
+                return Colors.dark[2]; // Light gray
         }
     };
 

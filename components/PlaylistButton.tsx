@@ -45,7 +45,7 @@ export const PlaylistButton: React.FC<PlaylistButtonProps> = ({
             onPressOut={handlePressOut}
             onFocus={handleFocus}
             onBlur={handleBlur}
-            focusable={true}
+            focusable={!disabled}
             hasTVPreferredFocus={hasTVPreferredFocus}
             style={[
                 styles.pressable,
@@ -55,7 +55,7 @@ export const PlaylistButton: React.FC<PlaylistButtonProps> = ({
                 }
             ]}
             accessible={true}
-            isTVSelectable={true}
+            isTVSelectable={!disabled}
             disabled={disabled}
         >
             <View

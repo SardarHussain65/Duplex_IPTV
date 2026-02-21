@@ -25,7 +25,7 @@ export const useDeviceInfo = () => {
                 let uniqueId = '';
 
                 if (Platform.OS === 'android') {
-                    uniqueId = Application.getAndroidId();
+                    uniqueId = Application.getAndroidId() || '';
                 } else if (Platform.OS === 'ios') {
                     uniqueId = await Application.getIosIdForVendorAsync() || '';
                 }

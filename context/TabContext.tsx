@@ -21,6 +21,8 @@ export type Tab =
 interface TabContextValue {
     activeTab: Tab;
     setActiveTab: (tab: Tab) => void;
+    isScrolled: boolean;
+    setIsScrolled: (scrolled: boolean) => void;
 }
 
 // ── Context ──────────────────────────────────────────────────
@@ -31,13 +33,14 @@ export const TabContextProvider: React.FC<{ children: React.ReactNode }> = ({
     children,
 }) => {
     const [activeTab, setActiveTabState] = useState<Tab>('live-tv');
+    const [isScrolled, setIsScrolled] = useState(false);
 
     const setActiveTab = useCallback((tab: Tab) => {
         setActiveTabState(tab);
     }, []);
 
     return (
-        <TabContext.Provider value={{ activeTab, setActiveTab }}>
+        <TabContext.Provider value={{ activeTab, setActiveTab, isScrolled, setIsScrolled }}>
             {children}
         </TabContext.Provider>
     );
