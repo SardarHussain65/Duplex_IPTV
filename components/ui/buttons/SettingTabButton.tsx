@@ -104,6 +104,7 @@ export const SettingTabButton: React.FC<SettingTabButtonProps> = ({
                 style={[getButtonStyle(), style]}
                 testID={testID}
                 hasTVPreferredFocus={false}
+                focusable={true}
                 tvParallaxProperties={{
                     enabled: true,
                     shiftDistanceX: 2,

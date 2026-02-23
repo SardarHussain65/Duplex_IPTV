@@ -30,3 +30,6 @@ export {
   Duration, Grid, Layout, SafeZone, Spacing, ZIndex
 } from './spacing';
 
+// Scaling
+export * from './scaling';
+

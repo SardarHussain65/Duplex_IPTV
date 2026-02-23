@@ -31,7 +31,11 @@ export default function ButtonSystemShowcase() {
     const [pinValue, setPinValue] = useState('1234');
 
     return (
-        <ScrollView style={styles.container}>
+        <ScrollView style={styles.container}
+            contentContainerStyle={styles.contentContainer}
+            showsVerticalScrollIndicator={false}
+            showsHorizontalScrollIndicator={false}
+        >
             <Text style={styles.mainTitle}>Duplex IPTV - Button System</Text>
             <Text style={styles.subtitle}>12 Professional Components • 4 States Each</Text>
 
@@ -278,6 +282,9 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: Colors.gray[100],
         marginBottom: Spacing.xs,
+    },
+    contentContainer: {
+        paddingBottom: Spacing['3xl'],
     },
     subtitle: {
         fontSize: 16,
