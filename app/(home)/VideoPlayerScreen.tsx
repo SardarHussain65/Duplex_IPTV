@@ -5,9 +5,12 @@
  * ─────────────────────────────────────────────────────────────
  */
 
+import { NavIconButton } from '@/components/ui';
+import { EpisodeCard } from '@/components/ui/cards/EpisodeCard';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
+import { useTab } from '@/context/TabContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
+import { ResizeMode, Video } from 'expo-av';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -16,7 +19,7 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    View
+    View,
 } from 'react-native';
 
 // ── Types ──────────────────────────────────────────────────────
@@ -74,6 +77,7 @@ export default function VideoPlayerScreen() {
     const [settingsPanel, setSettingsPanel] = useState<SettingsPanel>('main');
     const [selectedCaption, setSelectedCaption] = useState('Off');
     const [selectedLanguage, setSelectedLanguage] = useState('German');
+    const [currentEpisodeIndex, setCurrentEpisodeIndex] = useState(0);
     const episodes = generateEpisodes();
 
     // Shrink animation for video
@@ -123,9 +127,34 @@ export default function VideoPlayerScreen() {
         setViewMode(v => v === 'episodes' ? 'normal' : 'episodes');
     };
 
+    const handleSkipPrevious = () => {
+        if (isSeries && currentEpisodeIndex > 0) {
+            setCurrentEpisodeIndex(currentEpisodeIndex - 1);
+            setProgress(0);
+            setIsPlaying(true);
+        }
+    };
+
+    const handleSkipNext = () => {
+        if (isSeries && currentEpisodeIndex < episodes.length - 1) {
+            setCurrentEpisodeIndex(currentEpisodeIndex + 1);
+            setProgress(0);
+            setIsPlaying(true);
+        }
+    };
+
+    const handleSelectEpisode = (episodeIndex: number) => {
+        setCurrentEpisodeIndex(episodeIndex);
+        setProgress(0);
+        setIsPlaying(true);
+        setViewMode('normal');
+    };
+
+    const { setParentalModalVisible } = useTab();
+
     const videoWidth = shrinkAnim.interpolate({
         inputRange: [0, 1],
-        outputRange: ['100%', '64%'],
+        outputRange: ['100%', '68%'],
     });
 
     const videoTranslateX = shrinkAnim.interpolate({
@@ -143,19 +172,17 @@ export default function VideoPlayerScreen() {
                     styles.videoContainer,
                     {
                         width: videoWidth as any,
-                        transform: [{ translateX: videoTranslateX }]
                     }
                 ]}>
                     <View style={styles.videoWrapper}>
-                        {image ? (
-                            <Image
-                                source={{ uri: image }}
-                                style={styles.videoBg}
-                                contentFit="cover"
-                            />
-                        ) : (
-                            <View style={[styles.videoBg, { backgroundColor: '#0a0a0a' }]} />
-                        )}
+                        <Video
+                            source={{ uri: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' }}
+                            style={styles.videoBg}
+                            resizeMode={ResizeMode.COVER}
+                            shouldPlay={isPlaying}
+                            isLooping
+                            useNativeControls={false}
+                        />
                         <View style={styles.vignette} />
 
                         {/* Controls (only show in normal mode or as mini controls) */}
@@ -180,47 +207,50 @@ export default function VideoPlayerScreen() {
 
                                 <View style={styles.btnsRow}>
                                     <View style={styles.transportBtns}>
-                                        <TouchableOpacity style={styles.ctrlBtn} activeOpacity={0.7}>
-                                            <MaterialCommunityIcons name="skip-previous" size={scale(24)} color="#fff" />
-                                        </TouchableOpacity>
-                                        <TouchableOpacity
-                                            style={[styles.ctrlBtn, styles.playBtn]}
-                                            activeOpacity={0.7}
+                                        <NavIconButton
+                                            icon={<MaterialCommunityIcons name="skip-previous" size={scale(24)} />}
+                                            onPress={handleSkipPrevious}
+                                            disabled={!isSeries || currentEpisodeIndex === 0}
+                                        />
+                                        <NavIconButton
+                                            icon={<MaterialCommunityIcons name={isPlaying ? 'pause' : 'play'} size={scale(24)} />}
                                             onPress={() => setIsPlaying(!isPlaying)}
-                                        >
-                                            <MaterialCommunityIcons name={isPlaying ? 'pause' : 'play'} size={scale(24)} color="#fff" />
-                                        </TouchableOpacity>
-                                        <TouchableOpacity style={styles.ctrlBtn} activeOpacity={0.7}>
-                                            <MaterialCommunityIcons name="skip-next" size={scale(24)} color="#fff" />
-                                        </TouchableOpacity>
+                                            style={styles.playBtn}
+                                        />
+                                        <NavIconButton
+                                            icon={<MaterialCommunityIcons name="skip-next" size={scale(24)} />}
+                                            onPress={handleSkipNext}
+                                            disabled={!isSeries || currentEpisodeIndex === episodes.length - 1}
+                                        />
                                     </View>
 
                                     <View style={styles.auxBtns}>
                                         {isSeries && (
-                                            <TouchableOpacity
-                                                style={[styles.auxBtn, viewMode === 'episodes' && styles.auxBtnActive]}
-                                                activeOpacity={0.7}
+                                            <NavIconButton
+                                                icon={<MaterialCommunityIcons name="format-list-bulleted" size={scale(20)} />}
+                                                isActive={viewMode === 'episodes'}
                                                 onPress={toggleEpisodes}
-                                            >
-                                                <MaterialCommunityIcons name="format-list-bulleted" size={scale(20)} color={viewMode === 'episodes' ? "#fff" : "#888"} />
-                                            </TouchableOpacity>
+                                            />
                                         )}
-                                        <TouchableOpacity style={styles.auxBtn} activeOpacity={0.7}>
-                                            <MaterialCommunityIcons name="closed-caption-outline" size={scale(20)} color="#888" />
-                                        </TouchableOpacity>
-                                        <TouchableOpacity style={[styles.auxBtn, isLocked && styles.auxBtnActive]} activeOpacity={0.7} onPress={() => setIsLocked(!isLocked)}>
-                                            <MaterialCommunityIcons name={isLocked ? "lock" : "lock-open-outline"} size={scale(20)} color="#888" />
-                                        </TouchableOpacity>
-                                        <TouchableOpacity style={[styles.auxBtn, isFavorite && styles.auxBtnFav]} activeOpacity={0.7} onPress={() => setIsFavorite(!isFavorite)}>
-                                            <MaterialCommunityIcons name={isFavorite ? "heart" : "heart-outline"} size={scale(20)} color={isFavorite ? "#E0334C" : "#888"} />
-                                        </TouchableOpacity>
-                                        <TouchableOpacity
-                                            style={[styles.auxBtn, viewMode === 'settings' && styles.auxBtnActive]}
-                                            activeOpacity={0.7}
+                                        <NavIconButton
+                                            icon={<MaterialCommunityIcons name="closed-caption-outline" size={scale(20)} />}
+                                        />
+                                        <NavIconButton
+                                            icon={<MaterialCommunityIcons name={isLocked ? "lock" : "lock-open-outline"} size={scale(20)} />}
+                                            isActive={isLocked}
+                                            onPress={() => setParentalModalVisible(true)}
+                                        />
+                                        <NavIconButton
+                                            icon={<MaterialCommunityIcons name={isFavorite ? "heart" : "heart-outline"} size={scale(20)} />}
+                                            isActive={isFavorite}
+                                            activeBackgroundColor={isFavorite ? "rgba(224,51,76,0.15)" : undefined}
+                                            onPress={() => setIsFavorite(!isFavorite)}
+                                        />
+                                        <NavIconButton
+                                            icon={<MaterialCommunityIcons name="cog-outline" size={scale(20)} />}
+                                            isActive={viewMode === 'settings'}
                                             onPress={toggleSettings}
-                                        >
-                                            <MaterialCommunityIcons name="cog-outline" size={scale(20)} color={viewMode === 'settings' ? "#fff" : "#888"} />
-                                        </TouchableOpacity>
+                                        />
                                     </View>
                                 </View>
                             </View>
@@ -298,19 +328,18 @@ export default function VideoPlayerScreen() {
                                 <View style={styles.panelDivider} />
                                 <ScrollView showsVerticalScrollIndicator={false}>
                                     {episodes.map((ep, i) => (
-                                        <TouchableOpacity key={ep.id} style={styles.epRow}>
-                                            <View style={styles.epThumbWrapper}>
-                                                <View style={styles.epBadge}><Text style={styles.epBadgeText}>{ep.number}</Text></View>
-                                                <Image source={{ uri: ep.image }} style={styles.epThumb} />
-                                            </View>
-                                            <View style={styles.epInfo}>
-                                                <Text style={styles.epTitle}>{ep.title}</Text>
-                                                <View style={styles.epMetaRow}>
-                                                    <Text style={styles.epDuration}>{ep.duration}</Text>
-                                                    {i === 0 && <Text style={styles.playingText}>Playing...</Text>}
-                                                </View>
-                                            </View>
-                                        </TouchableOpacity>
+                                        <EpisodeCard
+                                            key={ep.id}
+                                            variant="mini"
+                                            number={ep.number}
+                                            title={ep.title}
+                                            description={ep.description}
+                                            duration={ep.duration}
+                                            image={ep.image}
+                                            progress={ep.progress}
+                                            isPlaying={i === currentEpisodeIndex}
+                                            onPress={() => handleSelectEpisode(i)}
+                                        />
                                     ))}
                                 </ScrollView>
                             </View>
@@ -330,13 +359,9 @@ const styles = StyleSheet.create({
     mainContainer: {
         flex: 1,
         flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: xdWidth(40),
     },
     videoContainer: {
-        height: xdHeight(450),
-        borderRadius: scale(20),
+        height: '100%',
         overflow: 'hidden',
     },
     videoWrapper: {
@@ -413,14 +438,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 12,
     },
-    ctrlBtn: {
-        width: scale(40),
-        height: scale(40),
-        borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
     playBtn: {
         backgroundColor: 'rgba(255,255,255,0.2)',
     },
@@ -429,26 +446,15 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 10,
     },
-    auxBtn: {
-        width: scale(40),
-        height: scale(40),
-        borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.08)',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    auxBtnActive: {
-        backgroundColor: 'rgba(255,255,255,0.2)',
-    },
-    auxBtnFav: {
-        backgroundColor: 'rgba(224,51,76,0.15)',
-    },
 
     // Right Panel
     rightPanel: {
         width: '32%',
-        height: xdHeight(450),
+        height: '100%',
         paddingLeft: xdWidth(20),
+        paddingRight: xdWidth(32),
+        paddingVertical: xdHeight(40),
+        backgroundColor: '#141416',
     },
     settingsContent: {
         flex: 1,
@@ -518,62 +524,12 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
 
-    // Episodes
-    epRow: {
-        flexDirection: 'row',
-        gap: 14,
-        marginBottom: 16,
-    },
-    epThumbWrapper: {
-        width: xdWidth(90),
-        height: xdHeight(60),
+    epRowActive: {
+        backgroundColor: 'rgba(59, 130, 246, 0.15)',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
         borderRadius: 8,
-        overflow: 'hidden',
-        position: 'relative',
-    },
-    epThumb: {
-        width: '100%',
-        height: '100%',
-    },
-    epBadge: {
-        position: 'absolute',
-        top: 4,
-        left: 4,
-        zIndex: 2,
-        width: 18,
-        height: 18,
-        borderRadius: 9,
-        backgroundColor: '#3B82F6',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    epBadgeText: {
-        fontSize: 10,
-        fontWeight: 'bold',
-        color: '#fff',
-    },
-    epInfo: {
-        flex: 1,
-        justifyContent: 'center',
-        gap: 4,
-    },
-    epTitle: {
-        fontSize: scale(12),
-        fontWeight: '600',
-        color: '#fff',
-    },
-    epMetaRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    epDuration: {
-        fontSize: scale(11),
-        color: '#666',
-    },
-    playingText: {
-        fontSize: scale(11),
-        fontWeight: 'bold',
-        color: '#3B82F6',
+        borderWidth: 1,
+        borderColor: 'rgba(59, 130, 246, 0.4)',
     }
 });

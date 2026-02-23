@@ -1,6 +1,5 @@
 import { PlaylistRowButton } from "@/components/ui/buttons/playlistButton";
 import { Image } from "expo-image";
-import { router } from "expo-router";
 import React, { useState } from "react";
 import {
     FlatList,
@@ -49,7 +48,6 @@ const PlaylistListScreen = () => {
                 {/* Subtitle */}
                 <Text
                     style={[styles.subtitle, { fontSize: s(14), marginBottom: s(20) }]}
-                    onPress={() => router.back()}
                 >
                     {PLAYLISTS.length} Playlists
                 </Text>

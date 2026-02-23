@@ -29,7 +29,7 @@ const NAV_TABS: { id: Tab; label: string; icon: keyof typeof MaterialCommunityIc
 // ── Component ─────────────────────────────────────────────────
 
 export const TopNavBar: React.FC = () => {
-    const { activeTab, setActiveTab, isScrolled, setIsScrolled } = useTab();
+    const { activeTab, setActiveTab, isScrolled, setIsScrolled, setParentalModalVisible } = useTab();
     const router = useRouter();
     const pathname = usePathname();
 
@@ -72,7 +72,7 @@ export const TopNavBar: React.FC = () => {
                 <NavIconButton
                     icon={<MaterialCommunityIcons name="lock" size={scale(18)} />}
                     isActive={activeTab === 'parental-control'}
-                    onPress={() => handleTabPress('parental-control')}
+                    onPress={() => setParentalModalVisible(true)}
                     testID="nav-tab-parental-control"
                 />
                 <NavIconButton

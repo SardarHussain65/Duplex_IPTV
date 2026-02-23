@@ -1,7 +1,7 @@
 /**
  * ─────────────────────────────────────────────────────────────
  *  DUPLEX IPTV — Backdrop Card Component
- *  Specialized 240x135 landscape card for episodes and live TV
+ *  Specialized 200x110 landscape card for episodes and live TV
  * ─────────────────────────────────────────────────────────────
  */
 

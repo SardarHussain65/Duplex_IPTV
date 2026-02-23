@@ -25,7 +25,7 @@ export const SyncingStep = ({ label, status, errorLabel }: SyncingStepProps) => 
                     <View
                         style={[
                             styles.circle,
-                            { width: s(12), height: s(12), borderWidth: 1, borderColor: Colors.dark[7] },
+                            { width: s(12), height: s(12), borderRadius: s(12) / 2, borderWidth: 1, borderColor: Colors.dark[7] },
                         ]}
                     />
                 );
@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     circle: {
-        borderRadius: 8,
+        // borderRadius: 8,
     },
     label: {
         fontWeight: "500",

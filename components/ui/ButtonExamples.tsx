@@ -266,7 +266,6 @@ export default function ButtonSystemShowcase() {
                 </LargeActionButton>
             </View>
 
-            <View style={{ height: Spacing['3xl'] }} />
         </ScrollView>
     );
 }

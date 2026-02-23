@@ -8,6 +8,7 @@ import { NavIconButton } from '@/components/ui/buttons/NavIconButton';
 import { PreviewCard } from '@/components/ui/cards';
 import { Colors } from '@/constants';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
+import { useTab } from '@/context/TabContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -81,6 +82,7 @@ export default function ChannelDetailScreen() {
 
     const [isFavorite, setIsFavorite] = useState(false);
     const [isLocked, setIsLocked] = useState(false);
+    const { setParentalModalVisible } = useTab();
 
     const channelName = params.name ?? 'Channel';
     const channelImage = params.image ?? '';
@@ -151,7 +153,7 @@ export default function ChannelDetailScreen() {
                         <NavIconButton
                             icon={<MaterialCommunityIcons name={isLocked ? 'lock' : 'lock-open-outline'} size={scale(20)} />}
                             isActive={isLocked}
-                            onPress={() => setIsLocked(v => !v)}
+                            onPress={() => setParentalModalVisible(true)}
                         />
                     </View>
                 </View>

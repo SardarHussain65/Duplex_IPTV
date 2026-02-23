@@ -28,6 +28,8 @@ export const useDeviceInfo = () => {
                     uniqueId = Application.getAndroidId() || '';
                 } else if (Platform.OS === 'ios') {
                     uniqueId = await Application.getIosIdForVendorAsync() || '';
+                } else {
+                    console.warn(`useDeviceInfo: unsupported platform "${Platform.OS}"`);
                 }
 
                 // 1. Format "Mac Address" from unique ID

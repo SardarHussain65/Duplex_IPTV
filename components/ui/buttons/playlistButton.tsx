@@ -1,6 +1,6 @@
 import { Colors } from "@/constants";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useRef } from "react";
+import React from "react";
 import {
     Animated,
     Pressable,
@@ -8,6 +8,7 @@ import {
     Text,
     View,
 } from "react-native";
+import { useButtonState } from "./useButtonState";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type PlaylistRowButtonProps = {
@@ -31,53 +32,22 @@ export const PlaylistRowButton: React.FC<PlaylistRowButtonProps> = ({
     onPress,
     hasTVPreferredFocus = false,
 }) => {
-    const scaleAnim = useRef(new Animated.Value(1)).current;
-    const [isFocused, setIsFocused] = React.useState(false);
+    const {
+        state,
+        scaleAnim,
+        handleFocus,
+        handleBlur,
+        handlePressIn,
+        handlePressOut,
+        handlePress,
+    } = useButtonState({ isActive: isSelected, disabled, onPress });
 
-    const active = isSelected || isFocused;
-
-    const handleFocus = () => {
-        setIsFocused(true);
-        Animated.spring(scaleAnim, {
-            toValue: 1.03,
-            useNativeDriver: true,
-            speed: 20,
-            bounciness: 4,
-        }).start();
-    };
-
-    const handleBlur = () => {
-        setIsFocused(false);
-        Animated.spring(scaleAnim, {
-            toValue: 1,
-            useNativeDriver: true,
-            speed: 20,
-            bounciness: 4,
-        }).start();
-    };
-
-    const handlePressIn = () => {
-        Animated.spring(scaleAnim, {
-            toValue: 0.97,
-            useNativeDriver: true,
-            speed: 30,
-            bounciness: 0,
-        }).start();
-    };
-
-    const handlePressOut = () => {
-        Animated.spring(scaleAnim, {
-            toValue: 1,
-            useNativeDriver: true,
-            speed: 20,
-            bounciness: 4,
-        }).start();
-    };
+    const active = state === 'active' || state === 'focused' || state === 'pressed';
 
 
     return (
         <AnimatedPressable
-            onPress={onPress}
+            onPress={handlePress}
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}
             onFocus={handleFocus}
@@ -157,7 +127,7 @@ const styles = StyleSheet.create({
         borderRadius: 9,
         alignItems: "center",
         justifyContent: "center",
-        marginRight:14,
+        marginRight: 14,
     },
     textBlock: {
         flex: 1,

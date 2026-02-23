@@ -5,8 +5,9 @@
  * ─────────────────────────────────────────────────────────────
  */
 
-import { SearchBar } from '@/components/ui';
+import { EmptyState, SearchBar } from '@/components/ui';
 import { CategoryButton } from '@/components/ui/buttons/CategoryButton';
+import { NavButton } from '@/components/ui/buttons/NavButton';
 import { PosterCard } from '@/components/ui/cards/PosterCard';
 import { Colors } from '@/constants';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
@@ -183,14 +184,18 @@ export default function MoviesScreen() {
 
                     {/* CTA Buttons */}
                     <View style={styles.heroBtns}>
-                        <TouchableOpacity style={styles.btnWatchNow} activeOpacity={0.8}>
-                            <MaterialCommunityIcons name="play" size={scale(18)} color="#141416" />
-                            <Text style={styles.btnWatchNowText}>Watch now</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.btnLearnMore} activeOpacity={0.8}>
-                            <MaterialCommunityIcons name="information-outline" size={scale(18)} color={Colors.gray[100]} />
-                            <Text style={styles.btnLearnMoreText}>Learn More</Text>
-                        </TouchableOpacity>
+                        <NavButton
+                            icon={<MaterialCommunityIcons name="play" size={scale(18)} />}
+                            onPress={() => handleMoviePress(currentHero)}
+                        >
+                            Watch now
+                        </NavButton>
+                        <NavButton
+                            icon={<MaterialCommunityIcons name="information-outline" size={scale(18)} />}
+                            onPress={() => handleMoviePress(currentHero)}
+                        >
+                            Learn More
+                        </NavButton>
                     </View>
                 </View>
 
@@ -236,17 +241,25 @@ export default function MoviesScreen() {
             </ScrollView>
 
             {/* ── Poster Grid ── */}
-            <View style={styles.grid}>
-                {filteredMovies.map((movie) => (
-                    <PosterCard
-                        key={movie.id}
-                        image={movie.image}
-                        title={movie.title}
-                        subtitle={movie.duration}
-                        onPress={() => handleMoviePress(movie)}
-                    />
-                ))}
-            </View>
+            {filteredMovies.length > 0 ? (
+                <View style={styles.grid}>
+                    {filteredMovies.map((movie) => (
+                        <PosterCard
+                            key={movie.id}
+                            image={movie.image}
+                            title={movie.title}
+                            subtitle={movie.duration}
+                            onPress={() => handleMoviePress(movie)}
+                        />
+                    ))}
+                </View>
+            ) : (
+                <EmptyState
+                    icon="movie-open"
+                    title="No Movies Found"
+                    subtitle="On this categories we can't find any movie. Try another category"
+                />
+            )}
         </ScrollView>
     );
 }
@@ -305,36 +318,6 @@ const styles = StyleSheet.create({
     heroBtns: {
         flexDirection: 'row',
         gap: xdWidth(14),
-    },
-    btnWatchNow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: xdWidth(8),
-        backgroundColor: Colors.gray[100],
-        paddingVertical: xdHeight(10),
-        paddingHorizontal: xdWidth(24),
-        borderRadius: scale(100),
-    },
-    btnWatchNowText: {
-        fontSize: scale(14),
-        fontWeight: '700',
-        color: '#141416',
-    },
-    btnLearnMore: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: xdWidth(8),
-        backgroundColor: 'rgba(255,255,255,0.12)',
-        paddingVertical: xdHeight(10),
-        paddingHorizontal: xdWidth(24),
-        borderRadius: scale(100),
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.18)',
-    },
-    btnLearnMoreText: {
-        fontSize: scale(14),
-        fontWeight: '600',
-        color: Colors.gray[100],
     },
 
     // Carousel dots

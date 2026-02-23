@@ -23,6 +23,8 @@ interface TabContextValue {
     setActiveTab: (tab: Tab) => void;
     isScrolled: boolean;
     setIsScrolled: (scrolled: boolean) => void;
+    isParentalModalVisible: boolean;
+    setParentalModalVisible: (visible: boolean) => void;
 }
 
 // ── Context ──────────────────────────────────────────────────
@@ -34,13 +36,21 @@ export const TabContextProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
     const [activeTab, setActiveTabState] = useState<Tab>('live-tv');
     const [isScrolled, setIsScrolled] = useState(false);
+    const [isParentalModalVisible, setParentalModalVisible] = useState(false);
 
     const setActiveTab = useCallback((tab: Tab) => {
         setActiveTabState(tab);
     }, []);
 
     return (
-        <TabContext.Provider value={{ activeTab, setActiveTab, isScrolled, setIsScrolled }}>
+        <TabContext.Provider value={{
+            activeTab,
+            setActiveTab,
+            isScrolled,
+            setIsScrolled,
+            isParentalModalVisible,
+            setParentalModalVisible
+        }}>
             {children}
         </TabContext.Provider>
     );

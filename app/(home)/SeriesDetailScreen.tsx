@@ -5,7 +5,10 @@
  * ─────────────────────────────────────────────────────────────
  */
 
+import { CategoryButton } from '@/components/ui/buttons/CategoryButton';
+import { NavButton } from '@/components/ui/buttons/NavButton';
 import { NavIconButton } from '@/components/ui/buttons/NavIconButton';
+import { EpisodeCard } from '@/components/ui/cards/EpisodeCard';
 import { Colors } from '@/constants';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useTab } from '@/context/TabContext';
@@ -17,8 +20,7 @@ import {
     ScrollView,
     StyleSheet,
     Text,
-    TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 
 // ── Types ──────────────────────────────────────────────────────
@@ -67,7 +69,7 @@ const generateEpisodes = (season: number): Episode[] =>
 
 export default function SeriesDetailScreen() {
     const router = useRouter();
-    const { setIsScrolled } = useTab();
+    const { setIsScrolled, setParentalModalVisible } = useTab();
     const params = useLocalSearchParams<{
         id: string;
         title: string;
@@ -158,9 +160,8 @@ export default function SeriesDetailScreen() {
 
                     {/* Action row */}
                     <View style={styles.actionRow}>
-                        <TouchableOpacity
-                            style={styles.btnWatchNow}
-                            activeOpacity={0.8}
+                        <NavButton
+                            icon={<MaterialCommunityIcons name="play" size={scale(18)} />}
                             onPress={() =>
                                 router.push({
                                     pathname: '/VideoPlayerScreen',
@@ -175,9 +176,8 @@ export default function SeriesDetailScreen() {
                                 })
                             }
                         >
-                            <MaterialCommunityIcons name="play" size={scale(18)} color="#141416" />
-                            <Text style={styles.btnWatchNowText}>Watch now</Text>
-                        </TouchableOpacity>
+                            Watch now
+                        </NavButton>
                         <NavIconButton
                             icon={
                                 <MaterialCommunityIcons
@@ -199,7 +199,7 @@ export default function SeriesDetailScreen() {
                                 />
                             }
                             isActive={isLocked}
-                            onPress={() => setIsLocked((v) => !v)}
+                            onPress={() => setParentalModalVisible(true)}
                         />
                     </View>
 
@@ -222,21 +222,13 @@ export default function SeriesDetailScreen() {
                 contentContainerStyle={styles.seasonsContent}
             >
                 {SEASONS.map((s, i) => (
-                    <TouchableOpacity
+                    <CategoryButton
                         key={s}
+                        isActive={i === activeSeason}
                         onPress={() => setActiveSeason(i)}
-                        style={[styles.seasonTab, i === activeSeason && styles.seasonTabActive]}
-                        activeOpacity={0.75}
                     >
-                        <Text
-                            style={[
-                                styles.seasonTabText,
-                                i === activeSeason && styles.seasonTabTextActive,
-                            ]}
-                        >
-                            {s}
-                        </Text>
-                    </TouchableOpacity>
+                        {s}
+                    </CategoryButton>
                 ))}
             </ScrollView>
 
@@ -247,10 +239,14 @@ export default function SeriesDetailScreen() {
             <View style={styles.episodesDivider} />
 
             {episodes.map((ep) => (
-                <TouchableOpacity
+                <EpisodeCard
                     key={ep.id}
-                    style={styles.episodeRow}
-                    activeOpacity={0.8}
+                    number={ep.number}
+                    title={ep.title}
+                    description={ep.description}
+                    duration={ep.duration}
+                    image={ep.image}
+                    progress={ep.progress}
                     onPress={() =>
                         router.push({
                             pathname: '/VideoPlayerScreen',
@@ -264,35 +260,7 @@ export default function SeriesDetailScreen() {
                             },
                         })
                     }
-                >
-                    {/* Thumbnail */}
-                    <View style={styles.thumbWrapper}>
-                        {/* Episode number badge */}
-                        <View style={styles.epNumBadge}>
-                            <Text style={styles.epNumText}>{ep.number}</Text>
-                        </View>
-                        <Image
-                            source={{ uri: ep.image }}
-                            style={styles.thumb}
-                            contentFit="cover"
-                        />
-                        {/* Progress bar */}
-                        {ep.progress !== undefined && (
-                            <View style={styles.progressBg}>
-                                <View style={[styles.progressFill, { width: `${ep.progress * 100}%` as any }]} />
-                            </View>
-                        )}
-                    </View>
-
-                    {/* Episode info */}
-                    <View style={styles.epInfo}>
-                        <Text style={styles.epTitle}>{ep.title}</Text>
-                        <Text style={styles.epDesc} numberOfLines={2}>
-                            {ep.description}
-                        </Text>
-                        <Text style={styles.epDuration}>{ep.duration}</Text>
-                    </View>
-                </TouchableOpacity>
+                />
             ))}
         </ScrollView>
     );
@@ -407,20 +375,6 @@ const styles = StyleSheet.create({
         gap: xdWidth(12),
         marginBottom: xdHeight(20),
     },
-    btnWatchNow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: xdWidth(8),
-        backgroundColor: Colors.gray[100],
-        paddingVertical: xdHeight(10),
-        paddingHorizontal: xdWidth(26),
-        borderRadius: scale(100),
-    },
-    btnWatchNowText: {
-        fontSize: scale(14),
-        fontWeight: '700',
-        color: '#141416',
-    },
     castRow: {
         flexDirection: 'row',
         alignItems: 'flex-start',
@@ -448,34 +402,6 @@ const styles = StyleSheet.create({
         marginBottom: xdHeight(18),
     },
 
-    // ── Season tabs ───────────────────────────────────────────
-    seasonsScroll: {
-        marginBottom: xdHeight(22),
-    },
-    seasonsContent: {
-        paddingHorizontal: xdWidth(40),
-        gap: xdWidth(10),
-    },
-    seasonTab: {
-        paddingHorizontal: xdWidth(22),
-        paddingVertical: xdHeight(9),
-        borderRadius: scale(10),
-        backgroundColor: 'rgba(255,255,255,0.06)',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
-    },
-    seasonTabActive: {
-        backgroundColor: Colors.gray[100],
-        borderColor: Colors.gray[100],
-    },
-    seasonTabText: {
-        fontSize: scale(13),
-        fontWeight: '600',
-        color: Colors.gray[400],
-    },
-    seasonTabTextActive: {
-        color: '#141416',
-    },
 
     // ── Episodes ──────────────────────────────────────────────
     episodesHeader: {
@@ -491,77 +417,11 @@ const styles = StyleSheet.create({
         marginHorizontal: xdWidth(40),
         marginBottom: xdHeight(4),
     },
-    episodeRow: {
-        flexDirection: 'row',
-        gap: xdWidth(18),
+    seasonsScroll: {
+        marginBottom: xdHeight(22),
+    },
+    seasonsContent: {
         paddingHorizontal: xdWidth(40),
-        paddingVertical: xdHeight(12),
-    },
-
-    // Thumbnail
-    thumbWrapper: {
-        position: 'relative',
-        borderRadius: scale(10),
-        overflow: 'hidden',
-        width: xdWidth(178),
-        height: xdHeight(100),
-        backgroundColor: Colors.dark[8],
-    },
-    epNumBadge: {
-        position: 'absolute',
-        top: xdHeight(6),
-        left: xdWidth(8),
-        zIndex: 2,
-        width: scale(22),
-        height: scale(22),
-        borderRadius: scale(11),
-        backgroundColor: '#3B82F6',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    epNumText: {
-        fontSize: scale(11),
-        fontWeight: '700',
-        color: '#fff',
-    },
-    thumb: {
-        width: '100%',
-        height: '100%',
-    },
-    progressBg: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: xdHeight(4),
-        backgroundColor: 'rgba(255,255,255,0.2)',
-    },
-    progressFill: {
-        height: '100%',
-        backgroundColor: '#E0334C',
-    },
-
-    // Episode info
-    epInfo: {
-        flex: 1,
-        justifyContent: 'center',
-        paddingVertical: xdHeight(4),
-    },
-    epTitle: {
-        fontSize: scale(15),
-        fontWeight: '700',
-        color: Colors.gray[100],
-        marginBottom: xdHeight(5),
-    },
-    epDesc: {
-        fontSize: scale(12),
-        color: Colors.gray[400],
-        lineHeight: scale(18),
-        marginBottom: xdHeight(6),
-    },
-    epDuration: {
-        fontSize: scale(12),
-        color: Colors.gray[500],
-        fontWeight: '500',
+        gap: xdWidth(10),
     },
 });

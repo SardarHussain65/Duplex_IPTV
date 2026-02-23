@@ -5,6 +5,7 @@
  * ─────────────────────────────────────────────────────────────
  */
 
+import { NavButton } from '@/components/ui/buttons/NavButton';
 import { NavIconButton } from '@/components/ui/buttons/NavIconButton';
 import { Colors } from '@/constants';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
@@ -17,8 +18,7 @@ import {
     ScrollView,
     StyleSheet,
     Text,
-    TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 
 // ── Mock cast data ─────────────────────────────────────────────
@@ -49,6 +49,7 @@ export default function MovieDetailScreen() {
 
     const [isFavorite, setIsFavorite] = useState(false);
     const [isLocked, setIsLocked] = useState(false);
+    const { setParentalModalVisible } = useTab();
 
     useEffect(() => {
         return () => setIsScrolled(false);
@@ -128,9 +129,8 @@ export default function MovieDetailScreen() {
 
                         {/* Action buttons */}
                         <View style={styles.actionRow}>
-                            <TouchableOpacity
-                                style={styles.btnWatchNow}
-                                activeOpacity={0.8}
+                            <NavButton
+                                icon={<MaterialCommunityIcons name="play" size={scale(18)} />}
                                 onPress={() =>
                                     router.push({
                                         pathname: '/VideoPlayerScreen',
@@ -144,9 +144,8 @@ export default function MovieDetailScreen() {
                                     })
                                 }
                             >
-                                <MaterialCommunityIcons name="play" size={scale(18)} color="#141416" />
-                                <Text style={styles.btnWatchNowText}>Watch now</Text>
-                            </TouchableOpacity>
+                                Watch now
+                            </NavButton>
 
                             <NavIconButton
                                 icon={
@@ -169,7 +168,7 @@ export default function MovieDetailScreen() {
                                     />
                                 }
                                 isActive={isLocked}
-                                onPress={() => setIsLocked((v) => !v)}
+                                onPress={() => setParentalModalVisible(true)}
                             />
                         </View>
 
@@ -293,20 +292,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: xdWidth(12),
         marginBottom: xdHeight(22),
-    },
-    btnWatchNow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: xdWidth(8),
-        backgroundColor: Colors.gray[100],
-        paddingVertical: xdHeight(10),
-        paddingHorizontal: xdWidth(26),
-        borderRadius: scale(100),
-    },
-    btnWatchNowText: {
-        fontSize: scale(14),
-        fontWeight: '700',
-        color: '#141416',
     },
 
     // Cast

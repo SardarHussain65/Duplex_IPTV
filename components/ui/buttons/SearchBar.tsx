@@ -51,7 +51,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     };
 
     return (
-        <View style={[containerStyle, style]} testID={testID} focusable={true}>
+        <View style={[containerStyle, style]} testID={testID}>
             <Ionicons
                 name="search"
                 size={20}
@@ -66,13 +66,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                 placeholder={placeholder}
                 placeholderTextColor={isFocused ? Colors.dark[1] : Colors.dark[3]}
                 style={inputStyle}
-                tvParallaxProperties={{
-                    enabled: true,
-                    shiftDistanceX: 2,
-                    shiftDistanceY: 2,
-                    tiltAngle: 0.05,
-                    magnification: 1.02,
-                }}
+                hasTVPreferredFocus
             />
         </View>
     );

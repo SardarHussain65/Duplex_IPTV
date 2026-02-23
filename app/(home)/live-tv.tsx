@@ -5,9 +5,8 @@
  * ─────────────────────────────────────────────────────────────
  */
 
-import { SearchBar } from '@/components/ui';
+import { BackdropCard, EmptyState, SearchBar } from '@/components/ui';
 import { CategoryButton } from '@/components/ui/buttons/CategoryButton';
-import { BackdropCard } from '@/components/ui/cards';
 import { Colors } from '@/constants';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useTab } from '@/context/TabContext';
@@ -63,7 +62,7 @@ export default function LiveTVScreen() {
 
     useEffect(() => {
         return () => setIsScrolled(false);
-    }, []);
+    }, [setIsScrolled]);
 
     const filteredChannels = useMemo(() => {
         let result = MOCK_CHANNELS;
@@ -172,12 +171,11 @@ export default function LiveTVScreen() {
                     ))}
                 </View>
             ) : (
-                <View style={styles.emptyState}>
-                    <Text style={styles.emptyTitle}>No channels found</Text>
-                    <Text style={styles.emptySubtitle}>
-                        Try a different category or search term.
-                    </Text>
-                </View>
+                <EmptyState
+                    icon="television"
+                    title="No Live TV Found"
+                    subtitle="On this categories we can't find any live tv. Try another category"
+                />
             )}
         </ScrollView>
     );
@@ -206,7 +204,4 @@ const styles = StyleSheet.create({
     channelCount: { fontSize: scale(13), color: Colors.gray[400], marginBottom: xdHeight(16) },
     grid: { flexDirection: 'row', flexWrap: 'wrap', gap: xdWidth(18) },
     cardSpacing: { marginRight: xdWidth(16), marginBottom: xdHeight(16) },
-    emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: xdHeight(60) },
-    emptyTitle: { fontSize: scale(18), fontWeight: '700', color: Colors.gray[300], marginBottom: xdHeight(8) },
-    emptySubtitle: { fontSize: scale(14), color: Colors.gray[500] },
 });
