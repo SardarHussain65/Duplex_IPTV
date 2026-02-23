@@ -54,11 +54,7 @@ const bannerStyles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
     },
-    accentBar: {
-        width: 4,
-        alignSelf: "stretch",
-        backgroundColor: Colors.primary[800],
-    },
+
     textBlock: {
         flex: 1,
     },
@@ -93,7 +89,7 @@ const ActivationScreen = () => {
                 />
 
                 {/* Title */}
-                <Text style={[styles.title, { fontSize: s(20), marginBottom: s(6) }]} onPress={() => router.push("/(auth)/deviceVerification")}>
+                <Text style={[styles.title, { fontSize: s(20), marginBottom: s(6) }]} onPress={() => router.push("/(home)")}>
                     Device Activation
                 </Text>
 
@@ -218,21 +214,12 @@ const styles = StyleSheet.create({
         alignSelf: "stretch",
         backgroundColor: Colors.dark[8],
     },
-    horizontalDivider: {
-        width: "100%",
-        height: 1,
-        backgroundColor: Colors.dark[8],
-    },
+
     qrSection: {
         alignItems: "center",
         justifyContent: "center",
     },
-    qrPlaceholder: {
-        backgroundColor: Colors.dark[3],
-        padding: 8,
-        alignItems: "center",
-        justifyContent: "center",
-    },
+
     qrText: {
         color: Colors.dark[3],
     },
@@ -252,25 +239,7 @@ const styles = StyleSheet.create({
     },
     statusText: {
         color: Colors.dark[3],
-    },
-    bottomIndicator: {
-        position: "absolute",
-        bottom: 16,
-        alignItems: "center",
-    },
-    dot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        backgroundColor: Colors.dark[3],
-        marginBottom: 6,
-    },
-    line: {
-        width: 2,
-        height: 32,
-        backgroundColor: Colors.dark[3],
-        opacity: 0.4,
-    },
+    }
 });
 
 export default ActivationScreen;

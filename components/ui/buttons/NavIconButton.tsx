@@ -2,31 +2,38 @@
  * ─────────────────────────────────────────────────────────────
  *  DUPLEX IPTV — Nav Icon Button Component
  *  Icon-only button (circular/square) for navigation
- *  States: Default, Focused, Pressed
+ *  States: Default, Focused, Pressed, Active
  * ─────────────────────────────────────────────────────────────
  */
 
 import { Colors } from '@/constants';
+import { scale } from '@/constants/scaling';
 import React from 'react';
-import { Animated, Pressable, View, ViewStyle } from 'react-native';
+import { Animated, Pressable, ViewStyle } from 'react-native';
 import { useButtonState } from './useButtonState';
 
 export interface NavIconButtonProps {
     icon: React.ReactNode;
+    isActive?: boolean;
     disabled?: boolean;
     onPress?: () => void;
     onLongPress?: () => void;
     style?: ViewStyle;
+    activeBackgroundColor?: string;
     testID?: string;
+    hasTVPreferredFocus?: boolean;
 }
 
 export const NavIconButton: React.FC<NavIconButtonProps> = ({
     icon,
+    isActive = false,
     disabled = false,
     onPress,
     onLongPress,
     style,
+    activeBackgroundColor,
     testID,
+    hasTVPreferredFocus = false,
 }) => {
     const {
         state,
@@ -37,18 +44,23 @@ export const NavIconButton: React.FC<NavIconButtonProps> = ({
         handlePressOut,
         handlePress,
         handleLongPress,
-    } = useButtonState({ disabled, onPress, onLongPress });
+    } = useButtonState({ isActive, disabled, onPress, onLongPress });
 
     const getButtonStyle = (): ViewStyle => {
         const baseStyle: ViewStyle = {
-            width: 48,
-            height: 48,
-            borderRadius: 24,
+            width: scale(40),
+            height: scale(40),
+            borderRadius: scale(20),
             justifyContent: 'center',
             alignItems: 'center',
         };
 
         switch (state) {
+            case 'active':
+                return {
+                    ...baseStyle,
+                    backgroundColor: activeBackgroundColor ?? Colors.primaryBlue[950], // Blue fill when tab is active
+                };
             case 'focused':
                 return {
                     ...baseStyle,
@@ -74,6 +86,19 @@ export const NavIconButton: React.FC<NavIconButtonProps> = ({
         }
     };
 
+    const getIconColor = (): string => {
+        switch (state) {
+            case 'active':
+                return Colors.dark[1]; // Dark icon on green background
+            case 'focused':
+                return Colors.dark[1]; // White icon
+            case 'pressed':
+                return Colors.dark[1]; // Dimmed
+            default:
+                return Colors.dark[2]; // Light gray
+        }
+    };
+
     return (
         <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
             <Pressable
@@ -86,8 +111,8 @@ export const NavIconButton: React.FC<NavIconButtonProps> = ({
                 disabled={disabled}
                 style={[getButtonStyle(), style]}
                 testID={testID}
-                hasTVPreferredFocus={false}
-                focusable={true}
+                hasTVPreferredFocus={hasTVPreferredFocus}
+                focusable={!disabled}
                 tvParallaxProperties={{
                     enabled: true,
                     shiftDistanceX: 2,
@@ -96,7 +121,11 @@ export const NavIconButton: React.FC<NavIconButtonProps> = ({
                     magnification: 1.05,
                 }}
             >
-                <View>{icon}</View>
+                {React.isValidElement(icon)
+                    ? React.cloneElement(icon as React.ReactElement<any>, {
+                        color: getIconColor(),
+                    })
+                    : icon}
             </Pressable>
         </Animated.View>
     );

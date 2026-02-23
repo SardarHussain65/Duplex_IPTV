@@ -1,5 +1,4 @@
 import { Image } from "expo-image";
-import { router } from "expo-router";
 import React, { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { PlaylistButton } from "../../components/PlaylistButton";
@@ -39,7 +38,7 @@ const SelectPlaylistScreen = () => {
                 </Text>
 
                 {/* Subtitle */}
-                <Text style={[styles.subtitle, { fontSize: s(14), marginBottom: s(50) }]} onPress={() => { router.push("/(auth)/test") }}>
+                <Text style={[styles.subtitle, { fontSize: s(14), marginBottom: s(50) }]}>
                     Choose the type of playlist you want to use
                 </Text>
 

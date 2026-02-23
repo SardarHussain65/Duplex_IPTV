@@ -191,10 +191,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginTop: s(12),
     },
-    errorText: {
-        color: Colors.error[400],
-        textAlign: "center",
-    },
     button: {
         backgroundColor: Colors.dark[1],
         width: "100%",
