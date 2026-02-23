@@ -47,6 +47,8 @@ export const ActionFilledButton: React.FC<ActionFilledButtonProps> = ({
             minWidth: 100,
             alignItems: 'center',
             justifyContent: 'center',
+            borderWidth: 2,
+            borderColor: 'transparent',
         };
 
         switch (state) {
@@ -54,7 +56,6 @@ export const ActionFilledButton: React.FC<ActionFilledButtonProps> = ({
                 return {
                     ...baseStyle,
                     backgroundColor: Colors.dark[1],
-                    borderWidth: 2,
                     borderColor: Colors.dark[7], // White/Very light border
                 };
             case 'pressed':

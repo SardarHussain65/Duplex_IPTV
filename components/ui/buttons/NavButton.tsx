@@ -54,7 +54,9 @@ export const NavButton: React.FC<NavButtonProps> = ({
             paddingVertical: xdHeight(8),
             paddingHorizontal: xdWidth(12),
             borderRadius: scale(20),
-            minWidth: xdWidth(90)
+            minWidth: xdWidth(90),
+            borderWidth: 2,
+            borderColor: 'transparent',
         };
 
         switch (state) {
@@ -62,13 +64,11 @@ export const NavButton: React.FC<NavButtonProps> = ({
                 return {
                     ...baseStyle,
                     backgroundColor: Colors.primaryBlue[950],
-                    borderWidth: 0,
                 };
             case 'focused':
                 return {
                     ...baseStyle,
                     backgroundColor: Colors.dark[8], // Gray background
-                    borderWidth: 2,
                     borderColor: Colors.gray[700], // Subtle border
                     shadowColor: '#ffffff80',
                     shadowOffset: { width: 0, height: 2 },
@@ -80,13 +80,11 @@ export const NavButton: React.FC<NavButtonProps> = ({
                 return {
                     ...baseStyle,
                     backgroundColor: Colors.dark[12], // Darker
-                    borderWidth: 0,
                 };
             default:
                 return {
                     ...baseStyle,
                     backgroundColor: Colors.dark[9], // Dark gray
-                    borderWidth: 0,
                 };
         }
     };

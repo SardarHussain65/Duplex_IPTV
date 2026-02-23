@@ -52,6 +52,7 @@ export default function MovieDetailScreen() {
     const { setParentalModalVisible } = useTab();
 
     useEffect(() => {
+        setIsScrolled(false);
         return () => setIsScrolled(false);
     }, []);
 

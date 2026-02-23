@@ -85,6 +85,7 @@ export default function SeriesDetailScreen() {
     const [activeSeason, setActiveSeason] = useState(0);
 
     useEffect(() => {
+        setIsScrolled(false);
         return () => setIsScrolled(false);
     }, []);
 

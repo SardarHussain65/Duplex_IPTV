@@ -53,6 +53,8 @@ export const NavIconButton: React.FC<NavIconButtonProps> = ({
             borderRadius: scale(20),
             justifyContent: 'center',
             alignItems: 'center',
+            borderWidth: 2,
+            borderColor: 'transparent',
         };
 
         switch (state) {
@@ -65,7 +67,6 @@ export const NavIconButton: React.FC<NavIconButtonProps> = ({
                 return {
                     ...baseStyle,
                     backgroundColor: Colors.dark[8],
-                    borderWidth: 2,
                     borderColor: Colors.gray[700],
                     shadowColor: '#ffffff50',
                     shadowOffset: { width: 0, height: 0 },
