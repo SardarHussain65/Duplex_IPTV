@@ -23,6 +23,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 // ── Types ──────────────────────────────────────────────────────
 type Series = {
@@ -158,8 +159,25 @@ export default function SeriesScreen() {
                     style={styles.heroBg}
                     contentFit="cover"
                 />
+
+                <Svg style={StyleSheet.absoluteFillObject}>
+                    <Defs>
+                        <LinearGradient id="leftGrad" x1="0" y1="0" x2="1" y2="0">
+                            <Stop offset="0" stopColor="#141416" stopOpacity="1" />
+                            <Stop offset="0.55" stopColor="#141416" stopOpacity="0.7" />
+                            <Stop offset="1" stopColor="#141416" stopOpacity="0" />
+                        </LinearGradient>
+                        <LinearGradient id="bottomGrad" x1="0" y1="0" x2="0" y2="1">
+                            <Stop offset="0" stopColor="#141416" stopOpacity="0" />
+                            <Stop offset="0.6" stopColor="#141416" stopOpacity="0.75" />
+                            <Stop offset="1" stopColor="#141416" stopOpacity="1" />
+                        </LinearGradient>
+                    </Defs>
+                    <Rect x="0" y="0" width="100%" height="100%" fill="url(#leftGrad)" />
+                    <Rect x="0" y="0" width="100%" height="100%" fill="url(#bottomGrad)" />
+                </Svg>
+
                 {/* Dark gradient overlay */}
-                <View style={styles.heroOverlay} />
 
                 {/* Text content */}
                 <View style={styles.heroContent}>

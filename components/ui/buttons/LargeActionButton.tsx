@@ -52,6 +52,8 @@ export const LargeActionButton: React.FC<LargeActionButtonProps> = ({
             borderRadius: 12,
             minWidth: 200,
             minHeight: 64,
+            borderWidth: 2,
+            borderColor: 'transparent',
         };
 
         switch (state) {
@@ -59,7 +61,6 @@ export const LargeActionButton: React.FC<LargeActionButtonProps> = ({
                 return {
                     ...baseStyle,
                     backgroundColor: Colors.primary[900],
-                    borderWidth: 2,
                     borderColor: Colors.dark[1], // White border
                 };
             case 'pressed':

@@ -6,6 +6,7 @@
  */
 
 import { NavIconButton } from '@/components/ui';
+import { SettingCard } from '@/components/ui/buttons/SettingCard';
 import { EpisodeCard } from '@/components/ui/cards/EpisodeCard';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useTab } from '@/context/TabContext';
@@ -18,8 +19,7 @@ import {
     ScrollView,
     StyleSheet,
     Text,
-    TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 
 // ── Types ──────────────────────────────────────────────────────
@@ -267,57 +267,58 @@ export default function VideoPlayerScreen() {
                                 <View style={styles.panelDivider} />
 
                                 {settingsPanel === 'main' && (
-                                    <>
-                                        <TouchableOpacity style={[styles.panelRow, styles.panelRowActive]} onPress={() => setSettingsPanel('caption')}>
-                                            <View style={styles.panelRowLeft}>
-                                                <MaterialCommunityIcons name="closed-caption-outline" size={scale(20)} color="#fff" />
-                                                <View style={styles.panelRowText}>
-                                                    <Text style={styles.panelRowTitle}>Caption</Text>
-                                                    <Text style={styles.panelRowSub}>{selectedCaption}</Text>
-                                                </View>
-                                            </View>
-                                            <MaterialCommunityIcons name="chevron-right" size={scale(20)} color="#888" />
-                                        </TouchableOpacity>
-
-                                        <TouchableOpacity style={styles.panelRow} onPress={() => setSettingsPanel('language')}>
-                                            <View style={styles.panelRowLeft}>
-                                                <MaterialCommunityIcons name="translate" size={scale(20)} color="#ccc" />
-                                                <View style={styles.panelRowText}>
-                                                    <Text style={styles.panelRowTitle}>Language</Text>
-                                                    <Text style={styles.panelRowSub}>Not Available</Text>
-                                                </View>
-                                            </View>
-                                            <MaterialCommunityIcons name="chevron-right" size={scale(20)} color="#888" />
-                                        </TouchableOpacity>
-                                    </>
+                                    <View style={styles.settingsList}>
+                                        <SettingCard
+                                            icon={<MaterialCommunityIcons name="closed-caption-outline" size={scale(22)} color="#fff" />}
+                                            title="Caption"
+                                            subtitle={selectedCaption}
+                                            onPress={() => setSettingsPanel('caption')}
+                                        />
+                                        <SettingCard
+                                            icon={<MaterialCommunityIcons name="translate" size={scale(22)} color="#ccc" />}
+                                            title="Language"
+                                            subtitle="Not Available"
+                                            onPress={() => setSettingsPanel('language')}
+                                        />
+                                    </View>
                                 )}
 
                                 {settingsPanel === 'caption' && (
-                                    <View>
+                                    <View style={styles.settingsList}>
                                         {['Off', 'English', 'Hindi'].map((opt) => (
-                                            <TouchableOpacity
+                                            <SettingCard
                                                 key={opt}
-                                                style={[styles.optionRow, selectedCaption === opt && styles.optionRowActive]}
+                                                icon={
+                                                    <MaterialCommunityIcons
+                                                        name={selectedCaption === opt ? 'check-circle' : 'circle-outline'}
+                                                        size={scale(22)}
+                                                        color={selectedCaption === opt ? '#fff' : '#666'}
+                                                    />
+                                                }
+                                                title={opt}
+                                                subtitle={selectedCaption === opt ? 'Selected' : ''}
                                                 onPress={() => { setSelectedCaption(opt); setSettingsPanel('main'); }}
-                                            >
-                                                <Text style={[styles.optionText, selectedCaption === opt && styles.optionTextActive]}>{opt}</Text>
-                                                {selectedCaption === opt && <MaterialCommunityIcons name="check" size={scale(16)} color="#fff" />}
-                                            </TouchableOpacity>
+                                            />
                                         ))}
                                     </View>
                                 )}
 
                                 {settingsPanel === 'language' && (
-                                    <View>
+                                    <View style={styles.settingsList}>
                                         {['English', 'German', 'Hindi'].map((opt) => (
-                                            <TouchableOpacity
+                                            <SettingCard
                                                 key={opt}
-                                                style={[styles.optionRow, selectedLanguage === opt && styles.optionRowActive]}
+                                                icon={
+                                                    <MaterialCommunityIcons
+                                                        name={selectedLanguage === opt ? 'check-circle' : 'circle-outline'}
+                                                        size={scale(22)}
+                                                        color={selectedLanguage === opt ? '#fff' : '#666'}
+                                                    />
+                                                }
+                                                title={opt}
+                                                subtitle={selectedLanguage === opt ? 'Selected' : ''}
                                                 onPress={() => { setSelectedLanguage(opt); setSettingsPanel('main'); }}
-                                            >
-                                                <Text style={[styles.optionText, selectedLanguage === opt && styles.optionTextActive]}>{opt}</Text>
-                                                {selectedLanguage === opt && <MaterialCommunityIcons name="check" size={scale(16)} color="#fff" />}
-                                            </TouchableOpacity>
+                                            />
                                         ))}
                                     </View>
                                 )}
@@ -473,55 +474,8 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255,255,255,0.1)',
         marginBottom: 16,
     },
-    panelRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        borderRadius: 12,
-        marginBottom: 8,
-    },
-    panelRowActive: {
-        backgroundColor: 'rgba(255,255,255,0.1)',
-    },
-    panelRowLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    panelRowText: {
-        gap: 2,
-    },
-    panelRowTitle: {
-        fontSize: scale(13),
-        fontWeight: '600',
-        color: '#fff',
-    },
-    panelRowSub: {
-        fontSize: scale(11),
-        color: '#888',
-    },
-
-    // Options
-    optionRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: 14,
-        paddingHorizontal: 16,
-        borderRadius: 12,
-    },
-    optionRowActive: {
-        backgroundColor: 'rgba(255,255,255,0.1)',
-    },
-    optionText: {
-        fontSize: scale(13),
-        color: '#888',
-    },
-    optionTextActive: {
-        color: '#fff',
-        fontWeight: 'bold',
+    settingsList: {
+        gap: 10,
     },
 
     epRowActive: {

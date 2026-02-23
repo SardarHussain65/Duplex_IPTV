@@ -49,6 +49,8 @@ export const CategoryButton: React.FC<CategoryButtonProps> = ({
             minWidth: 80,
             alignItems: 'center',
             justifyContent: 'center',
+            borderWidth: 2,
+            borderColor: 'transparent',
         };
 
         switch (state) {
@@ -61,7 +63,6 @@ export const CategoryButton: React.FC<CategoryButtonProps> = ({
                 return {
                     ...baseStyle,
                     backgroundColor: Colors.dark[8],
-                    borderWidth: 2,
                     borderColor: Colors.gray[700], // Subtle border
                     shadowColor: '#ffffff40',
                     shadowOffset: { width: 0, height: 2 },

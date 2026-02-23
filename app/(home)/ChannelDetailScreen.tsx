@@ -5,14 +5,14 @@
  */
 
 import { NavIconButton } from '@/components/ui/buttons/NavIconButton';
-import { PreviewCard } from '@/components/ui/cards';
 import { Colors } from '@/constants';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useTab } from '@/context/TabContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { ResizeMode, Video } from 'expo-av';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     ScrollView,
     StyleSheet,
@@ -20,6 +20,10 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+
+// ── Dummy live stream URL (public domain) ─────────────────────
+const DUMMY_VIDEO_URI =
+    'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -69,6 +73,125 @@ const generateEPG = (channelName: string): EPGSlot[] => [
     },
 ];
 
+// ── VideoPreviewCard ───────────────────────────────────────────
+
+interface VideoPreviewCardProps {
+    title: string;
+    channelName: string;
+    channelImage: string;
+    date: string;
+    episode: string;
+    timeLeft: string;
+    onExpandPress: () => void;
+}
+
+const VideoPreviewCard: React.FC<VideoPreviewCardProps> = ({
+    title,
+    channelImage,
+    onExpandPress,
+}) => {
+    const videoRef = useRef<Video>(null);
+
+    return (
+        <View style={cardStyles.card}>
+
+            {/* ── Inline Video fills the card ── */}
+            <Video
+                ref={videoRef}
+                source={{ uri: DUMMY_VIDEO_URI }}
+                style={StyleSheet.absoluteFill}
+                resizeMode={ResizeMode.COVER}
+                shouldPlay
+                isLooping
+                isMuted
+                useNativeControls={false}
+            />
+
+            {/* Dark vignette so text is readable */}
+            <View style={cardStyles.vignette} />
+
+            {/* Title top-left */}
+            <Text style={cardStyles.title} numberOfLines={1}>
+                {title}
+            </Text>
+
+            {/* Live badge bottom-left */}
+            <View style={cardStyles.liveBadge}>
+                <View style={cardStyles.liveDot} />
+                <Text style={cardStyles.liveText}>Live</Text>
+            </View>
+
+            {/* Expand button bottom-right — navigates to VideoPlayerScreen */}
+            <View style={cardStyles.expandBtn}>
+                <NavIconButton
+                    icon={
+                        <MaterialCommunityIcons
+                            name="arrow-expand-all"
+                            size={scale(18)}
+                            color="#fff"
+                        />
+                    }
+                    onPress={onExpandPress}
+                />
+            </View>
+        </View>
+    );
+};
+
+// ── Card styles ────────────────────────────────────────────────
+
+const cardStyles = StyleSheet.create({
+    card: {
+        width: xdWidth(390),
+        height: xdHeight(220),
+        borderRadius: scale(18),
+        overflow: 'hidden',
+        position: 'relative',
+        backgroundColor: '#111',
+    },
+    vignette: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.2)',
+    },
+    title: {
+        position: 'absolute',
+        top: xdHeight(14),
+        left: xdWidth(16),
+        right: xdWidth(60),
+        fontSize: scale(13),
+        fontWeight: '600',
+        color: '#fff',
+    },
+    liveBadge: {
+        position: 'absolute',
+        bottom: xdHeight(16),
+        left: xdWidth(16),
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: xdWidth(6),
+        backgroundColor: 'rgba(0,0,0,0.55)',
+        paddingHorizontal: xdWidth(10),
+        paddingVertical: xdHeight(4),
+        borderRadius: scale(20),
+    },
+    liveDot: {
+        width: scale(8),
+        height: scale(8),
+        borderRadius: scale(4),
+        backgroundColor: '#E0334C',
+    },
+    liveText: {
+        fontSize: scale(12),
+        fontWeight: '600',
+        color: '#fff',
+    },
+    expandBtn: {
+        position: 'absolute',
+        bottom: xdHeight(10),
+        right: xdWidth(12),
+    },
+});
+
 // ── Screen ────────────────────────────────────────────────────
 
 export default function ChannelDetailScreen() {
@@ -82,11 +205,15 @@ export default function ChannelDetailScreen() {
 
     const [isFavorite, setIsFavorite] = useState(false);
     const [isLocked, setIsLocked] = useState(false);
-    const { setParentalModalVisible } = useTab();
+    const { setIsScrolled, setParentalModalVisible } = useTab();
 
-    const channelName = params.name ?? 'Channel';
+    useEffect(() => {
+        setIsScrolled(false);
+        return () => setIsScrolled(false);
+    }, []);
+
+    const channelName = params.name ?? 'SalinTV';
     const channelImage = params.image ?? '';
-    const channelCategory = params.category ?? 'General';
 
     const epgSlots = generateEPG(channelName);
     const liveSlot = epgSlots.find((s) => s.isLive);
@@ -99,6 +226,19 @@ export default function ChannelDetailScreen() {
         episode: 'E20',
         timeLeft: '1h 20m',
         progress: 0.35,
+    };
+
+    const handleExpand = () => {
+        router.push({
+            pathname: '/VideoPlayerScreen',
+            params: {
+                title: programme.showTitle,
+                genre: channelName,
+                year: programme.date,
+                duration: programme.timeLeft,
+                image: channelImage,
+            },
+        });
     };
 
     return (
@@ -117,12 +257,15 @@ export default function ChannelDetailScreen() {
                 {/* Dark overlay on top of bg */}
                 <View style={styles.topBgOverlay} />
 
-                {/* Left: Preview Card */}
-                <PreviewCard
+                {/* Left: Video Preview Card */}
+                <VideoPreviewCard
                     title={programme.showTitle}
-                    logo={channelImage}
                     channelName={channelName}
-                    isLoading={false}
+                    channelImage={channelImage}
+                    date={programme.date}
+                    episode={programme.episode}
+                    timeLeft={programme.timeLeft}
+                    onExpandPress={handleExpand}
                 />
 
                 {/* Right: Info Panel */}
@@ -145,13 +288,13 @@ export default function ChannelDetailScreen() {
 
                     <View style={styles.actionRow}>
                         <NavIconButton
-                            icon={<MaterialCommunityIcons name={isFavorite ? 'heart' : 'heart-outline'} size={scale(20)} />}
+                            icon={<MaterialCommunityIcons name={isFavorite ? 'heart' : 'heart-outline'} size={scale(20)} color={isFavorite ? '#E0334C' : Colors.gray[300]} />}
                             isActive={isFavorite}
                             activeBackgroundColor="#E0334C"
                             onPress={() => setIsFavorite(v => !v)}
                         />
                         <NavIconButton
-                            icon={<MaterialCommunityIcons name={isLocked ? 'lock' : 'lock-open-outline'} size={scale(20)} />}
+                            icon={<MaterialCommunityIcons name={isLocked ? 'lock' : 'lock-open-outline'} size={scale(20)} color={Colors.gray[300]} />}
                             isActive={isLocked}
                             onPress={() => setParentalModalVisible(true)}
                         />
@@ -161,9 +304,7 @@ export default function ChannelDetailScreen() {
 
             {/* ── EPG Section ── */}
             <View style={styles.epgSection}>
-                {/* EPG Filter */}
                 <View style={styles.epgHeader}>
-
                     <View style={styles.timeMarkersRow}>
                         {['1:30', '2:00', '2:30'].map((t) => (
                             <Text key={t} style={styles.timeMarker}>
@@ -246,17 +387,16 @@ const styles = StyleSheet.create({
     screen: {
         flex: 1,
         backgroundColor: '#141416',
-
     },
 
     // ── Top section ──────────────────────────────────────────
     topSection: {
-        flex: 0.68,          // occupies ~55% of the screen vertically
+        flex: 0.68,
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: xdWidth(32),
         paddingVertical: xdHeight(80),
-        overflow: 'hidden',  // clip the bg image
+        overflow: 'hidden',
         position: 'relative',
     },
     topBgImage: {
@@ -274,7 +414,6 @@ const styles = StyleSheet.create({
         right: 0,
         bottom: 0,
         backgroundColor: 'rgba(20,20,22,0.55)',
-
     },
 
     // Right info panel
@@ -282,22 +421,6 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingLeft: xdWidth(40),
         justifyContent: 'center',
-    },
-    zBadge: {
-        position: 'absolute',
-        top: xdHeight(24),
-        right: xdWidth(32),
-        width: scale(36),
-        height: scale(36),
-        borderRadius: scale(18),
-        backgroundColor: '#58419C',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    zBadgeText: {
-        color: '#fff',
-        fontSize: scale(16),
-        fontWeight: '700',
     },
     metaRow: {
         flexDirection: 'row',
@@ -348,29 +471,11 @@ const styles = StyleSheet.create({
         paddingVertical: xdHeight(4),
         marginVertical: xdHeight(6),
     },
-    epgFilterBtn: {
-        borderRadius: scale(8),
-        paddingHorizontal: xdWidth(20),
-        backgroundColor: 'transparent', // Overridden in Active state
-    },
-    epgHBadge: {
-        width: scale(40),
-        height: scale(40),
-        borderRadius: scale(20),
-        backgroundColor: '#274B2A',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginLeft: xdWidth(20),
-    },
-    epgHText: {
-        color: '#fff',
-        fontSize: scale(18),
-        fontWeight: '700',
-    },
     timeMarkersRow: {
         flexDirection: 'row',
         paddingHorizontal: xdWidth(40),
         gap: xdWidth(300),
+        flex: 1,
     },
     timeMarker: {
         fontSize: scale(14),
@@ -389,7 +494,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-
     epgRow: {
         flexDirection: 'row',
         alignItems: 'center',
