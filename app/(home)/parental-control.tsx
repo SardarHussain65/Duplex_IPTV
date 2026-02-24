@@ -6,7 +6,7 @@ import { useTab } from '@/context/TabContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { FlatList, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -90,6 +90,31 @@ export default function ParentalControlScreen() {
         setIsScrolled(offsetY > xdHeight(60));
     };
 
+    const posterColumns = 5;
+    const backdropColumns = 4;
+    const numColumns = activeSubTab === 'Live TV' ? backdropColumns : posterColumns;
+
+    const renderItem = ({ item }: { item: LockedItem }) => (
+        activeSubTab === 'Live TV' ? (
+            <BackdropCard
+                key={item.id}
+                title={item.title}
+                image={item.image}
+                style={styles.cardSpacing}
+                onPress={() => handlePress(item)}
+            />
+        ) : (
+            <PosterCard
+                key={item.id}
+                title={item.title}
+                subtitle={item.subtitle}
+                image={item.image}
+                style={styles.cardSpacing}
+                onPress={() => handlePress(item)}
+            />
+        )
+    );
+
     const renderCategoryLabel = (cat: ParentalType) => (
         <Text>
             {cat}
@@ -132,37 +157,24 @@ export default function ParentalControlScreen() {
                     ))}
                 </View>
 
-                {filteredItems.length > 0 ? (
-                    <View style={[styles.grid, activeSubTab === 'Live TV' ? styles.landscapeGrid : styles.portraitGrid]}>
-                        {filteredItems.map((item) => (
-                            activeSubTab === 'Live TV' ? (
-                                <BackdropCard
-                                    key={item.id}
-                                    title={item.title}
-                                    image={item.image}
-                                    style={styles.cardSpacing}
-                                    onPress={() => handlePress(item)}
-                                />
-                            ) : (
-                                <PosterCard
-                                    key={item.id}
-                                    title={item.title}
-                                    subtitle={item.subtitle}
-                                    image={item.image}
-                                    style={styles.cardSpacing}
-                                    onPress={() => handlePress(item)}
-                                />
-                            )
-                        ))}
-                    </View>
-                ) : (
-                    <EmptyState
-                        icon="lock-outline"
-                        title="No Content Locked Yet"
-                        subtitle="No content has been restricted under parental control."
-                        style={styles.emptyState}
-                    />
-                )}
+                {/* Content Grid — FlatList nested inside ScrollView (scrollEnabled=false) */}
+                <FlatList
+                    key={`parental-${activeSubTab}-${numColumns}`}
+                    data={filteredItems}
+                    keyExtractor={(item) => item.id}
+                    renderItem={renderItem}
+                    numColumns={numColumns}
+                    columnWrapperStyle={{ gap: xdWidth(activeSubTab === 'Live TV' ? 18 : 20) }}
+                    scrollEnabled={false}
+                    ListEmptyComponent={
+                        <EmptyState
+                            icon="lock-outline"
+                            title="No Content Locked Yet"
+                            subtitle="No content has been restricted under parental control."
+                            style={styles.emptyState}
+                        />
+                    }
+                />
             </ScrollView>
         </View>
     );
@@ -189,13 +201,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
     },
-    landscapeGrid: {
-        gap: xdWidth(18),
-    },
-    portraitGrid: {
-        gap: xdWidth(22),
-    },
     cardSpacing: {
+        marginRight: xdWidth(18),
         marginBottom: xdHeight(16),
     },
     emptyState: {

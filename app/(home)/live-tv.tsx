@@ -13,7 +13,7 @@ import { useTab } from '@/context/TabContext';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { FlatList, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -99,6 +99,16 @@ export default function LiveTVScreen() {
         setIsScrolled(offsetY > xdHeight(60));
     };
 
+    const renderChannel = ({ item }: { item: Channel }) => (
+        <BackdropCard
+            title={item.name}
+            subtitle={item.category}
+            image={{ uri: item.image }}
+            style={styles.cardSpacing}
+            onPress={() => handleChannelPress(item)}
+        />
+    );
+
     return (
         <ScrollView
             style={styles.container}
@@ -157,27 +167,24 @@ export default function LiveTVScreen() {
                 {filteredChannels.length} channel{filteredChannels.length !== 1 ? 's' : ''} found
             </Text>
 
-            {/* Channel Grid */}
-            {filteredChannels.length > 0 ? (
-                <View style={styles.grid}>
-                    {filteredChannels.map((ch) => (
-                        <BackdropCard
-                            key={ch.id}
-                            title={ch.name}
-                            subtitle={ch.category}
-                            image={{ uri: ch.image }}
-                            style={styles.cardSpacing}
-                            onPress={() => handleChannelPress(ch)}
-                        />
-                    ))}
-                </View>
-            ) : (
-                <EmptyState
-                    icon="television"
-                    title="No Live TV Found"
-                    subtitle="On this categories we can't find any live tv. Try another category"
-                />
-            )}
+            {/* Channel Grid — FlatList nested inside ScrollView */}
+            <FlatList
+                key={`livetv-${activeCategory}`}
+                data={filteredChannels}
+                contentContainerStyle={styles.gridContainer}
+                keyExtractor={(item) => item.id}
+                renderItem={renderChannel}
+                numColumns={4}
+                columnWrapperStyle={filteredChannels.length > 1 ? { gap: xdWidth(18) } : null}
+                scrollEnabled={false}
+                ListEmptyComponent={
+                    <EmptyState
+                        icon="television"
+                        title="No Live TV Found"
+                        subtitle="On this categories we can't find any live tv. Try another category"
+                    />
+                }
+            />
         </ScrollView>
     );
 }
@@ -194,6 +201,9 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         backgroundColor: '#141416',
     },
+    gridContainer: {
+        padding: xdWidth(16),
+    },
     heroOverlay: { width: '45%', justifyContent: 'center', paddingHorizontal: xdWidth(40), zIndex: 1 },
     heroImageWrapper: { width: '55%', height: '100%' },
     heroImage: { opacity: 0.6, width: '100%', height: '100%' },
@@ -203,6 +213,6 @@ const styles = StyleSheet.create({
     sectionTitle: { fontSize: scale(18), fontWeight: '700', color: Colors.gray[100], marginBottom: xdHeight(16) },
     categoryRow: { marginBottom: xdHeight(16) },
     channelCount: { fontSize: scale(13), color: Colors.gray[400], marginBottom: xdHeight(16) },
-    grid: { flexDirection: 'row', flexWrap: 'wrap', gap: xdWidth(18) },
-    cardSpacing: { marginRight: xdWidth(16), marginBottom: xdHeight(16) },
+    grid: { flexDirection: 'row', flexWrap: 'wrap' },
+    cardSpacing: { marginRight: xdWidth(18), marginBottom: xdHeight(16) },
 });

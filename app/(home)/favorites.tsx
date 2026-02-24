@@ -6,7 +6,7 @@ import { useTab } from '@/context/TabContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { FlatList, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -114,6 +114,28 @@ export default function FavoritesScreen() {
         setIsScrolled(offsetY > xdHeight(60));
     };
 
+    const posterColumns = 5;
+    const backdropColumns = 4;
+    const numColumns = activeTab === 'Live TV' ? backdropColumns : posterColumns;
+
+    const renderItem = ({ item }: { item: FavoriteItem }) =>
+        activeTab === 'Live TV' ? (
+            <BackdropCard
+                title={item.title}
+                image={item.image}
+                style={styles.cardSpacing}
+                onPress={() => handlePress(item)}
+            />
+        ) : (
+            <PosterCard
+                title={item.title}
+                subtitle={item.subtitle}
+                image={item.image}
+                style={styles.cardSpacing}
+                onPress={() => handlePress(item)}
+            />
+        );
+
     const renderCategoryLabel = (cat: FavoriteType) => {
         return (
             <Text>
@@ -148,38 +170,25 @@ export default function FavoritesScreen() {
                 ))}
             </View>
 
-            {/* Content Grid */}
-            {filteredItems.length > 0 ? (
-                <View style={[styles.grid, activeTab === 'Live TV' ? styles.landscapeGrid : styles.portraitGrid]}>
-                    {filteredItems.map((item) => (
-                        activeTab === 'Live TV' ? (
-                            <BackdropCard
-                                key={item.id}
-                                title={item.title}
-                                image={item.image}
-                                style={styles.cardSpacing}
-                                onPress={() => handlePress(item)}
-                            />
-                        ) : (
-                            <PosterCard
-                                key={item.id}
-                                title={item.title}
-                                subtitle={item.subtitle}
-                                image={item.image}
-                                style={styles.cardSpacing}
-                                onPress={() => handlePress(item)}
-                            />
-                        )
-                    ))}
-                </View>
-            ) : (
-                <EmptyState
-                    icon="heart-outline"
-                    title="No Favorites Yet"
-                    subtitle="You haven't added any to your favorites."
-                    style={styles.emptyState}
-                />
-            )}
+            {/* Content Grid — FlatList nested inside ScrollView (scrollEnabled=false) */}
+            <FlatList
+                key={`fav-${activeTab}-${numColumns}`}
+                data={filteredItems}
+                contentContainerStyle={styles.gridContainer}
+                keyExtractor={(item) => item.id}
+                renderItem={renderItem}
+                numColumns={numColumns}
+                columnWrapperStyle={{ gap: xdWidth(activeTab === 'Live TV' ? 18 : 20) }}
+                scrollEnabled={false}
+                ListEmptyComponent={
+                    <EmptyState
+                        icon="heart-outline"
+                        title="No Favorites Yet"
+                        subtitle="You haven't added any to your favorites."
+                        style={styles.emptyState}
+                    />
+                }
+            />
         </ScrollView>
     );
 }
@@ -190,36 +199,26 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#141416' },
     content: {
         paddingHorizontal: xdWidth(32),
-        paddingTop: xdHeight(90), // Increased to avoid merge with tab bar
+        paddingTop: xdHeight(90),
         paddingBottom: xdHeight(40),
     },
-
     pageTitle: {
         fontSize: scale(22),
         fontWeight: '700',
         color: Colors.gray[100],
         marginBottom: xdHeight(10),
     },
-
+    gridContainer: {
+        padding: xdWidth(16),
+    },
     categoryRow: {
         flexDirection: 'row',
         marginBottom: xdHeight(32),
     },
-
-    grid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-    },
-    landscapeGrid: {
-        gap: xdWidth(18),
-    },
-    portraitGrid: {
-        gap: xdWidth(22),
-    },
     cardSpacing: {
+        marginRight: xdWidth(18),
         marginBottom: xdHeight(16),
     },
-
     emptyState: {
         marginTop: xdHeight(40),
     },
