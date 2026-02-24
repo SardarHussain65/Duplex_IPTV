@@ -17,6 +17,7 @@ import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
+    FlatList,
     ScrollView,
     StyleSheet,
     Text,
@@ -104,6 +105,31 @@ export default function SeriesDetailScreen() {
         const offsetY = event.nativeEvent.contentOffset.y;
         setIsScrolled(offsetY > xdHeight(60));
     };
+
+    const renderEpisodeItem = ({ item }: { item: Episode }) => (
+        <EpisodeCard
+            key={item.id}
+            number={item.number}
+            title={item.title}
+            description={item.description}
+            duration={item.duration}
+            image={item.image}
+            progress={item.progress}
+            onPress={() =>
+                router.push({
+                    pathname: '/VideoPlayerScreen',
+                    params: {
+                        title: item.title,
+                        genre,
+                        year,
+                        duration: item.duration,
+                        image: item.image,
+                        isSeries: 'true',
+                    },
+                })
+            }
+        />
+    );
 
     return (
         <ScrollView
@@ -239,30 +265,14 @@ export default function SeriesDetailScreen() {
             </Text>
             <View style={styles.episodesDivider} />
 
-            {episodes.map((ep) => (
-                <EpisodeCard
-                    key={ep.id}
-                    number={ep.number}
-                    title={ep.title}
-                    description={ep.description}
-                    duration={ep.duration}
-                    image={ep.image}
-                    progress={ep.progress}
-                    onPress={() =>
-                        router.push({
-                            pathname: '/VideoPlayerScreen',
-                            params: {
-                                title: ep.title,
-                                genre,
-                                year,
-                                duration: ep.duration,
-                                image: ep.image,
-                                isSeries: 'true',
-                            },
-                        })
-                    }
-                />
-            ))}
+            <FlatList
+                key={`episodes-s${activeSeason}`}
+                data={episodes}
+                keyExtractor={(item) => item.id}
+                renderItem={renderEpisodeItem}
+                scrollEnabled={false}
+                contentContainerStyle={styles.episodesList}
+            />
         </ScrollView>
     );
 }
@@ -424,5 +434,8 @@ const styles = StyleSheet.create({
     seasonsContent: {
         paddingHorizontal: xdWidth(40),
         gap: xdWidth(10),
+    },
+    episodesList: {
+        paddingBottom: xdHeight(20),
     },
 });

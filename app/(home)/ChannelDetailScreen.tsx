@@ -14,11 +14,11 @@ import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    ScrollView,
+    FlatList,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 
 // ── Dummy live stream URL (public domain) ─────────────────────
@@ -241,6 +241,40 @@ export default function ChannelDetailScreen() {
         });
     };
 
+    const renderEPGSlot = ({ item: slot }: { item: EPGSlot }) => (
+        <TouchableOpacity
+            key={slot.id}
+            activeOpacity={0.75}
+            style={[
+                styles.epgSlot,
+                slot.isLive && styles.epgSlotLive,
+                { width: xdWidth(slot.widthFactor) },
+            ]}
+        >
+            <View style={styles.slotTextContainer}>
+                <Text
+                    style={[
+                        styles.epgSlotTitle,
+                        slot.isLive && styles.epgSlotTitleLive,
+                    ]}
+                    numberOfLines={1}
+                >
+                    {slot.title}
+                </Text>
+                <Text
+                    style={[
+                        styles.epgSlotTime,
+                        slot.isLive && styles.epgSlotTimeLive,
+                    ]}
+                >
+                    {slot.isLive
+                        ? `20m left`
+                        : `${slot.startTime} - ${slot.endTime}`}
+                </Text>
+            </View>
+        </TouchableOpacity>
+    );
+
     return (
         <View style={styles.screen}>
             {/* ── Top Section ── */}
@@ -334,47 +368,16 @@ export default function ChannelDetailScreen() {
                         />
                     </View>
 
-                    {/* Scrollable slots */}
-                    <ScrollView
+                    {/* Scrollable slots — Horizontal FlatList */}
+                    <FlatList
                         horizontal
                         showsHorizontalScrollIndicator={false}
+                        data={epgSlots}
+                        keyExtractor={(item) => item.id}
+                        renderItem={renderEPGSlot}
                         style={styles.epgSlotsScroll}
                         contentContainerStyle={styles.epgSlotsContent}
-                    >
-                        {epgSlots.map((slot) => (
-                            <TouchableOpacity
-                                key={slot.id}
-                                activeOpacity={0.75}
-                                style={[
-                                    styles.epgSlot,
-                                    slot.isLive && styles.epgSlotLive,
-                                    { width: xdWidth(slot.widthFactor) },
-                                ]}
-                            >
-                                <View style={styles.slotTextContainer}>
-                                    <Text
-                                        style={[
-                                            styles.epgSlotTitle,
-                                            slot.isLive && styles.epgSlotTitleLive,
-                                        ]}
-                                        numberOfLines={1}
-                                    >
-                                        {slot.title}
-                                    </Text>
-                                    <Text
-                                        style={[
-                                            styles.epgSlotTime,
-                                            slot.isLive && styles.epgSlotTimeLive,
-                                        ]}
-                                    >
-                                        {slot.isLive
-                                            ? `20m left`
-                                            : `${slot.startTime} - ${slot.endTime}`}
-                                    </Text>
-                                </View>
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
+                    />
                 </View>
             </View>
         </View>

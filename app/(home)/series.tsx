@@ -17,6 +17,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+    FlatList,
     ScrollView,
     StyleSheet,
     Text,
@@ -143,6 +144,16 @@ export default function SeriesScreen() {
         setIsScrolled(offsetY > xdHeight(60));
     };
 
+    const renderSeriesItem = ({ item }: { item: Series }) => (
+        <PosterCard
+            image={item.image}
+            title={item.title}
+            subtitle={item.season}
+            onPress={() => handleSeriesPress(item)}
+            style={styles.cardSpacing}
+        />
+    );
+
     return (
         <ScrollView
             style={styles.container}
@@ -247,26 +258,24 @@ export default function SeriesScreen() {
                 ))}
             </ScrollView>
 
-            {/* ── Poster Grid ── */}
-            {filteredSeries.length > 0 ? (
-                <View style={styles.grid}>
-                    {filteredSeries.map((series) => (
-                        <PosterCard
-                            key={series.id}
-                            image={series.image}
-                            title={series.title}
-                            subtitle={series.season}
-                            onPress={() => handleSeriesPress(series)}
-                        />
-                    ))}
-                </View>
-            ) : (
-                <EmptyState
-                    icon="television-play"
-                    title="No Series Found"
-                    subtitle="On this categories we can't find any series. Try another category"
-                />
-            )}
+            {/* ── Poster Grid — FlatList nested inside ScrollView ── */}
+            <FlatList
+                key={`series-grid-${activeCategory}-${searchQuery}`}
+                data={filteredSeries}
+                keyExtractor={(item) => item.id}
+                renderItem={renderSeriesItem}
+                numColumns={5}
+                scrollEnabled={false}
+                contentContainerStyle={styles.gridContainer}
+                columnWrapperStyle={filteredSeries.length > 1 ? styles.columnWrapper : null}
+                ListEmptyComponent={
+                    <EmptyState
+                        icon="television-play"
+                        title="No Series Found"
+                        subtitle="On this categories we can't find any series. Try another category"
+                    />
+                }
+            />
         </ScrollView>
     );
 }
@@ -368,10 +377,13 @@ const styles = StyleSheet.create({
     },
 
     // Grid
-    grid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: xdWidth(14),
+    gridContainer: {
         paddingHorizontal: xdWidth(32),
+    },
+    columnWrapper: {
+        gap: xdWidth(20),
+    },
+    cardSpacing: {
+        marginBottom: xdHeight(16),
     },
 });

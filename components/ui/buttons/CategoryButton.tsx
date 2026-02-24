@@ -1,18 +1,12 @@
-/**
- * ─────────────────────────────────────────────────────────────
- *  DUPLEX IPTV — Category Button Component
- *  Text-only category button (Featured, etc.)
- *  States: Default, Focused, Pressed, Active
- * ─────────────────────────────────────────────────────────────
- */
-
 import { Colors, Spacing } from '@/constants';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
 import { Animated, Pressable, Text, TextStyle, ViewStyle } from 'react-native';
 import { useButtonState } from './useButtonState';
 
 export interface CategoryButtonProps {
-    children: string;
+    children: React.ReactNode;
+    icon?: keyof typeof MaterialCommunityIcons.glyphMap;
     isActive?: boolean;
     disabled?: boolean;
     onPress?: () => void;
@@ -23,6 +17,7 @@ export interface CategoryButtonProps {
 
 export const CategoryButton: React.FC<CategoryButtonProps> = ({
     children,
+    icon,
     isActive = false,
     disabled = false,
     onPress,
@@ -51,19 +46,22 @@ export const CategoryButton: React.FC<CategoryButtonProps> = ({
             justifyContent: 'center',
             borderWidth: 2,
             borderColor: 'transparent',
+            flexDirection: 'row',
         };
 
+        if (isActive) {
+            return {
+                ...baseStyle,
+                backgroundColor: Colors.gray[100],
+            };
+        }
+
         switch (state) {
-            case 'active':
-                return {
-                    ...baseStyle,
-                    backgroundColor: Colors.dark[1],
-                };
             case 'focused':
                 return {
                     ...baseStyle,
                     backgroundColor: Colors.dark[8],
-                    borderColor: Colors.gray[700], // Subtle border
+                    borderColor: Colors.gray[700],
                     shadowColor: '#ffffff40',
                     shadowOffset: { width: 0, height: 2 },
                     shadowOpacity: 0.25,
@@ -84,13 +82,15 @@ export const CategoryButton: React.FC<CategoryButtonProps> = ({
     };
 
     const getTextStyle = (): TextStyle => {
+        if (isActive) {
+            return {
+                color: Colors.dark[11],
+                fontSize: 14,
+                fontWeight: '700',
+            };
+        }
+
         switch (state) {
-            case 'active':
-                return {
-                    color: Colors.dark[12],
-                    fontSize: 14,
-                    fontWeight: '600',
-                };
             case 'focused':
                 return {
                     color: Colors.gray[100],
@@ -110,6 +110,12 @@ export const CategoryButton: React.FC<CategoryButtonProps> = ({
                     fontWeight: '500',
                 };
         }
+    };
+
+    const getIconColor = () => {
+        if (isActive) return Colors.dark[11];
+        if (state === 'focused') return Colors.gray[100];
+        return Colors.gray[300];
     };
 
     return (
@@ -134,6 +140,14 @@ export const CategoryButton: React.FC<CategoryButtonProps> = ({
                     magnification: 1.05,
                 }}
             >
+                {icon && (
+                    <MaterialCommunityIcons
+                        name={icon}
+                        size={18}
+                        color={getIconColor()}
+                        style={{ marginRight: 8 }}
+                    />
+                )}
                 <Text style={getTextStyle()}>{children}</Text>
             </Pressable>
         </Animated.View>

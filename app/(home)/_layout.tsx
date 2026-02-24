@@ -1,5 +1,4 @@
 import { TopNavBar } from "@/components/navigation/TopNavBar";
-import { ParentalPinModal } from "@/components/ui/modals/ParentalPinModal";
 import { TabContextProvider } from "@/context/TabContext";
 import { Stack, useSegments } from "expo-router";
 import { StyleSheet, View } from "react-native";
@@ -55,7 +54,6 @@ export const HomeLayout = () => {
                         <TopNavBar />
                     </View>
                 )}
-                <ParentalPinModal />
             </View>
         </TabContextProvider>
     );

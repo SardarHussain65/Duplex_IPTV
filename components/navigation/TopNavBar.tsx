@@ -72,7 +72,7 @@ export const TopNavBar: React.FC = () => {
                 <NavIconButton
                     icon={<MaterialCommunityIcons name="lock" size={scale(18)} />}
                     isActive={activeTab === 'parental-control'}
-                    onPress={() => setParentalModalVisible(true)}
+                    onPress={() => handleTabPress('parental-control')}
                     testID="nav-tab-parental-control"
                 />
                 <NavIconButton

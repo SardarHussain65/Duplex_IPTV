@@ -18,6 +18,7 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     Animated,
+    FlatList,
     ScrollView,
     StyleSheet,
     Text,
@@ -154,6 +155,16 @@ export default function MoviesScreen() {
         setIsScrolled(offsetY > xdHeight(60)); // Small threshold to show background early
     };
 
+    const renderMovieItem = ({ item }: { item: Movie }) => (
+        <PosterCard
+            image={item.image}
+            title={item.title}
+            subtitle={item.duration}
+            onPress={() => handleMoviePress(item)}
+            style={styles.cardSpacing}
+        />
+    );
+
     return (
         <ScrollView
             style={styles.container}
@@ -256,26 +267,24 @@ export default function MoviesScreen() {
                 ))}
             </ScrollView>
 
-            {/* ── Poster Grid ── */}
-            {filteredMovies.length > 0 ? (
-                <View style={styles.grid}>
-                    {filteredMovies.map((movie) => (
-                        <PosterCard
-                            key={movie.id}
-                            image={movie.image}
-                            title={movie.title}
-                            subtitle={movie.duration}
-                            onPress={() => handleMoviePress(movie)}
-                        />
-                    ))}
-                </View>
-            ) : (
-                <EmptyState
-                    icon="movie-open"
-                    title="No Movies Found"
-                    subtitle="On this categories we can't find any movie. Try another category"
-                />
-            )}
+            {/* ── Poster Grid — FlatList nested inside ScrollView ── */}
+            <FlatList
+                key={`movies-grid-${activeCategory}-${searchQuery}`}
+                data={filteredMovies}
+                keyExtractor={(item) => item.id}
+                renderItem={renderMovieItem}
+                numColumns={5}
+                scrollEnabled={false}
+                contentContainerStyle={styles.gridContainer}
+                columnWrapperStyle={filteredMovies.length > 1 ? styles.columnWrapper : null}
+                ListEmptyComponent={
+                    <EmptyState
+                        icon="movie-open"
+                        title="No Movies Found"
+                        subtitle="On this categories we can't find any movie. Try another category"
+                    />
+                }
+            />
         </ScrollView>
     );
 }
@@ -376,10 +385,13 @@ const styles = StyleSheet.create({
     },
 
     // Grid
-    grid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: xdWidth(14),
+    gridContainer: {
         paddingHorizontal: xdWidth(32),
+    },
+    columnWrapper: {
+        gap: xdWidth(20),
+    },
+    cardSpacing: {
+        marginBottom: xdHeight(16),
     },
 });
