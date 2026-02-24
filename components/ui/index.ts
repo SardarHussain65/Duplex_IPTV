@@ -12,3 +12,8 @@ export * from './cards';
 
 // Feedback & Empty States
 export * from './EmptyState';
+
+// Modals
+export * from './modals/EnterPinModal';
+export * from './modals/ParentalPinModal';
+

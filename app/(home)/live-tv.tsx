@@ -6,7 +6,6 @@
  */
 
 import { BackdropCard, EmptyState, SearchBar } from '@/components/ui';
-import ButtonSystemShowcase from '@/components/ui/ButtonExamples';
 import { CategoryButton } from '@/components/ui/buttons/CategoryButton';
 import { Colors } from '@/constants';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
@@ -133,7 +132,6 @@ export default function LiveTVScreen() {
                 <SearchBar value={searchQuery} onChangeText={setSearchQuery} />
             </View>
 
-            <ButtonSystemShowcase />
 
             {/* Category Filter */}
             <Text style={styles.sectionTitle}>Browse by Categories</Text>
