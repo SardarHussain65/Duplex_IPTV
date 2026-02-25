@@ -1,4 +1,4 @@
-import { PlaylistRowButton } from "@/components/ui/buttons/playlistButton";
+import { PlaylistRowButton } from "@/components/ui/buttons/PlaylistRowButton";
 import { Image } from "expo-image";
 import React, { useState } from "react";
 import {

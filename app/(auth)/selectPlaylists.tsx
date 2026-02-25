@@ -1,7 +1,7 @@
+import { PlaylistButton } from "@/components/ui/buttons/PlaylistButton";
 import { Image } from "expo-image";
 import React, { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { PlaylistButton } from "../../components/PlaylistButton";
 import { Colors, scale as s, width } from "../../constants";
 
 type PlaylistType = "m3u" | "m3u8" | "xtream";

@@ -117,8 +117,9 @@ export default function SeriesDetailScreen() {
             progress={item.progress}
             onPress={() =>
                 router.push({
-                    pathname: '/VideoPlayerScreen',
+                    pathname: '/player/[id]',
                     params: {
+                        id: item.id,
                         title: item.title,
                         genre,
                         year,
@@ -191,8 +192,9 @@ export default function SeriesDetailScreen() {
                             icon={<MaterialCommunityIcons name="play" size={scale(18)} />}
                             onPress={() =>
                                 router.push({
-                                    pathname: '/VideoPlayerScreen',
+                                    pathname: '/player/[id]',
                                     params: {
+                                        id: params.id || 'series',
                                         title,
                                         genre,
                                         year,

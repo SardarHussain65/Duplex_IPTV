@@ -54,7 +54,7 @@ const CATEGORIES: { label: ParentalType; icon: keyof typeof MaterialCommunityIco
 
 export default function ParentalControlScreen() {
     const router = useRouter();
-    const { setIsScrolled, isParentalUnlocked, setParentalUnlocked, setActiveTab } = useTab();
+    const { setIsScrolled, isParentalUnlocked, setParentalUnlocked } = useTab();
     const [activeSubTab, setActiveSubTab] = useState<ParentalType>('Live TV');
 
     useEffect(() => {
@@ -68,11 +68,14 @@ export default function ParentalControlScreen() {
     };
 
     const handlePress = (item: LockedItem) => {
-        const pathname = item.type === 'Live TV' ? '/ChannelDetailScreen' : item.type === 'Movies' ? '/MovieDetailScreen' : '/SeriesDetailScreen';
+        let pathname = '';
+        if (item.type === 'Live TV') pathname = `/channel/${item.id}`;
+        else if (item.type === 'Movies') pathname = `/movie/${item.id}`;
+        else pathname = `/series-detail/${item.id}`;
+
         router.push({
             pathname,
             params: {
-                id: item.id,
                 title: item.title,
                 name: item.title,
                 genre: item.genre || '',
@@ -124,7 +127,7 @@ export default function ParentalControlScreen() {
 
     const handleCancelUnlock = () => {
         // If cancelled, go back to live-tv or previous tab
-        setActiveTab('live-tv');
+        router.replace('/live-tv');
     };
 
     return (

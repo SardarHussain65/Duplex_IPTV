@@ -4,15 +4,17 @@
  * ─────────────────────────────────────────────────────────────
  */
 
-import { NavIconButton } from '@/components/ui/buttons/NavIconButton';
+import {
+    NavIconButton
+} from '@/components/ui/buttons';
+import { VideoPreviewCard } from '@/components/ui/cards/VideoPreviewCard';
 import { Colors } from '@/constants';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useTab } from '@/context/TabContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { ResizeMode, Video } from 'expo-av';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     FlatList,
     StyleSheet,
@@ -73,125 +75,6 @@ const generateEPG = (channelName: string): EPGSlot[] => [
     },
 ];
 
-// ── VideoPreviewCard ───────────────────────────────────────────
-
-interface VideoPreviewCardProps {
-    title: string;
-    channelName: string;
-    channelImage: string;
-    date: string;
-    episode: string;
-    timeLeft: string;
-    onExpandPress: () => void;
-}
-
-const VideoPreviewCard: React.FC<VideoPreviewCardProps> = ({
-    title,
-    channelImage,
-    onExpandPress,
-}) => {
-    const videoRef = useRef<Video>(null);
-
-    return (
-        <View style={cardStyles.card}>
-
-            {/* ── Inline Video fills the card ── */}
-            <Video
-                ref={videoRef}
-                source={{ uri: DUMMY_VIDEO_URI }}
-                style={StyleSheet.absoluteFill}
-                resizeMode={ResizeMode.COVER}
-                shouldPlay
-                isLooping
-                isMuted
-                useNativeControls={false}
-            />
-
-            {/* Dark vignette so text is readable */}
-            <View style={cardStyles.vignette} />
-
-            {/* Title top-left */}
-            <Text style={cardStyles.title} numberOfLines={1}>
-                {title}
-            </Text>
-
-            {/* Live badge bottom-left */}
-            <View style={cardStyles.liveBadge}>
-                <View style={cardStyles.liveDot} />
-                <Text style={cardStyles.liveText}>Live</Text>
-            </View>
-
-            {/* Expand button bottom-right — navigates to VideoPlayerScreen */}
-            <View style={cardStyles.expandBtn}>
-                <NavIconButton
-                    icon={
-                        <MaterialCommunityIcons
-                            name="arrow-expand-all"
-                            size={scale(18)}
-                            color="#fff"
-                        />
-                    }
-                    onPress={onExpandPress}
-                />
-            </View>
-        </View>
-    );
-};
-
-// ── Card styles ────────────────────────────────────────────────
-
-const cardStyles = StyleSheet.create({
-    card: {
-        width: xdWidth(390),
-        height: xdHeight(220),
-        borderRadius: scale(18),
-        overflow: 'hidden',
-        position: 'relative',
-        backgroundColor: '#111',
-    },
-    vignette: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0,0,0,0.2)',
-    },
-    title: {
-        position: 'absolute',
-        top: xdHeight(14),
-        left: xdWidth(16),
-        right: xdWidth(60),
-        fontSize: scale(13),
-        fontWeight: '600',
-        color: '#fff',
-    },
-    liveBadge: {
-        position: 'absolute',
-        bottom: xdHeight(16),
-        left: xdWidth(16),
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: xdWidth(6),
-        backgroundColor: 'rgba(0,0,0,0.55)',
-        paddingHorizontal: xdWidth(10),
-        paddingVertical: xdHeight(4),
-        borderRadius: scale(20),
-    },
-    liveDot: {
-        width: scale(8),
-        height: scale(8),
-        borderRadius: scale(4),
-        backgroundColor: '#E0334C',
-    },
-    liveText: {
-        fontSize: scale(12),
-        fontWeight: '600',
-        color: '#fff',
-    },
-    expandBtn: {
-        position: 'absolute',
-        bottom: xdHeight(10),
-        right: xdWidth(12),
-    },
-});
-
 // ── Screen ────────────────────────────────────────────────────
 
 export default function ChannelDetailScreen() {
@@ -230,8 +113,9 @@ export default function ChannelDetailScreen() {
 
     const handleExpand = () => {
         router.push({
-            pathname: '/VideoPlayerScreen',
+            pathname: '/player/[id]',
             params: {
+                id: params.id || 'live',
                 title: programme.showTitle,
                 genre: channelName,
                 year: programme.date,

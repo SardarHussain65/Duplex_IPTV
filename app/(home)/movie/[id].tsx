@@ -134,8 +134,9 @@ export default function MovieDetailScreen() {
                                 icon={<MaterialCommunityIcons name="play" size={scale(18)} />}
                                 onPress={() =>
                                     router.push({
-                                        pathname: '/VideoPlayerScreen',
+                                        pathname: '/player/[id]',
                                         params: {
+                                            id: params.id || 'movie',
                                             title,
                                             genre,
                                             year,

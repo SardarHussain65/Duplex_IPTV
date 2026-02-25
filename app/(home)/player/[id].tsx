@@ -6,8 +6,8 @@
  */
 
 import { NavIconButton } from '@/components/ui';
-import { SettingCard } from '@/components/ui/buttons/SettingCard';
 import { EpisodeCard } from '@/components/ui/cards/EpisodeCard';
+import { SettingCard } from '@/components/ui/cards/SettingCard';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useTab } from '@/context/TabContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';

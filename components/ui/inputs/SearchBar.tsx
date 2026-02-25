@@ -40,7 +40,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         backgroundColor: isFocused ? Colors.dark[8] : Colors.dark[10],
         borderWidth: 2,
         borderColor: isFocused ? Colors.gray[700] : 'transparent',
-
     };
 
     const inputStyle: TextStyle = {

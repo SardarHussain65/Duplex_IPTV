@@ -9,7 +9,7 @@
 import { Colors, Spacing } from '@/constants';
 import React from 'react';
 import { Animated, Pressable, Text, TextStyle, View, ViewStyle } from 'react-native';
-import { useButtonState } from './useButtonState';
+import { useButtonState } from '../buttons/useButtonState';
 
 export interface SettingCardProps {
     icon: React.ReactNode;
@@ -63,33 +63,23 @@ export const SettingCard: React.FC<SettingCardProps> = ({
                     borderColor: Colors.primary[950],
                 };
             case 'pressed':
-                return {
-                    ...baseStyle,
-                    backgroundColor: Colors.dark[11],
-                };
+                return { ...baseStyle, backgroundColor: Colors.dark[11] };
             default:
-                return {
-                    ...baseStyle,
-                    backgroundColor: Colors.dark[10],
-                };
+                return { ...baseStyle, backgroundColor: Colors.dark[10] };
         }
     };
 
-    const getTitleStyle = (): TextStyle => {
-        return {
-            color: state === 'focused' ? Colors.gray[100] : Colors.gray[300],
-            fontSize: 18,
-            fontWeight: '600',
-        };
-    };
+    const getTitleStyle = (): TextStyle => ({
+        color: state === 'focused' ? Colors.gray[100] : Colors.gray[300],
+        fontSize: 18,
+        fontWeight: '600',
+    });
 
-    const getSubtitleStyle = (): TextStyle => {
-        return {
-            color: state === 'pressed' ? Colors.gray[600] : Colors.gray[500],
-            fontSize: 14,
-            fontWeight: '400',
-        };
-    };
+    const getSubtitleStyle = (): TextStyle => ({
+        color: state === 'pressed' ? Colors.gray[600] : Colors.gray[500],
+        fontSize: 14,
+        fontWeight: '400',
+    });
 
     return (
         <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>

@@ -1,8 +1,8 @@
+import { SyncingStep } from "@/components/ui/SyncingStep";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { SyncingStep } from "../../components/SyncingStep";
 import { Colors, scale as s, width } from "../../constants";
 
 type StepStatus = "pending" | "loading" | "success" | "error";
@@ -32,7 +32,7 @@ const DeviceVerification = () => {
     useEffect(() => {
         if (status !== "syncing") return;
 
-        const timers: NodeJS.Timeout[] = [];
+        const timers: ReturnType<typeof setTimeout>[] = [];
 
         const processStep = async (index: number) => {
             if (index >= STEPS.length) {

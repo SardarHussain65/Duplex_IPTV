@@ -1,26 +1,17 @@
 /**
  * ─────────────────────────────────────────────────────────────
- *  DUPLEX IPTV — Tab Context
- *  Shared state for the active top-nav tab.
- *  All 6 items in the nav bar (including icon buttons) are tabs.
+ *  DUPLEX IPTV — App Context
+ *  Shared state for:
+ *  - isScrolled: whether the content has scrolled past the hero
+ *    (used to show/hide the nav bar's backdrop blur)
+ *  - Parental control unlock state
  * ─────────────────────────────────────────────────────────────
  */
 
-import React, { createContext, useCallback, useContext, useState } from 'react';
-
-// ── Tab type ──────────────────────────────────────────────────
-export type Tab =
-    | 'live-tv'
-    | 'movies'
-    | 'series'
-    | 'favorites'
-    | 'parental-control'
-    | 'settings';
+import React, { createContext, useContext, useState } from 'react';
 
 // ── Context shape ────────────────────────────────────────────
 interface TabContextValue {
-    activeTab: Tab;
-    setActiveTab: (tab: Tab) => void;
     isScrolled: boolean;
     setIsScrolled: (scrolled: boolean) => void;
     isParentalModalVisible: boolean;
@@ -36,19 +27,12 @@ const TabContext = createContext<TabContextValue | null>(null);
 export const TabContextProvider: React.FC<{ children: React.ReactNode }> = ({
     children,
 }) => {
-    const [activeTab, setActiveTabState] = useState<Tab>('live-tv');
     const [isScrolled, setIsScrolled] = useState(false);
     const [isParentalModalVisible, setParentalModalVisible] = useState(false);
     const [isParentalUnlocked, setParentalUnlocked] = useState(false);
 
-    const setActiveTab = useCallback((tab: Tab) => {
-        setActiveTabState(tab);
-    }, []);
-
     return (
         <TabContext.Provider value={{
-            activeTab,
-            setActiveTab,
             isScrolled,
             setIsScrolled,
             isParentalModalVisible,
