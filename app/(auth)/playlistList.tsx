@@ -1,5 +1,6 @@
 import { PlaylistRowButton } from "@/components/ui/buttons/PlaylistRowButton";
 import { Image } from "expo-image";
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
     FlatList,
@@ -41,7 +42,7 @@ const PlaylistListScreen = () => {
                 />
 
                 {/* Title */}
-                <Text style={[styles.title, { fontSize: s(24), marginBottom: s(6) }]}>
+                <Text style={[styles.title, { fontSize: s(24), marginBottom: s(6) }]} onPress={() => router.replace("/(home)/(tabs)/live-tv")}>
                     {PLAYLIST_TYPE}
                 </Text>
 

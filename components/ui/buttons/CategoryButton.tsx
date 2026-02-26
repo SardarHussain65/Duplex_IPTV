@@ -13,9 +13,14 @@ export interface CategoryButtonProps {
     onLongPress?: () => void;
     style?: ViewStyle;
     testID?: string;
+    nativeID?: string;
+    nextFocusLeft?: number;
+    nextFocusRight?: number;
+    nextFocusUp?: number;
+    nextFocusDown?: number;
 }
 
-export const CategoryButton: React.FC<CategoryButtonProps> = ({
+export const CategoryButton = React.forwardRef<any, CategoryButtonProps>(({
     children,
     icon,
     isActive = false,
@@ -24,7 +29,12 @@ export const CategoryButton: React.FC<CategoryButtonProps> = ({
     onLongPress,
     style,
     testID,
-}) => {
+    nativeID,
+    nextFocusLeft,
+    nextFocusRight,
+    nextFocusUp,
+    nextFocusDown,
+}, ref) => {
     const {
         state,
         scaleAnim,
@@ -37,6 +47,7 @@ export const CategoryButton: React.FC<CategoryButtonProps> = ({
     } = useButtonState({ isActive, disabled, onPress, onLongPress });
 
     const getButtonStyle = (): ViewStyle => {
+        // ... (rest of getButtonStyle remains same)
         const baseStyle: ViewStyle = {
             paddingVertical: Spacing.sm,
             paddingHorizontal: Spacing.md,
@@ -121,6 +132,7 @@ export const CategoryButton: React.FC<CategoryButtonProps> = ({
     return (
         <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
             <Pressable
+                ref={ref}
                 onPress={handlePress}
                 onLongPress={handleLongPress}
                 onPressIn={handlePressIn}
@@ -130,6 +142,11 @@ export const CategoryButton: React.FC<CategoryButtonProps> = ({
                 disabled={disabled}
                 style={[getButtonStyle(), style]}
                 testID={testID}
+                nativeID={nativeID}
+                nextFocusLeft={nextFocusLeft}
+                nextFocusRight={nextFocusRight}
+                nextFocusUp={nextFocusUp}
+                nextFocusDown={nextFocusDown}
                 hasTVPreferredFocus={false}
                 focusable={true}
                 tvParallaxProperties={{
@@ -152,4 +169,4 @@ export const CategoryButton: React.FC<CategoryButtonProps> = ({
             </Pressable>
         </Animated.View>
     );
-};
+});

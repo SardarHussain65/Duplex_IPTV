@@ -68,9 +68,9 @@ export const PosterCard: React.FC<PosterCardProps> = ({
         shadowColor: '#FFFFFF',
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: isFocused ? 0.6 : 0,
-        shadowRadius: 15,
-        elevation: isFocused ? 12 : 0,
-        opacity: isVisible ? 1 : 0.7,
+        shadowRadius: 10,
+        elevation: isFocused ? 7 : 0,
+        opacity: isVisible ? 0.9 : 0.7,
     };
 
     return (

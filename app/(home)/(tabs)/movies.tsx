@@ -155,10 +155,10 @@ export default function MoviesScreen() {
     return (
         <View style={styles.container}>
             <FlatList
-                key={`movies-grid-${activeCategory}-${searchQuery}`}
+                key={`movies-grid-${activeCategory}`}
                 data={filteredMovies}
                 keyExtractor={(item) => item.id}
-                ListHeaderComponent={renderHeader}
+                ListHeaderComponent={renderHeader()}
                 renderItem={renderMovieItem}
                 numColumns={5}
                 contentContainerStyle={[styles.content, styles.gridContainer]}

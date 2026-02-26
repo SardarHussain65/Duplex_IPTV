@@ -1,5 +1,6 @@
 import { PlaylistButton } from "@/components/ui/buttons/PlaylistButton";
 import { Image } from "expo-image";
+import { router } from "expo-router";
 import React, { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Colors, scale as s, width } from "../../constants";
@@ -33,7 +34,7 @@ const SelectPlaylistScreen = () => {
                 />
 
                 {/* Title */}
-                <Text style={[styles.title, { fontSize: s(24), marginBottom: s(8) }]}>
+                <Text style={[styles.title, { fontSize: s(24), marginBottom: s(8) }]} onPress={() => router.replace("/playlistList")}>
                     Select Playlist Source
                 </Text>
 

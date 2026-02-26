@@ -138,7 +138,7 @@ export default function LiveTVScreen() {
                 data={filteredChannels}
                 contentContainerStyle={[styles.content, styles.gridContainer]}
                 keyExtractor={(item) => item.id}
-                ListHeaderComponent={renderHeader}
+                ListHeaderComponent={renderHeader()}
                 renderItem={renderChannel}
                 numColumns={4}
                 columnWrapperStyle={filteredChannels.length > 1 ? { gap: xdWidth(18) } : null}

@@ -18,6 +18,12 @@ interface TabContextValue {
     setParentalModalVisible: (visible: boolean) => void;
     isParentalUnlocked: boolean;
     setParentalUnlocked: (unlocked: boolean) => void;
+    isParentalControlEnabled: boolean;
+    setIsParentalControlEnabled: (enabled: boolean) => void;
+    parentalPin: string;
+    setParentalPin: (pin: string) => void;
+    isAutoplayEnabled: boolean;
+    setIsAutoplayEnabled: (enabled: boolean) => void;
 }
 
 // ── Context ──────────────────────────────────────────────────
@@ -30,6 +36,9 @@ export const TabContextProvider: React.FC<{ children: React.ReactNode }> = ({
     const [isScrolled, setIsScrolled] = useState(false);
     const [isParentalModalVisible, setParentalModalVisible] = useState(false);
     const [isParentalUnlocked, setParentalUnlocked] = useState(false);
+    const [isParentalControlEnabled, setIsParentalControlEnabled] = useState(false);
+    const [parentalPin, setParentalPin] = useState('0000');
+    const [isAutoplayEnabled, setIsAutoplayEnabled] = useState(false);
 
     return (
         <TabContext.Provider value={{
@@ -39,6 +48,12 @@ export const TabContextProvider: React.FC<{ children: React.ReactNode }> = ({
             setParentalModalVisible,
             isParentalUnlocked,
             setParentalUnlocked,
+            isParentalControlEnabled,
+            setIsParentalControlEnabled,
+            parentalPin,
+            setParentalPin,
+            isAutoplayEnabled,
+            setIsAutoplayEnabled,
         }}>
             {children}
         </TabContext.Provider>

@@ -4,6 +4,7 @@ import React from "react";
 import {
     Animated,
     Pressable,
+    PressableProps,
     StyleSheet,
     Text,
     View,
@@ -11,27 +12,28 @@ import {
 import { useButtonState } from "./useButtonState";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type PlaylistRowButtonProps = {
+export interface PlaylistRowButtonProps extends Omit<PressableProps, 'style' | 'onPress'> {
     label: string;
     url: string;
     isSelected?: boolean;
     disabled?: boolean;
     onPress?: () => void;
     hasTVPreferredFocus?: boolean;
-};
+}
 
 // ── AnimatedPressable (same pattern as PlaylistButton) ────────────────────────
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export const PlaylistRowButton: React.FC<PlaylistRowButtonProps> = ({
+export const PlaylistRowButton = React.forwardRef<View, PlaylistRowButtonProps>(({
     label,
     url,
     isSelected = false,
     disabled = false,
     onPress,
     hasTVPreferredFocus = false,
-}) => {
+    ...rest
+}, ref) => {
     const {
         state,
         scaleAnim,
@@ -47,6 +49,7 @@ export const PlaylistRowButton: React.FC<PlaylistRowButtonProps> = ({
 
     return (
         <AnimatedPressable
+            ref={ref}
             onPress={handlePress}
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}
@@ -66,6 +69,7 @@ export const PlaylistRowButton: React.FC<PlaylistRowButtonProps> = ({
                     opacity: disabled ? 0.4 : 1,
                 },
             ]}
+            {...rest}
         >
             {/* Icon box */}
             <View
@@ -108,7 +112,7 @@ export const PlaylistRowButton: React.FC<PlaylistRowButtonProps> = ({
             </View>
         </AnimatedPressable>
     );
-};
+});
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({

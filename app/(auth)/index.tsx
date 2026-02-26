@@ -89,7 +89,7 @@ const ActivationScreen = () => {
                 />
 
                 {/* Title */}
-                <Text style={[styles.title, { fontSize: s(20), marginBottom: s(6) }]} onPress={() => router.replace("/(home)/(tabs)/live-tv")}>
+                <Text style={[styles.title, { fontSize: s(20), marginBottom: s(6) }]} onPress={() => router.replace("/deviceVerification")}>
                     Device Activation
                 </Text>
 

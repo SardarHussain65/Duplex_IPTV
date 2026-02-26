@@ -156,10 +156,10 @@ export default function SeriesScreen() {
         <View style={styles.container}>
             {/* ── Poster Grid — FlatList nested inside ScrollView ── */}
             <FlatList
-                key={`series-grid-${activeCategory}-${searchQuery}`}
+                key={`series-grid-${activeCategory}`}
                 data={filteredSeries}
                 keyExtractor={(item) => item.id}
-                ListHeaderComponent={renderHeader}
+                ListHeaderComponent={renderHeader()}
                 renderItem={renderSeriesItem}
                 numColumns={5}
                 contentContainerStyle={[styles.content, styles.gridContainer]}

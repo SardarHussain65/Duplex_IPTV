@@ -68,9 +68,9 @@ export const BackdropCard: React.FC<BackdropCardProps> = ({
         shadowColor: '#FFFFFF',
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: isFocused ? 0.6 : 0,
-        shadowRadius: 15,
-        elevation: isFocused ? 12 : 0,
-        opacity: isVisible ? 1 : 0.7,
+        shadowRadius: 5,
+        elevation: isFocused ? 5 : 0,
+        opacity: isVisible ? 0.9 : 0.7,
     };
 
     return (
@@ -131,7 +131,9 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.dark[7],
     },
     info: {
-        marginTop: 0,
+        marginBottom: 4,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
     },
     title: {
         fontSize: 14,

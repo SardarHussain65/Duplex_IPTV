@@ -1,3 +1,10 @@
+/**
+ * ─────────────────────────────────────────────────────────────
+ *  DUPLEX IPTV — Set Pin Modal Component
+ *  Modal to set a new 4-digit PIN for parental control
+ * ─────────────────────────────────────────────────────────────
+ */
+
 import { ActionFilledButton } from '@/components/ui/buttons/ActionFilledButton';
 import { ActionOutlineButton } from '@/components/ui/buttons/ActionOutlineButton';
 import { KeyboardButton } from '@/components/ui/buttons/KeyboardButton';
@@ -6,39 +13,24 @@ import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import React, { useState } from 'react';
 import { Modal, StyleSheet, Text, View } from 'react-native';
 
-interface EnterPinModalProps {
+interface SetPinModalProps {
     visible: boolean;
     onClose: () => void;
-    onSuccess: () => void;
-    expectedPin: string;
-    title?: string;
-    buttonText?: string;
+    onSave: (pin: string) => void;
 }
 
-export const EnterPinModal: React.FC<EnterPinModalProps> = ({
-    visible,
-    onClose,
-    onSuccess,
-    expectedPin,
-    title = 'Enter PIN to Continue',
-    buttonText = 'Continue'
-}) => {
+export const SetPinModal: React.FC<SetPinModalProps> = ({ visible, onClose, onSave }) => {
     const [pin, setPin] = useState<string>('');
-    const [error, setError] = useState<string | null>(null);
 
     const handleNumberPress = (num: number) => {
         if (pin.length < 4) {
             setPin(prev => prev + num);
-            setError(null);
         }
     };
 
-    const handleContinue = () => {
-        if (pin === expectedPin) {
-            onSuccess();
-            setPin('');
-        } else {
-            setError('Incorrect PIN. Please try again.');
+    const handleSave = () => {
+        if (pin.length === 4) {
+            onSave(pin);
             setPin('');
         }
     };
@@ -46,7 +38,6 @@ export const EnterPinModal: React.FC<EnterPinModalProps> = ({
     const handleCancel = () => {
         onClose();
         setPin('');
-        setError(null);
     };
 
     const renderPinDots = () => {
@@ -61,12 +52,6 @@ export const EnterPinModal: React.FC<EnterPinModalProps> = ({
         return dots;
     };
 
-    const numbers = [
-        [1, 2, 3, 4],
-        [5, 6, 7, 8],
-        [9, 0]
-    ];
-
     return (
         <Modal
             visible={visible}
@@ -76,13 +61,11 @@ export const EnterPinModal: React.FC<EnterPinModalProps> = ({
         >
             <View style={styles.overlay}>
                 <View style={styles.modalBox}>
-                    <Text style={styles.title}>{title}</Text>
+                    <Text style={styles.title}>Set a New Pin</Text>
 
                     <View style={styles.pinContainer}>
                         {renderPinDots()}
                     </View>
-
-                    {error && <Text style={styles.errorText}>{error}</Text>}
 
                     <View style={styles.keyboard}>
                         <View style={styles.keyboardRow}>
@@ -108,8 +91,8 @@ export const EnterPinModal: React.FC<EnterPinModalProps> = ({
                             </ActionOutlineButton>
                         </View>
                         <View style={styles.btnWrapper}>
-                            <ActionFilledButton onPress={handleContinue} style={styles.btn} disabled={pin.length < 4}>
-                                {buttonText}
+                            <ActionFilledButton onPress={handleSave} style={styles.btn} disabled={pin.length < 4}>
+                                Save
                             </ActionFilledButton>
                         </View>
                     </View>
@@ -178,12 +161,6 @@ const styles = StyleSheet.create({
         height: xdWidth(54),
         borderRadius: scale(8),
         backgroundColor: Colors.dark[9],
-    },
-    errorText: {
-        color: '#ff4444',
-        fontSize: scale(14),
-        marginBottom: xdHeight(16),
-        textAlign: 'center',
     },
     buttonRow: {
         flexDirection: 'row',
