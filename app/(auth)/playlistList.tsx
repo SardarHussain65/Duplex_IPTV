@@ -1,6 +1,7 @@
-import { PlaylistRowButton } from "@/components/ui/buttons/playlistButton";
+import { PlaylistRowButton } from "@/components/ui/buttons/PlaylistRowButton";
 import { Image } from "expo-image";
-import React, { useState } from "react";
+import { router } from "expo-router";
+import React, { useRef, useState } from "react";
 import {
     FlatList,
     StyleSheet,
@@ -28,6 +29,9 @@ const PLAYLISTS: Playlist[] = [
 const PlaylistListScreen = () => {
     const [selectedId, setSelectedId] = useState<string | null>(null);
 
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+
 
     return (
         <View style={styles.container}>
@@ -41,7 +45,7 @@ const PlaylistListScreen = () => {
                 />
 
                 {/* Title */}
-                <Text style={[styles.title, { fontSize: s(24), marginBottom: s(6) }]}>
+                <Text style={[styles.title, { fontSize: s(24), marginBottom: s(6) }]} onPress={() => router.replace("/(home)/(tabs)/live-tv")}>
                     {PLAYLIST_TYPE}
                 </Text>
 
@@ -66,7 +70,10 @@ const PlaylistListScreen = () => {
                                 isSelected={selectedId === item.id}
                                 onPress={() => {
                                     setSelectedId(item.id);
-                                    // router.push("/(home)");
+                                    if (timerRef.current) clearTimeout(timerRef.current);
+                                    timerRef.current = setTimeout(() => {
+                                        router.replace("/(home)/(tabs)/live-tv");
+                                    }, 3000);
                                 }}
                                 hasTVPreferredFocus={index === 0}
                             />

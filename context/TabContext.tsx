@@ -1,30 +1,37 @@
 /**
  * ─────────────────────────────────────────────────────────────
- *  DUPLEX IPTV — Tab Context
- *  Shared state for the active top-nav tab.
- *  All 6 items in the nav bar (including icon buttons) are tabs.
+ *  DUPLEX IPTV — App Context
+ *  Shared state for:
+ *  - isScrolled: whether the content has scrolled past the hero
+ *    (used to show/hide the nav bar's backdrop blur)
+ *  - Parental control unlock state
  * ─────────────────────────────────────────────────────────────
  */
 
-import React, { createContext, useCallback, useContext, useState } from 'react';
-
-// ── Tab type ──────────────────────────────────────────────────
-export type Tab =
-    | 'live-tv'
-    | 'movies'
-    | 'series'
-    | 'favorites'
-    | 'parental-control'
-    | 'settings';
+import React, { createContext, useContext, useState } from 'react';
 
 // ── Context shape ────────────────────────────────────────────
 interface TabContextValue {
-    activeTab: Tab;
-    setActiveTab: (tab: Tab) => void;
     isScrolled: boolean;
     setIsScrolled: (scrolled: boolean) => void;
     isParentalModalVisible: boolean;
     setParentalModalVisible: (visible: boolean) => void;
+    isParentalUnlocked: boolean;
+    setParentalUnlocked: (unlocked: boolean) => void;
+    isParentalControlEnabled: boolean;
+    setIsParentalControlEnabled: (enabled: boolean) => void;
+    parentalPin: string;
+    setParentalPin: (pin: string) => void;
+    isAutoplayEnabled: boolean;
+    setIsAutoplayEnabled: (enabled: boolean) => void;
+    searchBarNode: number | null;
+    setSearchBarNode: (node: number | null) => void;
+    settingsTabNode: number | null;
+    setSettingsTabNode: (node: number | null) => void;
+    settingsSidebarNode: number | null;
+    setSettingsSidebarNode: (node: number | null) => void;
+    settingsContentNode: number | null;
+    setSettingsContentNode: (node: number | null) => void;
 }
 
 // ── Context ──────────────────────────────────────────────────
@@ -34,22 +41,39 @@ const TabContext = createContext<TabContextValue | null>(null);
 export const TabContextProvider: React.FC<{ children: React.ReactNode }> = ({
     children,
 }) => {
-    const [activeTab, setActiveTabState] = useState<Tab>('live-tv');
     const [isScrolled, setIsScrolled] = useState(false);
     const [isParentalModalVisible, setParentalModalVisible] = useState(false);
-
-    const setActiveTab = useCallback((tab: Tab) => {
-        setActiveTabState(tab);
-    }, []);
+    const [isParentalUnlocked, setParentalUnlocked] = useState(false);
+    const [isParentalControlEnabled, setIsParentalControlEnabled] = useState(false);
+    const [parentalPin, setParentalPin] = useState('');
+    const [isAutoplayEnabled, setIsAutoplayEnabled] = useState(false);
+    const [searchBarNode, setSearchBarNode] = useState<number | null>(null);
+    const [settingsTabNode, setSettingsTabNode] = useState<number | null>(null);
+    const [settingsSidebarNode, setSettingsSidebarNode] = useState<number | null>(null);
+    const [settingsContentNode, setSettingsContentNode] = useState<number | null>(null);
 
     return (
         <TabContext.Provider value={{
-            activeTab,
-            setActiveTab,
             isScrolled,
             setIsScrolled,
             isParentalModalVisible,
-            setParentalModalVisible
+            setParentalModalVisible,
+            isParentalUnlocked,
+            setParentalUnlocked,
+            isParentalControlEnabled,
+            setIsParentalControlEnabled,
+            parentalPin,
+            setParentalPin,
+            isAutoplayEnabled,
+            setIsAutoplayEnabled,
+            searchBarNode,
+            setSearchBarNode,
+            settingsTabNode,
+            setSettingsTabNode,
+            settingsSidebarNode,
+            setSettingsSidebarNode,
+            settingsContentNode,
+            setSettingsContentNode,
         }}>
             {children}
         </TabContext.Provider>

@@ -1,7 +1,7 @@
+import { Colors, scale as s } from "@/constants";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import { Colors, scale as s } from "../constants";
 
 type StepStatus = "pending" | "loading" | "success" | "error";
 
@@ -70,9 +70,7 @@ const styles = StyleSheet.create({
     textWrapper: {
         flex: 1,
     },
-    circle: {
-        // borderRadius: 8,
-    },
+    circle: {},
     label: {
         fontWeight: "500",
     },

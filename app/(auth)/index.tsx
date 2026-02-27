@@ -3,7 +3,7 @@ import { useDeviceInfo } from "@/hooks/useDeviceInfo";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import React from "react";
+import React, { useEffect } from "react";
 import {
     ActivityIndicator,
     StyleSheet,
@@ -78,6 +78,16 @@ const ActivationScreen = () => {
     const isLargeScreen = width >= 900;
     const contentWidth = isLargeScreen ? width * 0.5 : width * 0.92;
 
+
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            router.replace("/deviceVerification");
+        }, 5000);
+
+        return () => clearTimeout(timer);
+    }, []);
+
     return (
         <View style={styles.container}>
             <View style={[styles.content, { width: contentWidth }]}>
@@ -89,7 +99,7 @@ const ActivationScreen = () => {
                 />
 
                 {/* Title */}
-                <Text style={[styles.title, { fontSize: s(20), marginBottom: s(6) }]} onPress={() => router.push("/(home)")}>
+                <Text style={[styles.title, { fontSize: s(20), marginBottom: s(6) }]} onPress={() => router.replace("/deviceVerification")}>
                     Device Activation
                 </Text>
 

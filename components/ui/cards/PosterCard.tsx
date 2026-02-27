@@ -19,6 +19,8 @@ import {
 } from 'react-native';
 import { useButtonState } from '../buttons/useButtonState';
 
+import { xdHeight, xdWidth } from '@/constants/scaling';
+
 export interface PosterCardProps {
     image?: ImageSourcePropType | string;
     title?: string;
@@ -28,10 +30,14 @@ export interface PosterCardProps {
     onPress?: () => void;
     onLongPress?: () => void;
     style?: ViewStyle;
+    innerRef?: React.Ref<any>;
+    nextFocusLeft?: number;
+    nextFocusUp?: number;
+    nextFocusRight?: number;
+    nextFocusDown?: number;
+    width?: number;
+    height?: number;
 }
-
-const WIDTH = 160;
-const HEIGHT = 240;
 
 export const PosterCard: React.FC<PosterCardProps> = ({
     image,
@@ -42,7 +48,16 @@ export const PosterCard: React.FC<PosterCardProps> = ({
     onPress,
     onLongPress,
     style,
+    innerRef,
+    nextFocusLeft,
+    nextFocusUp,
+    nextFocusRight,
+    nextFocusDown,
+    width = xdWidth(160),
+    height = xdHeight(240),
 }) => {
+    const WIDTH = width;
+    const HEIGHT = height;
     const {
         state,
         scaleAnim,
@@ -68,15 +83,16 @@ export const PosterCard: React.FC<PosterCardProps> = ({
         shadowColor: '#FFFFFF',
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: isFocused ? 0.6 : 0,
-        shadowRadius: 15,
-        elevation: isFocused ? 12 : 0,
-        opacity: isVisible ? 1 : 0.7,
+        shadowRadius: 10,
+        elevation: isFocused ? 7 : 0,
+        opacity: isVisible ? 0.9 : 0.7,
     };
 
     return (
         <View style={[styles.container, { width: WIDTH }]}>
             <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
                 <Pressable
+                    ref={innerRef}
                     onPress={handlePress}
                     onLongPress={handleLongPress}
                     onPressIn={handlePressIn}
@@ -85,6 +101,10 @@ export const PosterCard: React.FC<PosterCardProps> = ({
                     onBlur={handleBlur}
                     disabled={disabled}
                     style={[cardStyle, style]}
+                    nextFocusLeft={nextFocusLeft}
+                    nextFocusUp={nextFocusUp}
+                    nextFocusRight={nextFocusRight}
+                    nextFocusDown={nextFocusDown}
                 >
                     {image ? (
                         <Image

@@ -17,6 +17,7 @@ import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
+    FlatList,
     ScrollView,
     StyleSheet,
     Text,
@@ -105,6 +106,32 @@ export default function SeriesDetailScreen() {
         setIsScrolled(offsetY > xdHeight(60));
     };
 
+    const renderEpisodeItem = ({ item }: { item: Episode }) => (
+        <EpisodeCard
+            key={item.id}
+            number={item.number}
+            title={item.title}
+            description={item.description}
+            duration={item.duration}
+            image={item.image}
+            progress={item.progress}
+            onPress={() =>
+                router.push({
+                    pathname: '/player/[id]',
+                    params: {
+                        id: item.id,
+                        title: item.title,
+                        genre,
+                        year,
+                        duration: item.duration,
+                        image: item.image,
+                        isSeries: 'true',
+                    },
+                })
+            }
+        />
+    );
+
     return (
         <ScrollView
             style={styles.screen}
@@ -129,11 +156,17 @@ export default function SeriesDetailScreen() {
                 {/* Left: Poster */}
                 <View style={styles.posterWrapper}>
                     {image ? (
-                        <Image
-                            source={{ uri: image }}
-                            style={styles.poster}
-                            contentFit="cover"
-                        />
+                        <View>
+                            <Image
+                                source={{ uri: image }}
+                                style={styles.poster}
+                                contentFit="cover"
+                            />
+                            {/* Progress Bar on Poster */}
+                            <View style={styles.posterProgressTrack}>
+                                <View style={[styles.posterProgressBar, { width: '45%' }]} />
+                            </View>
+                        </View>
                     ) : (
                         <View style={[styles.poster, styles.posterPlaceholder]} />
                     )}
@@ -165,8 +198,9 @@ export default function SeriesDetailScreen() {
                             icon={<MaterialCommunityIcons name="play" size={scale(18)} />}
                             onPress={() =>
                                 router.push({
-                                    pathname: '/VideoPlayerScreen',
+                                    pathname: '/player/[id]',
                                     params: {
+                                        id: params.id || 'series',
                                         title,
                                         genre,
                                         year,
@@ -177,7 +211,7 @@ export default function SeriesDetailScreen() {
                                 })
                             }
                         >
-                            Watch now
+                            Continue Watching
                         </NavButton>
                         <NavIconButton
                             icon={
@@ -239,30 +273,14 @@ export default function SeriesDetailScreen() {
             </Text>
             <View style={styles.episodesDivider} />
 
-            {episodes.map((ep) => (
-                <EpisodeCard
-                    key={ep.id}
-                    number={ep.number}
-                    title={ep.title}
-                    description={ep.description}
-                    duration={ep.duration}
-                    image={ep.image}
-                    progress={ep.progress}
-                    onPress={() =>
-                        router.push({
-                            pathname: '/VideoPlayerScreen',
-                            params: {
-                                title: ep.title,
-                                genre,
-                                year,
-                                duration: ep.duration,
-                                image: ep.image,
-                                isSeries: 'true',
-                            },
-                        })
-                    }
-                />
-            ))}
+            <FlatList
+                key={`episodes-s${activeSeason}`}
+                data={episodes}
+                keyExtractor={(item) => item.id}
+                renderItem={renderEpisodeItem}
+                scrollEnabled={false}
+                contentContainerStyle={styles.episodesList}
+            />
         </ScrollView>
     );
 }
@@ -320,6 +338,18 @@ const styles = StyleSheet.create({
     },
     posterPlaceholder: {
         backgroundColor: Colors.dark[8],
+    },
+    posterProgressTrack: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 6,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    },
+    posterProgressBar: {
+        height: '100%',
+        backgroundColor: '#E91E63',
     },
 
     infoPanel: {
@@ -424,5 +454,8 @@ const styles = StyleSheet.create({
     seasonsContent: {
         paddingHorizontal: xdWidth(40),
         gap: xdWidth(10),
+    },
+    episodesList: {
+        paddingBottom: xdHeight(20),
     },
 });

@@ -4,21 +4,22 @@
  * ─────────────────────────────────────────────────────────────
  */
 
-import { NavIconButton } from '@/components/ui/buttons/NavIconButton';
+import {
+    NavIconButton
+} from '@/components/ui/buttons';
+import { VideoPreviewCard } from '@/components/ui/cards/VideoPreviewCard';
 import { Colors } from '@/constants';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useTab } from '@/context/TabContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { ResizeMode, Video } from 'expo-av';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 
 // ── Dummy live stream URL (public domain) ─────────────────────
@@ -38,159 +39,7 @@ type EPGSlot = {
 
 // ── Mock EPG data ─────────────────────────────────────────────
 
-const generateEPG = (channelName: string): EPGSlot[] => [
-    {
-        id: '1',
-        title: `${channelName} Morning Show`,
-        startTime: '1:00 PM',
-        endTime: '1:30 PM',
-        isLive: false,
-        widthFactor: 180,
-    },
-    {
-        id: '2',
-        title: 'The World Poker Toure',
-        startTime: '1:30 PM',
-        endTime: '2:00 PM',
-        isLive: true,
-        widthFactor: 340,
-    },
-    {
-        id: '3',
-        title: 'The World Poker Toure',
-        startTime: '2:00 PM',
-        endTime: '2:30 PM',
-        isLive: false,
-        widthFactor: 280,
-    },
-    {
-        id: '4',
-        title: 'Late Night Special',
-        startTime: '2:30 PM',
-        endTime: '3:30 PM',
-        isLive: false,
-        widthFactor: 240,
-    },
-];
-
-// ── VideoPreviewCard ───────────────────────────────────────────
-
-interface VideoPreviewCardProps {
-    title: string;
-    channelName: string;
-    channelImage: string;
-    date: string;
-    episode: string;
-    timeLeft: string;
-    onExpandPress: () => void;
-}
-
-const VideoPreviewCard: React.FC<VideoPreviewCardProps> = ({
-    title,
-    channelImage,
-    onExpandPress,
-}) => {
-    const videoRef = useRef<Video>(null);
-
-    return (
-        <View style={cardStyles.card}>
-
-            {/* ── Inline Video fills the card ── */}
-            <Video
-                ref={videoRef}
-                source={{ uri: DUMMY_VIDEO_URI }}
-                style={StyleSheet.absoluteFill}
-                resizeMode={ResizeMode.COVER}
-                shouldPlay
-                isLooping
-                isMuted
-                useNativeControls={false}
-            />
-
-            {/* Dark vignette so text is readable */}
-            <View style={cardStyles.vignette} />
-
-            {/* Title top-left */}
-            <Text style={cardStyles.title} numberOfLines={1}>
-                {title}
-            </Text>
-
-            {/* Live badge bottom-left */}
-            <View style={cardStyles.liveBadge}>
-                <View style={cardStyles.liveDot} />
-                <Text style={cardStyles.liveText}>Live</Text>
-            </View>
-
-            {/* Expand button bottom-right — navigates to VideoPlayerScreen */}
-            <View style={cardStyles.expandBtn}>
-                <NavIconButton
-                    icon={
-                        <MaterialCommunityIcons
-                            name="arrow-expand-all"
-                            size={scale(18)}
-                            color="#fff"
-                        />
-                    }
-                    onPress={onExpandPress}
-                />
-            </View>
-        </View>
-    );
-};
-
-// ── Card styles ────────────────────────────────────────────────
-
-const cardStyles = StyleSheet.create({
-    card: {
-        width: xdWidth(390),
-        height: xdHeight(220),
-        borderRadius: scale(18),
-        overflow: 'hidden',
-        position: 'relative',
-        backgroundColor: '#111',
-    },
-    vignette: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0,0,0,0.2)',
-    },
-    title: {
-        position: 'absolute',
-        top: xdHeight(14),
-        left: xdWidth(16),
-        right: xdWidth(60),
-        fontSize: scale(13),
-        fontWeight: '600',
-        color: '#fff',
-    },
-    liveBadge: {
-        position: 'absolute',
-        bottom: xdHeight(16),
-        left: xdWidth(16),
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: xdWidth(6),
-        backgroundColor: 'rgba(0,0,0,0.55)',
-        paddingHorizontal: xdWidth(10),
-        paddingVertical: xdHeight(4),
-        borderRadius: scale(20),
-    },
-    liveDot: {
-        width: scale(8),
-        height: scale(8),
-        borderRadius: scale(4),
-        backgroundColor: '#E0334C',
-    },
-    liveText: {
-        fontSize: scale(12),
-        fontWeight: '600',
-        color: '#fff',
-    },
-    expandBtn: {
-        position: 'absolute',
-        bottom: xdHeight(10),
-        right: xdWidth(12),
-    },
-});
+// EPG slots are now handled directly in the render logic for simplicity in matching Figma design
 
 // ── Screen ────────────────────────────────────────────────────
 
@@ -215,11 +64,8 @@ export default function ChannelDetailScreen() {
     const channelName = params.name ?? 'SalinTV';
     const channelImage = params.image ?? '';
 
-    const epgSlots = generateEPG(channelName);
-    const liveSlot = epgSlots.find((s) => s.isLive);
-
     const programme = {
-        showTitle: liveSlot?.title ?? 'The World Poker Toure',
+        showTitle: 'The World Poker Toure',
         description:
             'A relentless detective is drawn into a dangerous investigation after a series of mysterious killings shake the city. As he follows a trail of cryptic clues, he uncovers a hidden network operating in the shadows. With time running out and.',
         date: 'Aug 7, 2026',
@@ -230,8 +76,9 @@ export default function ChannelDetailScreen() {
 
     const handleExpand = () => {
         router.push({
-            pathname: '/VideoPlayerScreen',
+            pathname: '/player/[id]',
             params: {
+                id: params.id || 'live',
                 title: programme.showTitle,
                 genre: channelName,
                 year: programme.date,
@@ -240,6 +87,7 @@ export default function ChannelDetailScreen() {
             },
         });
     };
+
 
     return (
         <View style={styles.screen}>
@@ -305,21 +153,17 @@ export default function ChannelDetailScreen() {
             {/* ── EPG Section ── */}
             <View style={styles.epgSection}>
                 <View style={styles.epgHeader}>
+                    <TouchableOpacity style={styles.todaySelector}>
+                        <Text style={styles.todayText}>Today</Text>
+                        <MaterialCommunityIcons name="chevron-down" size={scale(18)} color={Colors.gray[400]} />
+                    </TouchableOpacity>
+
                     <View style={styles.timeMarkersRow}>
                         {['1:30', '2:00', '2:30'].map((t) => (
                             <Text key={t} style={styles.timeMarker}>
                                 {t}
                             </Text>
                         ))}
-                    </View>
-
-                    <View style={styles.epgNavBtns}>
-                        <TouchableOpacity style={styles.epgNavBtn}>
-                            <MaterialCommunityIcons name="chevron-left" size={scale(20)} color={Colors.gray[400]} />
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.epgNavBtn}>
-                            <MaterialCommunityIcons name="chevron-right" size={scale(20)} color={Colors.gray[400]} />
-                        </TouchableOpacity>
                     </View>
                 </View>
 
@@ -334,47 +178,24 @@ export default function ChannelDetailScreen() {
                         />
                     </View>
 
-                    {/* Scrollable slots */}
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        style={styles.epgSlotsScroll}
-                        contentContainerStyle={styles.epgSlotsContent}
-                    >
-                        {epgSlots.map((slot) => (
-                            <TouchableOpacity
-                                key={slot.id}
-                                activeOpacity={0.75}
-                                style={[
-                                    styles.epgSlot,
-                                    slot.isLive && styles.epgSlotLive,
-                                    { width: xdWidth(slot.widthFactor) },
-                                ]}
-                            >
-                                <View style={styles.slotTextContainer}>
-                                    <Text
-                                        style={[
-                                            styles.epgSlotTitle,
-                                            slot.isLive && styles.epgSlotTitleLive,
-                                        ]}
-                                        numberOfLines={1}
-                                    >
-                                        {slot.title}
-                                    </Text>
-                                    <Text
-                                        style={[
-                                            styles.epgSlotTime,
-                                            slot.isLive && styles.epgSlotTimeLive,
-                                        ]}
-                                    >
-                                        {slot.isLive
-                                            ? `20m left`
-                                            : `${slot.startTime} - ${slot.endTime}`}
-                                    </Text>
-                                </View>
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
+                    {/* Current Program Card */}
+                    <TouchableOpacity style={[styles.programCard, styles.programCardActive]}>
+                        <View style={styles.cardInfo}>
+                            <Text style={styles.cardTitle}>{programme.showTitle}</Text>
+                            <Text style={styles.cardSub}>{programme.timeLeft} left</Text>
+                        </View>
+                        <View style={styles.progressBarBg}>
+                            <View style={[styles.progressBarFill, { width: '35%' }]} />
+                        </View>
+                    </TouchableOpacity>
+
+                    {/* Next Program Card */}
+                    <TouchableOpacity style={styles.programCard}>
+                        <View style={styles.cardInfo}>
+                            <Text style={styles.cardTitle}>{programme.showTitle}</Text>
+                            <Text style={styles.cardSub}>1:30 PM - 2:00 PM</Text>
+                        </View>
+                    </TouchableOpacity>
                 </View>
             </View>
         </View>
@@ -391,13 +212,14 @@ const styles = StyleSheet.create({
 
     // ── Top section ──────────────────────────────────────────
     topSection: {
-        flex: 0.68,
+        flex: 0.65, // Adjusted to make EPG ~27%
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
         paddingHorizontal: xdWidth(32),
-        paddingVertical: xdHeight(80),
         overflow: 'hidden',
         position: 'relative',
+        paddingTop: xdHeight(50),
     },
     topBgImage: {
         position: 'absolute',
@@ -457,98 +279,94 @@ const styles = StyleSheet.create({
 
     // ── EPG section ───────────────────────────────────────────
     epgSection: {
-        flex: 0.45,
+        flex: 0.35, // Increased to 0.35 (filling the screen bottom) to fix the overflow "overlay"
         paddingHorizontal: xdWidth(32),
-        paddingTop: xdHeight(4),
+        backgroundColor: '#1E1E21',
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255,255,255,0.05)',
     },
     epgHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.1)',
+        paddingVertical: xdHeight(16),
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.1)',
-        paddingVertical: xdHeight(4),
-        marginVertical: xdHeight(6),
+        borderBottomColor: 'rgba(255,255,255,0.05)',
+        marginBottom: xdHeight(16),
+    },
+    todaySelector: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: xdWidth(8),
+        width: xdWidth(100),
+    },
+    todayText: {
+        fontSize: scale(15),
+        color: Colors.gray[100],
+        fontWeight: '700',
     },
     timeMarkersRow: {
         flexDirection: 'row',
-        paddingHorizontal: xdWidth(40),
-        gap: xdWidth(300),
+        gap: xdWidth(240),
         flex: 1,
+        paddingLeft: xdWidth(20),
     },
     timeMarker: {
-        fontSize: scale(14),
+        fontSize: scale(13),
         color: Colors.gray[400],
         fontWeight: '500',
-    },
-    epgNavBtns: {
-        flexDirection: 'row',
-        gap: xdWidth(10),
-    },
-    epgNavBtn: {
-        width: scale(32),
-        height: scale(32),
-        borderRadius: scale(16),
-        backgroundColor: 'rgba(255,255,255,0.08)',
-        alignItems: 'center',
-        justifyContent: 'center',
     },
     epgRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: xdWidth(16),
+        gap: xdWidth(12),
     },
     epgLogoCell: {
-        width: xdWidth(100),
-        height: xdHeight(64),
+        width: xdWidth(76),
+        height: xdHeight(68),
         backgroundColor: '#FFFFFF',
-        borderRadius: scale(10),
+        borderRadius: scale(8),
         alignItems: 'center',
         justifyContent: 'center',
-        elevation: 4,
     },
     epgLogo: {
-        width: xdWidth(60),
-        height: xdHeight(40),
+        width: xdWidth(50),
+        height: xdHeight(34),
     },
-    epgSlotsScroll: {
+    programCard: {
         flex: 1,
-    },
-    epgSlotsContent: {
-        gap: xdWidth(12),
-        alignItems: 'center',
-    },
-    epgSlot: {
-        height: xdHeight(64),
-        backgroundColor: '#232328',
+        height: xdHeight(68),
+        backgroundColor: 'rgba(255,255,255,0.06)',
         borderRadius: scale(10),
         paddingHorizontal: xdWidth(16),
         justifyContent: 'center',
-        borderWidth: 2,
-        borderColor: 'transparent',
+        overflow: 'hidden',
     },
-    epgSlotLive: {
-        backgroundColor: '#323238',
-        borderColor: 'rgba(255,255,255,0.1)',
+    programCardActive: {
+        backgroundColor: 'rgba(255,255,255,0.12)',
     },
-    slotTextContainer: {
-        justifyContent: 'center',
+    cardInfo: {
+        gap: xdHeight(2),
     },
-    epgSlotTitle: {
+    cardTitle: {
         fontSize: scale(13),
-        fontWeight: '600',
-        color: Colors.gray[400],
-        marginBottom: xdHeight(2),
-    },
-    epgSlotTitleLive: {
+        fontWeight: '700',
         color: Colors.gray[100],
     },
-    epgSlotTime: {
+    cardSub: {
         fontSize: scale(12),
-        color: Colors.gray[500],
-    },
-    epgSlotTimeLive: {
         color: Colors.gray[400],
+    },
+    progressBarBg: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: xdHeight(68),
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        zIndex: -1,
+    },
+    progressBarFill: {
+        height: '100%',
+        backgroundColor: 'rgba(255,255,255,0.08)',
     },
 });

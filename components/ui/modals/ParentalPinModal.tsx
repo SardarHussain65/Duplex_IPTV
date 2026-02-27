@@ -4,21 +4,22 @@ import { Colors } from '@/constants';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useTab } from '@/context/TabContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React from 'react';
 import { Modal, StyleSheet, Text, View } from 'react-native';
 
-export const ParentalPinModal: React.FC = () => {
-    const { isParentalModalVisible, setParentalModalVisible, setActiveTab } = useTab();
+export const ParentalPinModal: React.FC<{ visible?: boolean }> = ({ visible = true }) => {
+    const { setParentalModalVisible } = useTab();
+    const router = useRouter();
 
     const handleOpenSettings = () => {
         setParentalModalVisible(false);
-        setActiveTab('settings');
-        // Logic to switch to parental section inside settings could be added here if needed
+        router.replace('/(home)/(tabs)/settings');
     };
 
     return (
         <Modal
-            visible={isParentalModalVisible}
+            visible={visible}
             transparent={true}
             animationType="fade"
             onRequestClose={() => setParentalModalVisible(false)}

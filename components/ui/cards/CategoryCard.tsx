@@ -9,7 +9,7 @@
 import { Colors, Spacing } from '@/constants';
 import React from 'react';
 import { Animated, Pressable, Text, TextStyle, View, ViewStyle } from 'react-native';
-import { useButtonState } from './useButtonState';
+import { useButtonState } from '../buttons/useButtonState';
 
 export interface CategoryCardProps {
     icon: React.ReactNode;
@@ -87,39 +87,21 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
     const getTitleStyle = (): TextStyle => {
         switch (state) {
             case 'active':
-                return {
-                    color: Colors.dark[11],
-                    fontSize: 18,
-                    fontWeight: '600',
-                };
+                return { color: Colors.dark[11], fontSize: 18, fontWeight: '600' };
             case 'focused':
-                return {
-                    color: Colors.gray[100],
-                    fontSize: 18,
-                    fontWeight: '600',
-                };
+                return { color: Colors.gray[100], fontSize: 18, fontWeight: '600' };
             case 'pressed':
-                return {
-                    color: Colors.gray[400],
-                    fontSize: 18,
-                    fontWeight: '600',
-                };
+                return { color: Colors.gray[400], fontSize: 18, fontWeight: '600' };
             default:
-                return {
-                    color: Colors.gray[300],
-                    fontSize: 18,
-                    fontWeight: '500',
-                };
+                return { color: Colors.gray[300], fontSize: 18, fontWeight: '500' };
         }
     };
 
-    const getCountStyle = (): TextStyle => {
-        return {
-            color: state === 'active' ? Colors.dark[11] : Colors.gray[500],
-            fontSize: 14,
-            fontWeight: '400',
-        };
-    };
+    const getCountStyle = (): TextStyle => ({
+        color: state === 'active' ? Colors.dark[11] : Colors.gray[500],
+        fontSize: 14,
+        fontWeight: '400',
+    });
 
     return (
         <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>

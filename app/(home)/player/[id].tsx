@@ -6,8 +6,8 @@
  */
 
 import { NavIconButton } from '@/components/ui';
-import { SettingCard } from '@/components/ui/buttons/SettingCard';
 import { EpisodeCard } from '@/components/ui/cards/EpisodeCard';
+import { SettingCard } from '@/components/ui/cards/SettingCard';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useTab } from '@/context/TabContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -16,7 +16,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
     Animated,
-    ScrollView,
+    FlatList,
     StyleSheet,
     Text,
     View
@@ -149,6 +149,21 @@ export default function VideoPlayerScreen() {
         setIsPlaying(true);
         setViewMode('normal');
     };
+
+    const renderEpisodeItem = ({ item, index }: { item: Episode, index: number }) => (
+        <EpisodeCard
+            key={item.id}
+            variant="mini"
+            number={item.number}
+            title={item.title}
+            description={item.description}
+            duration={item.duration}
+            image={item.image}
+            progress={item.progress}
+            isPlaying={index === currentEpisodeIndex}
+            onPress={() => handleSelectEpisode(index)}
+        />
+    );
 
     const { setParentalModalVisible } = useTab();
 
@@ -327,22 +342,12 @@ export default function VideoPlayerScreen() {
                             <View style={styles.episodesPanel}>
                                 <Text style={styles.panelTitle}>Episodes ({episodes.length})</Text>
                                 <View style={styles.panelDivider} />
-                                <ScrollView showsVerticalScrollIndicator={false}>
-                                    {episodes.map((ep, i) => (
-                                        <EpisodeCard
-                                            key={ep.id}
-                                            variant="mini"
-                                            number={ep.number}
-                                            title={ep.title}
-                                            description={ep.description}
-                                            duration={ep.duration}
-                                            image={ep.image}
-                                            progress={ep.progress}
-                                            isPlaying={i === currentEpisodeIndex}
-                                            onPress={() => handleSelectEpisode(i)}
-                                        />
-                                    ))}
-                                </ScrollView>
+                                <FlatList
+                                    showsVerticalScrollIndicator={false}
+                                    data={episodes}
+                                    keyExtractor={(item) => item.id}
+                                    renderItem={renderEpisodeItem}
+                                />
                             </View>
                         )}
                     </View>

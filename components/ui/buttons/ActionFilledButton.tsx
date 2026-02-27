@@ -8,7 +8,7 @@
 
 import { Colors, Spacing } from '@/constants';
 import React from 'react';
-import { Animated, Pressable, Text, TextStyle, ViewStyle } from 'react-native';
+import { Animated, findNodeHandle, Pressable, StyleSheet, Text, TextStyle, ViewStyle } from 'react-native';
 import { useButtonState } from './useButtonState';
 
 export interface ActionFilledButtonProps {
@@ -16,18 +16,39 @@ export interface ActionFilledButtonProps {
     disabled?: boolean;
     onPress?: () => void;
     onLongPress?: () => void;
+    icon?: React.ReactNode;
+    iconPosition?: 'left' | 'right';
+    gap?: number;
+    textColor?: string;
     style?: ViewStyle;
     testID?: string;
+    nativeID?: string;
+    nextFocusLeft?: number | 'self';
+    nextFocusRight?: number | 'self';
+    nextFocusUp?: number | 'self';
+    nextFocusDown?: number | 'self';
 }
 
-export const ActionFilledButton: React.FC<ActionFilledButtonProps> = ({
-    children,
-    disabled = false,
-    onPress,
-    onLongPress,
-    style,
-    testID,
-}) => {
+export const ActionFilledButton = React.forwardRef<any, ActionFilledButtonProps>((
+    {
+        children,
+        disabled = false,
+        onPress,
+        onLongPress,
+        icon,
+        iconPosition = 'left',
+        gap = Spacing.xs,
+        textColor,
+        style,
+        testID,
+        nativeID,
+        nextFocusLeft,
+        nextFocusRight,
+        nextFocusUp,
+        nextFocusDown,
+    },
+    ref
+) => {
     const {
         state,
         scaleAnim,
@@ -39,14 +60,31 @@ export const ActionFilledButton: React.FC<ActionFilledButtonProps> = ({
         handleLongPress,
     } = useButtonState({ disabled, onPress, onLongPress });
 
+    const innerRef = React.useRef(null);
+    const [handles, setHandles] = React.useState<Record<string, number | undefined>>({});
+
+    React.useEffect(() => {
+        if (innerRef.current) {
+            const handle = findNodeHandle(innerRef.current);
+            setHandles({ self: handle || undefined });
+        }
+    }, [innerRef.current]);
+
+    const resolveFocus = (val: number | 'self' | undefined) => {
+        if (val === 'self') return handles.self;
+        return val;
+    };
+
     const getButtonStyle = (): ViewStyle => {
         const baseStyle: ViewStyle = {
             paddingVertical: Spacing.sm,
             paddingHorizontal: Spacing.lg,
             borderRadius: 8,
             minWidth: 100,
+            flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'center',
+            gap: gap,
             borderWidth: 2,
             borderColor: 'transparent',
         };
@@ -72,8 +110,11 @@ export const ActionFilledButton: React.FC<ActionFilledButtonProps> = ({
     };
 
     const getTextStyle = (): TextStyle => {
+        const flattenedStyle = StyleSheet.flatten(style);
+        const isRedBg = flattenedStyle?.backgroundColor === Colors.error[500];
+
         return {
-            color: Colors.dark[11],
+            color: textColor || (isRedBg ? Colors.dark[1] : Colors.dark[11]),
             fontSize: 16,
             fontWeight: '600',
         };
@@ -82,6 +123,12 @@ export const ActionFilledButton: React.FC<ActionFilledButtonProps> = ({
     return (
         <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
             <Pressable
+                ref={(node) => {
+                    // @ts-ignore
+                    innerRef.current = node;
+                    if (typeof ref === 'function') ref(node);
+                    else if (ref) (ref as any).current = node;
+                }}
                 onPress={handlePress}
                 onLongPress={handleLongPress}
                 onPressIn={handlePressIn}
@@ -91,6 +138,11 @@ export const ActionFilledButton: React.FC<ActionFilledButtonProps> = ({
                 disabled={disabled}
                 style={[getButtonStyle(), style]}
                 testID={testID}
+                nativeID={nativeID}
+                nextFocusLeft={resolveFocus(nextFocusLeft)}
+                nextFocusRight={resolveFocus(nextFocusRight)}
+                nextFocusUp={resolveFocus(nextFocusUp)}
+                nextFocusDown={resolveFocus(nextFocusDown)}
                 hasTVPreferredFocus={false}
                 focusable={true}
                 tvParallaxProperties={{
@@ -101,8 +153,10 @@ export const ActionFilledButton: React.FC<ActionFilledButtonProps> = ({
                     magnification: 1.05,
                 }}
             >
+                {iconPosition === 'left' && icon}
                 <Text style={getTextStyle()}>{children}</Text>
+                {iconPosition === 'right' && icon}
             </Pressable>
         </Animated.View>
     );
-};
+});

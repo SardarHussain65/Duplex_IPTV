@@ -94,11 +94,17 @@ export default function MovieDetailScreen() {
                     {/* Left: Poster */}
                     <View style={styles.posterWrapper}>
                         {image ? (
-                            <Image
-                                source={{ uri: image }}
-                                style={styles.poster}
-                                contentFit="cover"
-                            />
+                            <View>
+                                <Image
+                                    source={{ uri: image }}
+                                    style={styles.poster}
+                                    contentFit="cover"
+                                />
+                                {/* Progress Bar on Poster */}
+                                <View style={styles.posterProgressTrack}>
+                                    <View style={[styles.posterProgressBar, { width: '65%' }]} />
+                                </View>
+                            </View>
                         ) : (
                             <View style={[styles.poster, styles.posterPlaceholder]} />
                         )}
@@ -134,8 +140,9 @@ export default function MovieDetailScreen() {
                                 icon={<MaterialCommunityIcons name="play" size={scale(18)} />}
                                 onPress={() =>
                                     router.push({
-                                        pathname: '/VideoPlayerScreen',
+                                        pathname: '/player/[id]',
                                         params: {
+                                            id: params.id || 'movie',
                                             title,
                                             genre,
                                             year,
@@ -145,7 +152,7 @@ export default function MovieDetailScreen() {
                                     })
                                 }
                             >
-                                Watch now
+                                Continue Watching
                             </NavButton>
 
                             <NavIconButton
@@ -193,7 +200,7 @@ const styles = StyleSheet.create({
     screen: {
         flex: 1,
         backgroundColor: '#141416',
-        paddingVertical: xdHeight(40),
+        paddingTop: xdHeight(70),
 
     },
     bgImage: {
@@ -234,6 +241,18 @@ const styles = StyleSheet.create({
     },
     posterPlaceholder: {
         backgroundColor: Colors.dark[8],
+    },
+    posterProgressTrack: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 6,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    },
+    posterProgressBar: {
+        height: '100%',
+        backgroundColor: '#E91E63',
     },
 
     // Info panel

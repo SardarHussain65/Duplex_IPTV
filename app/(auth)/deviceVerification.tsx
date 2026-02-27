@@ -1,8 +1,8 @@
+import { SyncingStep } from "@/components/ui/SyncingStep";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { SyncingStep } from "../../components/SyncingStep";
 import { Colors, scale as s, width } from "../../constants";
 
 type StepStatus = "pending" | "loading" | "success" | "error";
@@ -32,19 +32,17 @@ const DeviceVerification = () => {
         setCurrentStep(0);
     };
 
+
+
+
     useEffect(() => {
         if (status !== "syncing") return;
 
-        const timers: NodeJS.Timeout[] = [];
+        const timers: ReturnType<typeof setTimeout>[] = [];
 
         const processStep = async (index: number) => {
             if (index >= STEPS.length) {
                 setStatus("success");
-                // Navigate to home after success or let user click
-                const timer = setTimeout(() => {
-                    // router.replace("/(tabs)"); // Example navigation
-                }, 1500);
-                timers.push(timer);
                 return;
             }
 
@@ -88,6 +86,15 @@ const DeviceVerification = () => {
             timers.forEach(timer => clearTimeout(timer));
         };
     }, [currentStep, status]);
+
+    // Navigate to selectPlaylists 3 seconds after all steps succeed
+    useEffect(() => {
+        if (status !== "success") return;
+        const timer = setTimeout(() => {
+            router.push("/(auth)/selectPlaylists");
+        }, 3000);
+        return () => clearTimeout(timer);
+    }, [status]);
 
     return (
         <View style={styles.container}>
@@ -135,7 +142,7 @@ const DeviceVerification = () => {
             </View>
             <View style={[styles.footer, { marginTop: s(20) }]}>
                 {status === "success" ? (
-                    <Text style={[styles.successText, { fontSize: s(12) }]} onPress={() => router.push("/(auth)/selectPlaylists")}>
+                    <Text style={[styles.successText, { fontSize: s(12) }]}>
                         All set! Taking you to the home screen…
                     </Text>
                 ) : (
