@@ -1,5 +1,6 @@
 import { ActionFilledButton } from '@/components/ui/buttons/ActionFilledButton';
 import { Colors, xdWidth } from '@/constants';
+import { useTab } from '@/context/TabContext';
 import { panelStyles } from '@/styles/settings_panel.styles';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
@@ -11,6 +12,8 @@ interface CacheSectionProps {
 }
 
 export const CacheSection: React.FC<CacheSectionProps> = ({ startRef, sidebarRef }) => {
+    const { settingsTabNode } = useTab();
+
     return (
         <View>
             <View style={panelStyles.card}>
@@ -33,9 +36,15 @@ export const CacheSection: React.FC<CacheSectionProps> = ({ startRef, sidebarRef
                 </View>
             </View>
             <ActionFilledButton
-                ref={startRef}
+                ref={(node) => {
+                    if (typeof startRef === 'function') (startRef as any)(node);
+                    else if (startRef) (startRef as any).current = node;
+                }}
                 nativeID="settings_content_start"
                 nextFocusLeft={findNodeHandle(sidebarRef.current) || undefined}
+                nextFocusRight="self"
+                nextFocusUp={settingsTabNode || undefined}
+                nextFocusDown={findNodeHandle(sidebarRef.current) || undefined}
                 style={panelStyles.clearBtn}
                 onPress={() => { }}
                 icon={<MaterialCommunityIcons name="delete" size={20} color={Colors.dark[1]} />}

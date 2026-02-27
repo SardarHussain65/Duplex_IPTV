@@ -4,6 +4,7 @@ import { HistoryCard } from '@/components/ui/cards/HistoryCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Colors, FAVORITE_CATEGORIES } from '@/constants';
 import { xdHeight, xdWidth } from '@/constants/scaling';
+import { useTab } from '@/context/TabContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { findNodeHandle, FlatList, StyleSheet, View } from 'react-native';
@@ -75,6 +76,7 @@ export const WatchHistorySection: React.FC<WatchHistorySectionProps> = ({
     startRef,
     sidebarRef,
 }) => {
+    const { settingsTabNode, isParentalControlEnabled } = useTab();
     const [activeTab, setActiveTab] = useState<'Live TV' | 'Movies' | 'Series'>('Live TV');
 
     const filteredHistory = MOCK_HISTORY.filter(item => item.type === activeTab);
@@ -84,9 +86,15 @@ export const WatchHistorySection: React.FC<WatchHistorySectionProps> = ({
             {/* Header with Clear Button */}
             <View style={styles.header}>
                 <ActionFilledButton
-                    ref={startRef}
+                    ref={(node) => {
+                        if (typeof startRef === 'function') (startRef as any)(node);
+                        else if (startRef) (startRef as any).current = node;
+                    }}
                     nativeID="settings_content_start"
                     nextFocusLeft={findNodeHandle(sidebarRef.current) || undefined}
+                    nextFocusRight="self"
+                    nextFocusUp={settingsTabNode || undefined}
+                    nextFocusDown={!isParentalControlEnabled ? findNodeHandle(sidebarRef.current) || undefined : undefined}
                     style={styles.clearBtn}
                     onPress={() => { }}
                     icon={<MaterialCommunityIcons name="delete" size={20} color={Colors.dark[1]} />}
@@ -98,13 +106,15 @@ export const WatchHistorySection: React.FC<WatchHistorySectionProps> = ({
 
             {/* Category Filter */}
             <View style={styles.tabs}>
-                {FAVORITE_CATEGORIES.map((cat) => (
+                {FAVORITE_CATEGORIES.map((cat, index) => (
                     <CategoryButton
                         key={cat.label}
                         icon={cat.icon}
                         isActive={activeTab === cat.label}
                         onPress={() => setActiveTab(cat.label)}
                         style={{ marginRight: xdWidth(12) }}
+                        nextFocusRight={index === FAVORITE_CATEGORIES.length - 1 ? 'self' : undefined}
+                        nextFocusUp={settingsTabNode || undefined}
                     >
                         {cat.label} ({cat.label === 'Live TV' ? 65 : cat.label === 'Movies' ? 34 : 0})
                     </CategoryButton>
@@ -116,7 +126,7 @@ export const WatchHistorySection: React.FC<WatchHistorySectionProps> = ({
                 data={filteredHistory}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.listContent}
-                renderItem={({ item }) => (
+                renderItem={({ item, index }) => (
                     <HistoryCard
                         title={item.title}
                         date={item.date}
@@ -124,6 +134,8 @@ export const WatchHistorySection: React.FC<WatchHistorySectionProps> = ({
                         progress={item.progress}
                         image={item.image}
                         style={styles.card}
+                        nextFocusRight={(index % 2 === 1) ? 'self' : undefined}
+                        nextFocusDown={index >= filteredHistory.length - 2 ? findNodeHandle(sidebarRef.current) || undefined : undefined}
                     />
                 )}
                 numColumns={2}

@@ -8,8 +8,8 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import { Modal, StyleSheet, Text, View } from 'react-native';
 
-export const ParentalPinModal: React.FC = () => {
-    const { isParentalModalVisible, setParentalModalVisible } = useTab();
+export const ParentalPinModal: React.FC<{ visible?: boolean }> = ({ visible = true }) => {
+    const { setParentalModalVisible } = useTab();
     const router = useRouter();
 
     const handleOpenSettings = () => {
@@ -19,7 +19,7 @@ export const ParentalPinModal: React.FC = () => {
 
     return (
         <Modal
-            visible={isParentalModalVisible}
+            visible={visible}
             transparent={true}
             animationType="fade"
             onRequestClose={() => setParentalModalVisible(false)}

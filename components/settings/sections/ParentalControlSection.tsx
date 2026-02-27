@@ -23,6 +23,7 @@ export const ParentalControlSection: React.FC<ParentalControlSectionProps> = ({
         setIsParentalControlEnabled,
         parentalPin,
         setParentalPin,
+        settingsTabNode,
     } = useTab();
 
     const [isSetModalVisible, setSetModalVisible] = useState(false);
@@ -31,7 +32,8 @@ export const ParentalControlSection: React.FC<ParentalControlSectionProps> = ({
 
     const handleSwitchChange = (val: boolean) => {
         if (val) {
-            if (!parentalPin) {
+            // Treat empty OR '0000' as "PIN not set"
+            if (!parentalPin || parentalPin === '0000') {
                 setPendingAction('enable');
                 setSetModalVisible(true);
             } else {
@@ -47,19 +49,28 @@ export const ParentalControlSection: React.FC<ParentalControlSectionProps> = ({
         setEnterModalVisible(true);
     };
 
+    // Only show PIN settings if enabled AND a PIN actually exists
+    const showPinSettings = isParentalControlEnabled && parentalPin && parentalPin !== '0000';
+
     return (
         <View style={{ gap: 20 }}>
             <SettingCard
-                ref={startRef}
+                ref={(node) => {
+                    if (typeof startRef === 'function') (startRef as any)(node);
+                    else if (startRef) (startRef as any).current = node;
+                }}
                 nativeID="settings_content_start"
                 nextFocusLeft={findNodeHandle(sidebarRef.current) || undefined}
+                nextFocusRight="self"
+                nextFocusUp={settingsTabNode || undefined}
+                nextFocusDown={!showPinSettings ? findNodeHandle(sidebarRef.current) || undefined : undefined}
                 title="Enable Parental Control"
                 subtitle="Require PIN to access restricted content"
                 icon={
                     <View pointerEvents="none">
                         <Switch
                             value={isParentalControlEnabled}
-                            onValueChange={setIsParentalControlEnabled}
+                            onValueChange={() => { }}
                             trackColor={{ false: Colors.dark[8], true: '#E91E63' }}
                             thumbColor={Colors.gray[100]}
                         />
@@ -69,7 +80,7 @@ export const ParentalControlSection: React.FC<ParentalControlSectionProps> = ({
                 onPress={() => handleSwitchChange(!isParentalControlEnabled)}
             />
 
-            {isParentalControlEnabled && (
+            {showPinSettings && (
                 <View style={[panelStyles.card, { paddingBottom: 16 }]}>
                     <Text style={panelStyles.cardTitle}>Pin Setting</Text>
                     <Text style={panelStyles.rowLabel}>Current Pin</Text>
@@ -83,6 +94,8 @@ export const ParentalControlSection: React.FC<ParentalControlSectionProps> = ({
                             icon={<MaterialCommunityIcons name="lock-outline" size={20} color={Colors.dark[11]} />}
                             gap={6}
                             textColor={Colors.dark[11]}
+                            nextFocusRight="self"
+                            nextFocusDown={findNodeHandle(sidebarRef.current) || undefined}
                         >
                             Change Pin
                         </ActionFilledButton>

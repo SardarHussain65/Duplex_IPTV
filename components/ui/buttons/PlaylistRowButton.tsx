@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
     Animated,
+    findNodeHandle,
     Pressable,
     PressableProps,
     StyleSheet,
@@ -12,13 +13,17 @@ import {
 import { useButtonState } from "./useButtonState";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-export interface PlaylistRowButtonProps extends Omit<PressableProps, 'style' | 'onPress'> {
+export interface PlaylistRowButtonProps extends Omit<PressableProps, 'style' | 'onPress' | 'nextFocusLeft' | 'nextFocusRight' | 'nextFocusUp' | 'nextFocusDown'> {
     label: string;
     url: string;
     isSelected?: boolean;
     disabled?: boolean;
     onPress?: () => void;
     hasTVPreferredFocus?: boolean;
+    nextFocusLeft?: any;
+    nextFocusRight?: any;
+    nextFocusUp?: any;
+    nextFocusDown?: any;
 }
 
 // ── AnimatedPressable (same pattern as PlaylistButton) ────────────────────────
@@ -44,12 +49,32 @@ export const PlaylistRowButton = React.forwardRef<View, PlaylistRowButtonProps>(
         handlePress,
     } = useButtonState({ isActive: isSelected, disabled, onPress });
 
+    const innerRef = React.useRef(null);
+    const [handles, setHandles] = React.useState<Record<string, number | undefined>>({});
+
+    React.useEffect(() => {
+        if (innerRef.current) {
+            const handle = findNodeHandle(innerRef.current);
+            setHandles({ self: handle || undefined });
+        }
+    }, [innerRef.current]);
+
+    const resolveFocus = (val: number | 'self' | undefined) => {
+        if (val === 'self') return handles.self;
+        return val;
+    };
+
     const active = state === 'active' || state === 'focused' || state === 'pressed';
 
 
     return (
         <AnimatedPressable
-            ref={ref}
+            ref={(node) => {
+                // @ts-ignore
+                innerRef.current = node;
+                if (typeof ref === 'function') (ref as any)(node);
+                else if (ref) (ref as any).current = node;
+            }}
             onPress={handlePress}
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}
@@ -69,7 +94,10 @@ export const PlaylistRowButton = React.forwardRef<View, PlaylistRowButtonProps>(
                     opacity: disabled ? 0.4 : 1,
                 },
             ]}
-            {...rest}
+            nextFocusLeft={resolveFocus(rest.nextFocusLeft as any)}
+            nextFocusRight={resolveFocus(rest.nextFocusRight as any)}
+            nextFocusUp={resolveFocus(rest.nextFocusUp as any)}
+            nextFocusDown={resolveFocus(rest.nextFocusDown as any)}
         >
             {/* Icon box */}
             <View

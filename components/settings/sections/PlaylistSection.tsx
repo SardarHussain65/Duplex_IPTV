@@ -59,13 +59,14 @@ export const PlaylistSection: React.FC<PlaylistSectionProps> = ({ startRef, side
                     isActive={activeTab === 'Xtream Code'}
                     onPress={() => setActiveTab('Xtream Code')}
                     nextFocusLeft={sidebarNode as any}
+                    nextFocusRight={"self" as any} // CategoryButton should handle "self" to point to its own handle
                 >
                     Xtream Code
                 </CategoryButton>
             </View>
 
             <View style={{ gap: 12 }}>
-                {filteredPlaylists.map((p) => (
+                {filteredPlaylists.map((p, index) => (
                     <PlaylistRowButton
                         key={p.id}
                         label={p.title}
@@ -78,6 +79,8 @@ export const PlaylistSection: React.FC<PlaylistSectionProps> = ({ startRef, side
                             }
                         }}
                         nextFocusLeft={sidebarNode as any}
+                        nextFocusRight={"self" as any}
+                        nextFocusDown={index === filteredPlaylists.length - 1 ? (sidebarNode as any) : undefined}
                     />
                 ))}
                 {filteredPlaylists.length === 0 && (

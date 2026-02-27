@@ -11,6 +11,7 @@ import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import React from 'react';
 import {
     Animated,
+    findNodeHandle,
     Image,
     ImageSourcePropType,
     Pressable,
@@ -29,6 +30,10 @@ export interface HistoryCardProps {
     progress: number; // 0 to 1
     onPress?: () => void;
     style?: ViewStyle;
+    nextFocusLeft?: number | 'self';
+    nextFocusRight?: number | 'self';
+    nextFocusUp?: number | 'self';
+    nextFocusDown?: number | 'self';
 }
 
 const WIDTH = xdWidth(250);
@@ -43,6 +48,10 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({
     progress,
     onPress,
     style,
+    nextFocusLeft,
+    nextFocusRight,
+    nextFocusUp,
+    nextFocusDown,
 }) => {
     const {
         state,
@@ -54,11 +63,30 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({
         handlePress,
     } = useButtonState({ onPress });
 
+    const innerRef = React.useRef(null);
+    const [handles, setHandles] = React.useState<Record<string, number | undefined>>({});
+
+    React.useEffect(() => {
+        if (innerRef.current) {
+            const handle = findNodeHandle(innerRef.current);
+            setHandles({ self: handle || undefined });
+        }
+    }, [innerRef.current]);
+
+    const resolveFocus = (val: number | 'self' | undefined) => {
+        if (val === 'self') return handles.self;
+        return val;
+    };
+
     const isFocused = state === 'focused' || state === 'pressed';
 
     return (
         <Animated.View style={[{ transform: [{ scale: scaleAnim }] }, style]}>
             <Pressable
+                ref={(node) => {
+                    // @ts-ignore
+                    innerRef.current = node;
+                }}
                 onPress={handlePress}
                 onPressIn={handlePressIn}
                 onPressOut={handlePressOut}
@@ -68,6 +96,11 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({
                     styles.card,
                     isFocused && styles.cardFocused
                 ]}
+                nextFocusLeft={resolveFocus(nextFocusLeft)}
+                nextFocusRight={resolveFocus(nextFocusRight)}
+                nextFocusUp={resolveFocus(nextFocusUp)}
+                nextFocusDown={resolveFocus(nextFocusDown)}
+                focusable={true}
             >
                 {/* Left: Image with Progress */}
                 <View style={[styles.imageContainer, { width: IMAGE_WIDTH }]}>

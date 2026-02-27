@@ -1,5 +1,6 @@
 import { SettingCard } from '@/components/ui/cards/SettingCard';
 import { Colors } from '@/constants';
+import { useTab } from '@/context/TabContext';
 import { panelStyles } from '@/styles/settings_panel.styles';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
@@ -18,12 +19,19 @@ export const LanguageSection: React.FC<LanguageSectionProps> = ({
     startRef,
     sidebarRef,
 }) => {
+    const { settingsTabNode } = useTab();
+
     return (
         <View style={panelStyles.options}>
             <SettingCard
-                ref={startRef}
+                ref={(node) => {
+                    if (typeof startRef === 'function') (startRef as any)(node);
+                    else if (startRef) (startRef as any).current = node;
+                }}
                 nativeID="settings_content_start"
                 nextFocusLeft={findNodeHandle(sidebarRef.current) || undefined}
+                nextFocusUp={settingsTabNode || undefined}
+                nextFocusDown={findNodeHandle(sidebarRef.current) || undefined}
                 icon={selected === 'English' ? <MaterialCommunityIcons name="check" size={20} color={Colors.gray[100]} /> : null}
                 iconPosition="right"
                 title="English"
@@ -35,6 +43,9 @@ export const LanguageSection: React.FC<LanguageSectionProps> = ({
             />
             <SettingCard
                 nextFocusLeft={findNodeHandle(sidebarRef.current) || undefined}
+                nextFocusRight="self"
+                nextFocusUp={settingsTabNode || undefined}
+                nextFocusDown={findNodeHandle(sidebarRef.current) || undefined}
                 icon={selected === 'German' ? <MaterialCommunityIcons name="check" size={20} color={Colors.gray[100]} /> : null}
                 iconPosition="right"
                 title="German"

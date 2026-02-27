@@ -100,7 +100,7 @@ const GET_SECTION_INFO = (id: SettingId): { title: string; subtitle: string } =>
 
 // ── Main component ────────────────────────────────────────────
 export default function SettingsScreen() {
-    const { setSettingsSidebarNode, settingsContentNode, setSettingsContentNode } = useTab();
+    const { setSettingsSidebarNode, settingsContentNode, setSettingsContentNode, settingsTabNode } = useTab();
     const [activeSection, setActiveSection] = useState<SettingId>('language');
     const [selectedLanguage, setSelectedLanguage] = useState('English');
     const contentStartRef = useRef(null);
@@ -169,7 +169,7 @@ export default function SettingsScreen() {
                         ref={activeSection === item.id ? activeTabRef : null}
                         nativeID={`sidebar_${item.id}`}
                         nextFocusRight={settingsContentNode || undefined}
-                        nextFocusUp={index === 0 ? findNodeHandle(activeTabRef.current) || undefined : undefined}
+                        nextFocusUp={index === 0 ? (settingsTabNode || undefined) : undefined}
                         nextFocusDown={index === SETTINGS.length - 1 ? findNodeHandle(activeTabRef.current) || undefined : undefined}
                         icon={<MaterialCommunityIcons name={item.icon as any} size={24} />}
                         isActive={activeSection === item.id}

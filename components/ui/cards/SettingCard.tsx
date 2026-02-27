@@ -10,7 +10,7 @@ import { Colors, Spacing } from '@/constants';
 import { scale } from '@/constants/scaling';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
-import { Animated, Pressable, Text, TextStyle, View, ViewStyle } from 'react-native';
+import { Animated, findNodeHandle, Pressable, Text, TextStyle, View, ViewStyle } from 'react-native';
 import { useButtonState } from '../buttons/useButtonState';
 
 export interface SettingCardProps {
@@ -25,10 +25,10 @@ export interface SettingCardProps {
     style?: ViewStyle;
     testID?: string;
     nativeID?: string;
-    nextFocusLeft?: number;
-    nextFocusRight?: number;
-    nextFocusUp?: number;
-    nextFocusDown?: number;
+    nextFocusLeft?: number | 'self';
+    nextFocusRight?: number | 'self';
+    nextFocusUp?: number | 'self';
+    nextFocusDown?: number | 'self';
     disableScale?: boolean;
 }
 
@@ -63,6 +63,21 @@ export const SettingCard = React.forwardRef<any, SettingCardProps>((
         handlePress,
         handleLongPress,
     } = useButtonState({ isActive, disabled, onPress, onLongPress });
+
+    const innerRef = React.useRef(null);
+    const [handles, setHandles] = React.useState<Record<string, number | undefined>>({});
+
+    React.useEffect(() => {
+        if (innerRef.current) {
+            const handle = findNodeHandle(innerRef.current);
+            setHandles({ self: handle || undefined });
+        }
+    }, [innerRef.current]);
+
+    const resolveFocus = (val: number | 'self' | undefined) => {
+        if (val === 'self') return handles.self;
+        return val;
+    };
 
     const getButtonStyle = (): ViewStyle => {
         const baseStyle: ViewStyle = {
@@ -104,7 +119,12 @@ export const SettingCard = React.forwardRef<any, SettingCardProps>((
     return (
         <Animated.View style={[{ transform: [{ scale: disableScale ? 1 : scaleAnim }] }, style]}>
             <Pressable
-                ref={ref}
+                ref={(node) => {
+                    // @ts-ignore
+                    innerRef.current = node;
+                    if (typeof ref === 'function') ref(node);
+                    else if (ref) (ref as any).current = node;
+                }}
                 onPress={handlePress}
                 onLongPress={handleLongPress}
                 onPressIn={handlePressIn}
@@ -115,10 +135,10 @@ export const SettingCard = React.forwardRef<any, SettingCardProps>((
                 style={[getButtonStyle()]}
                 testID={testID}
                 nativeID={nativeID}
-                nextFocusLeft={nextFocusLeft}
-                nextFocusRight={nextFocusRight}
-                nextFocusUp={nextFocusUp}
-                nextFocusDown={nextFocusDown}
+                nextFocusLeft={resolveFocus(nextFocusLeft)}
+                nextFocusRight={resolveFocus(nextFocusRight)}
+                nextFocusUp={resolveFocus(nextFocusUp)}
+                nextFocusDown={resolveFocus(nextFocusDown)}
                 accessible={true}
                 accessibilityRole="button"
                 accessibilityLabel={`${title}, ${subtitle}`}

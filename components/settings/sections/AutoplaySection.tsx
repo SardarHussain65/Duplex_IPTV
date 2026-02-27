@@ -13,14 +13,20 @@ export const AutoplaySection: React.FC<AutoplaySectionProps> = ({
     startRef,
     sidebarRef,
 }) => {
-    const { isAutoplayEnabled, setIsAutoplayEnabled } = useTab();
+    const { isAutoplayEnabled, setIsAutoplayEnabled, settingsTabNode } = useTab();
 
     return (
         <View style={styles.container}>
             <SettingCard
-                ref={startRef}
+                ref={(node) => {
+                    if (typeof startRef === 'function') (startRef as any)(node);
+                    else if (startRef) (startRef as any).current = node;
+                }}
                 nativeID="settings_content_start"
                 nextFocusLeft={findNodeHandle(sidebarRef.current) || undefined}
+                nextFocusRight="self"
+                nextFocusUp={settingsTabNode || undefined}
+                nextFocusDown={findNodeHandle(sidebarRef.current) || undefined}
                 title="Enable Autoplay"
                 subtitle="Automatically play the next episode after the current one finishes."
                 icon={

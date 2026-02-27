@@ -25,40 +25,71 @@
  */
 
 import { TopNavBar } from "@/components/navigation/TopNavBar";
-import { TabContextProvider } from "@/context/TabContext";
+import { EnterPinModal, ParentalPinModal } from "@/components/ui/modals";
+import { TabContextProvider, useTab } from "@/context/TabContext";
 import { Stack, usePathname } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
-export const HomeLayout = () => {
+const HomeLayoutContent = () => {
     const pathname = usePathname();
+    const {
+        isParentalModalVisible,
+        setParentalModalVisible,
+        isParentalControlEnabled,
+        parentalPin,
+        setParentalUnlocked
+    } = useTab();
 
     // Hide nav bar only when the video player is active.
     const isPlayer = pathname.startsWith('/player');
 
     return (
-        <TabContextProvider>
-            <View style={styles.container}>
-                <View style={styles.content}>
-                    <Stack screenOptions={{ headerShown: false }}>
-                        {/* Tab shell — Tabs navigator lives here */}
-                        <Stack.Screen name="(tabs)" options={{ animation: 'none' }} />
+        <View style={styles.container}>
+            <View style={styles.content}>
+                <Stack screenOptions={{ headerShown: false }}>
+                    {/* Tab shell — Tabs navigator lives here */}
+                    <Stack.Screen name="(tabs)" options={{ animation: 'none' }} />
 
-                        {/* Detail screens — pushed on top, nav bar still visible */}
-                        <Stack.Screen name="channel/[id]" />
-                        <Stack.Screen name="movie/[id]" />
-                        <Stack.Screen name="series-detail/[id]" />
+                    {/* Detail screens — pushed on top, nav bar still visible */}
+                    <Stack.Screen name="channel/[id]" />
+                    <Stack.Screen name="movie/[id]" />
+                    <Stack.Screen name="series-detail/[id]" />
 
-                        {/* Player — nav bar hidden */}
-                        <Stack.Screen name="player/[id]" />
-                    </Stack>
-                </View>
-
-                {!isPlayer && (
-                    <View style={styles.navWrapper}>
-                        <TopNavBar />
-                    </View>
-                )}
+                    {/* Player — nav bar hidden */}
+                    <Stack.Screen name="player/[id]" />
+                </Stack>
             </View>
+
+            {!isPlayer && (
+                <View style={styles.navWrapper}>
+                    <TopNavBar />
+                </View>
+            )}
+
+            {/* Global Parental Modals */}
+            {isParentalModalVisible && (
+                isParentalControlEnabled ? (
+                    <EnterPinModal
+                        visible={isParentalModalVisible}
+                        onClose={() => setParentalModalVisible(false)}
+                        onSuccess={() => {
+                            setParentalUnlocked(true);
+                            setParentalModalVisible(false);
+                        }}
+                        expectedPin={parentalPin}
+                    />
+                ) : (
+                    <ParentalPinModal />
+                )
+            )}
+        </View>
+    );
+};
+
+export const HomeLayout = () => {
+    return (
+        <TabContextProvider>
+            <HomeLayoutContent />
         </TabContextProvider>
     );
 };
