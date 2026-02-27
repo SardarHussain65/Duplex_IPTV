@@ -7,6 +7,7 @@
 import { SettingTabButton } from '@/components/ui/buttons/SettingTabButton';
 import { Colors } from '@/constants';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
+import { useTab } from '@/context/TabContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useRef, useState } from 'react';
 import { findNodeHandle, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -99,10 +100,34 @@ const GET_SECTION_INFO = (id: SettingId): { title: string; subtitle: string } =>
 
 // ── Main component ────────────────────────────────────────────
 export default function SettingsScreen() {
+    const { setSettingsSidebarNode, settingsContentNode, setSettingsContentNode } = useTab();
     const [activeSection, setActiveSection] = useState<SettingId>('language');
     const [selectedLanguage, setSelectedLanguage] = useState('English');
     const contentStartRef = useRef(null);
     const activeTabRef = useRef(null);
+
+    React.useEffect(() => {
+        const timer = setTimeout(() => {
+            if (activeTabRef.current) {
+                // @ts-ignore
+                activeTabRef.current.focus?.();
+            }
+        }, 500);
+        return () => clearTimeout(timer);
+    }, []);
+
+    // Stable node handle capturing
+    React.useEffect(() => {
+        if (activeTabRef.current) {
+            setSettingsSidebarNode(findNodeHandle(activeTabRef.current));
+        }
+    }, [activeSection, activeTabRef.current]);
+
+    React.useEffect(() => {
+        if (contentStartRef.current) {
+            setSettingsContentNode(findNodeHandle(contentStartRef.current));
+        }
+    }, [activeSection, contentStartRef.current]);
 
     const getPanelBody = () => {
         const props = { startRef: contentStartRef, sidebarRef: activeTabRef };
@@ -138,12 +163,14 @@ export default function SettingsScreen() {
                 contentContainerStyle={styles.sidebarContent}
                 removeClippedSubviews={false}
             >
-                {SETTINGS.map((item) => (
+                {SETTINGS.map((item, index) => (
                     <SettingTabButton
                         key={item.id}
                         ref={activeSection === item.id ? activeTabRef : null}
                         nativeID={`sidebar_${item.id}`}
-                        nextFocusRight={findNodeHandle(contentStartRef.current) || undefined}
+                        nextFocusRight={settingsContentNode || undefined}
+                        nextFocusUp={index === 0 ? findNodeHandle(activeTabRef.current) || undefined : undefined}
+                        nextFocusDown={index === SETTINGS.length - 1 ? findNodeHandle(activeTabRef.current) || undefined : undefined}
                         icon={<MaterialCommunityIcons name={item.icon as any} size={24} />}
                         isActive={activeSection === item.id}
                         onPress={() => setActiveSection(item.id)}

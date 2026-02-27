@@ -5,8 +5,8 @@ import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useTab } from '@/context/TabContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { FlatList, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { FlatList, ScrollView, StyleSheet, Text, View, findNodeHandle } from 'react-native';
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -54,12 +54,51 @@ const CATEGORIES: { label: ParentalType; icon: keyof typeof MaterialCommunityIco
 
 export default function ParentalControlScreen() {
     const router = useRouter();
-    const { setIsScrolled, isParentalUnlocked, setParentalUnlocked } = useTab();
+    const { setIsScrolled, isParentalUnlocked, setParentalUnlocked, parentalPin } = useTab();
     const [activeSubTab, setActiveSubTab] = useState<ParentalType>('Live TV');
 
     useEffect(() => {
         return () => setIsScrolled(false);
     }, [setIsScrolled]);
+
+    const { settingsTabNode } = useTab();
+
+    // ── Focus Tracking ───────────────────────────────────────────
+    const [categoryAllNode, setCategoryAllNode] = useState<number | undefined>(undefined);
+    const [lastCategoryNode, setLastCategoryNode] = useState<number | undefined>(undefined);
+    const [firstItemNode, setFirstItemNode] = useState<number | undefined>(undefined);
+    const [itemNodes, setItemNodes] = useState<Record<number, number>>({});
+
+    const categoryAllRef = useRef<any>(null);
+    const lastCategoryRef = useRef<any>(null);
+    const itemRefs = useRef<Record<number, any>>({});
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (categoryAllRef.current) {
+                const node = findNodeHandle(categoryAllRef.current);
+                if (node) setCategoryAllNode(node);
+            }
+            if (lastCategoryRef.current) {
+                const node = findNodeHandle(lastCategoryRef.current);
+                if (node) setLastCategoryNode(node);
+            }
+
+            const newNodes: Record<number, number> = {};
+            let firstNode: number | undefined = undefined;
+            Object.keys(itemRefs.current).forEach((key) => {
+                const idx = parseInt(key);
+                const node = findNodeHandle(itemRefs.current[idx]);
+                if (node) {
+                    newNodes[idx] = node;
+                    if (idx === 0) firstNode = node;
+                }
+            });
+            setItemNodes(newNodes);
+            if (firstNode) setFirstItemNode(firstNode);
+        }, 1200);
+        return () => clearTimeout(timer);
+    }, [activeSubTab, isParentalUnlocked]);
 
     const filteredItems = MOCK_LOCKED.filter(item => item.type === activeSubTab);
 
@@ -97,26 +136,42 @@ export default function ParentalControlScreen() {
     const backdropColumns = 4;
     const numColumns = activeSubTab === 'Live TV' ? backdropColumns : posterColumns;
 
-    const renderItem = ({ item }: { item: LockedItem }) => (
-        activeSubTab === 'Live TV' ? (
-            <BackdropCard
-                key={item.id}
-                title={item.title}
-                image={item.image}
-                style={styles.cardSpacing}
-                onPress={() => handlePress(item)}
-            />
-        ) : (
+    const renderItem = ({ item, index }: { item: LockedItem; index: number }) => {
+        const isBackdrop = activeSubTab === 'Live TV';
+        const cols = isBackdrop ? 4 : 5;
+        const isRowEnd = index % cols === cols - 1;
+
+        if (isBackdrop) {
+            return (
+                <BackdropCard
+                    innerRef={(ref) => { if (ref) itemRefs.current[index] = ref; }}
+                    title={item.title}
+                    image={item.image}
+                    style={styles.cardSpacing}
+                    onPress={() => handlePress(item)}
+                    nextFocusUp={index < cols ? lastCategoryNode : itemNodes[index - cols]}
+                    nextFocusDown={itemNodes[index + cols]}
+                    nextFocusLeft={index === 0 ? lastCategoryNode : itemNodes[index - 1]}
+                    nextFocusRight={isRowEnd ? itemNodes[index + 1] : itemNodes[index + 1]}
+                />
+            );
+        }
+
+        return (
             <PosterCard
-                key={item.id}
+                innerRef={(ref) => { if (ref) itemRefs.current[index] = ref; }}
                 title={item.title}
                 subtitle={item.subtitle}
                 image={item.image}
                 style={styles.cardSpacing}
                 onPress={() => handlePress(item)}
+                nextFocusUp={index < cols ? lastCategoryNode : itemNodes[index - cols]}
+                nextFocusDown={itemNodes[index + cols]}
+                nextFocusLeft={index === 0 ? lastCategoryNode : itemNodes[index - 1]}
+                nextFocusRight={isRowEnd ? itemNodes[index + 1] : itemNodes[index + 1]}
             />
-        )
-    );
+        );
+    };
 
     const renderCategoryLabel = (cat: ParentalType) => (
         <Text>
@@ -136,6 +191,7 @@ export default function ParentalControlScreen() {
                 visible={!isParentalUnlocked}
                 onClose={handleCancelUnlock}
                 onSuccess={() => setParentalUnlocked(true)}
+                expectedPin={parentalPin}
             />
 
             <ScrollView
@@ -147,17 +203,26 @@ export default function ParentalControlScreen() {
                 <Text style={styles.pageTitle}>Parental Control</Text>
 
                 <View style={styles.categoryRow}>
-                    {CATEGORIES.map((cat) => (
-                        <CategoryButton
-                            key={cat.label}
-                            icon={cat.icon}
-                            isActive={activeSubTab === cat.label}
-                            onPress={() => setActiveSubTab(cat.label)}
-                            style={{ marginRight: xdWidth(12) }}
-                        >
-                            {renderCategoryLabel(cat.label)}
-                        </CategoryButton>
-                    ))}
+                    {CATEGORIES.map((cat, index) => {
+                        const isFirst = index === 0;
+                        const isLast = index === CATEGORIES.length - 1;
+                        return (
+                            <CategoryButton
+                                key={cat.label}
+                                ref={isFirst ? categoryAllRef : (isLast ? lastCategoryRef : undefined)}
+                                icon={cat.icon}
+                                isActive={activeSubTab === cat.label}
+                                onPress={() => setActiveSubTab(cat.label)}
+                                style={{ marginRight: xdWidth(12) }}
+                                nextFocusLeft={isFirst ? (settingsTabNode || undefined) : undefined}
+                                nextFocusUp={isFirst ? (settingsTabNode || undefined) : undefined}
+                                nextFocusRight={isLast ? firstItemNode : undefined}
+                                nextFocusDown={firstItemNode}
+                            >
+                                {renderCategoryLabel(cat.label)}
+                            </CategoryButton>
+                        );
+                    })}
                 </View>
 
                 {/* Content Grid — FlatList nested inside ScrollView (scrollEnabled=false) */}
@@ -165,10 +230,12 @@ export default function ParentalControlScreen() {
                     key={`parental-${activeSubTab}-${numColumns}`}
                     data={filteredItems}
                     keyExtractor={(item) => item.id}
-                    renderItem={renderItem}
+                    renderItem={(props) => renderItem({ ...props })}
                     numColumns={numColumns}
                     columnWrapperStyle={{ gap: xdWidth(activeSubTab === 'Live TV' ? 18 : 20) }}
                     scrollEnabled={false}
+                    initialNumToRender={10}
+                    removeClippedSubviews={false}
                     ListEmptyComponent={
                         <EmptyState
                             icon="lock-outline"

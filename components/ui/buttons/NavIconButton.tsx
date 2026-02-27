@@ -22,6 +22,10 @@ export interface NavIconButtonProps {
     activeBackgroundColor?: string;
     testID?: string;
     hasTVPreferredFocus?: boolean;
+    nextFocusRight?: number;
+    nextFocusLeft?: number;
+    nextFocusDown?: number;
+    innerRef?: React.Ref<any>;
 }
 
 export const NavIconButton: React.FC<NavIconButtonProps> = ({
@@ -34,6 +38,10 @@ export const NavIconButton: React.FC<NavIconButtonProps> = ({
     activeBackgroundColor,
     testID,
     hasTVPreferredFocus = false,
+    nextFocusRight,
+    nextFocusLeft,
+    nextFocusDown,
+    innerRef,
 }) => {
     const {
         state,
@@ -103,6 +111,7 @@ export const NavIconButton: React.FC<NavIconButtonProps> = ({
     return (
         <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
             <Pressable
+                ref={innerRef}
                 onPress={handlePress}
                 onLongPress={handleLongPress}
                 onPressIn={handlePressIn}
@@ -114,6 +123,9 @@ export const NavIconButton: React.FC<NavIconButtonProps> = ({
                 testID={testID}
                 hasTVPreferredFocus={hasTVPreferredFocus}
                 focusable={!disabled}
+                nextFocusRight={nextFocusRight}
+                nextFocusLeft={nextFocusLeft}
+                nextFocusDown={nextFocusDown}
                 tvParallaxProperties={{
                     enabled: true,
                     shiftDistanceX: 2,

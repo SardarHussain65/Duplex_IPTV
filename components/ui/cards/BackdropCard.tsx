@@ -28,6 +28,11 @@ export interface BackdropCardProps {
     onPress?: () => void;
     onLongPress?: () => void;
     style?: ViewStyle;
+    innerRef?: React.Ref<any>;
+    nextFocusLeft?: number;
+    nextFocusUp?: number;
+    nextFocusRight?: number;
+    nextFocusDown?: number;
 }
 
 const WIDTH = 200;
@@ -42,6 +47,11 @@ export const BackdropCard: React.FC<BackdropCardProps> = ({
     onPress,
     onLongPress,
     style,
+    innerRef,
+    nextFocusLeft,
+    nextFocusUp,
+    nextFocusRight,
+    nextFocusDown,
 }) => {
     const {
         state,
@@ -77,6 +87,7 @@ export const BackdropCard: React.FC<BackdropCardProps> = ({
         <View style={[styles.container, { width: WIDTH }]}>
             <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
                 <Pressable
+                    ref={innerRef}
                     onPress={handlePress}
                     onLongPress={handleLongPress}
                     onPressIn={handlePressIn}
@@ -85,6 +96,10 @@ export const BackdropCard: React.FC<BackdropCardProps> = ({
                     onBlur={handleBlur}
                     disabled={disabled}
                     style={[cardStyle, style]}
+                    nextFocusLeft={nextFocusLeft}
+                    nextFocusUp={nextFocusUp}
+                    nextFocusRight={nextFocusRight}
+                    nextFocusDown={nextFocusDown}
                 >
                     {image ? (
                         <Image

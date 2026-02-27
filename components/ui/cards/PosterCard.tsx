@@ -28,6 +28,11 @@ export interface PosterCardProps {
     onPress?: () => void;
     onLongPress?: () => void;
     style?: ViewStyle;
+    innerRef?: React.Ref<any>;
+    nextFocusLeft?: number;
+    nextFocusUp?: number;
+    nextFocusRight?: number;
+    nextFocusDown?: number;
 }
 
 const WIDTH = 160;
@@ -42,6 +47,11 @@ export const PosterCard: React.FC<PosterCardProps> = ({
     onPress,
     onLongPress,
     style,
+    innerRef,
+    nextFocusLeft,
+    nextFocusUp,
+    nextFocusRight,
+    nextFocusDown,
 }) => {
     const {
         state,
@@ -77,6 +87,7 @@ export const PosterCard: React.FC<PosterCardProps> = ({
         <View style={[styles.container, { width: WIDTH }]}>
             <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
                 <Pressable
+                    ref={innerRef}
                     onPress={handlePress}
                     onLongPress={handleLongPress}
                     onPressIn={handlePressIn}
@@ -85,6 +96,10 @@ export const PosterCard: React.FC<PosterCardProps> = ({
                     onBlur={handleBlur}
                     disabled={disabled}
                     style={[cardStyle, style]}
+                    nextFocusLeft={nextFocusLeft}
+                    nextFocusUp={nextFocusUp}
+                    nextFocusRight={nextFocusRight}
+                    nextFocusDown={nextFocusDown}
                 >
                     {image ? (
                         <Image

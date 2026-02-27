@@ -1,7 +1,7 @@
 import { PlaylistRowButton } from "@/components/ui/buttons/PlaylistRowButton";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     FlatList,
     StyleSheet,
@@ -28,6 +28,14 @@ const PLAYLISTS: Playlist[] = [
 // ── Main Screen ───────────────────────────────────────────────────────────────
 const PlaylistListScreen = () => {
     const [selectedId, setSelectedId] = useState<string | null>(null);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            router.replace("/(home)/(tabs)/live-tv");
+        }, 3000);
+
+        return () => clearTimeout(timer);
+    }, []);
 
 
     return (

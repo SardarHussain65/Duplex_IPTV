@@ -12,8 +12,8 @@ import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useTab } from '@/context/TabContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePathname, useRouter } from 'expo-router';
-import React from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Image, StyleSheet, View, findNodeHandle } from 'react-native';
 
 // ── Tab Definitions ───────────────────────────────────────────
 
@@ -54,7 +54,7 @@ const ROUTE_TAB_MAP: { prefix: string; tab: TabId }[] = [
 // ── Component ─────────────────────────────────────────────────
 
 export const TopNavBar: React.FC = () => {
-    const { isScrolled, setIsScrolled } = useTab();
+    const { isScrolled, setIsScrolled, searchBarNode, setSettingsTabNode, settingsSidebarNode } = useTab();
     const router = useRouter();
     const pathname = usePathname();
 
@@ -67,7 +67,20 @@ export const TopNavBar: React.FC = () => {
 
     const activeTab = getActiveTab();
 
-    const handleTabPress = (tab: { id: TabId; route: string }) => {
+    // Use a robust ref to get the node handle to avoid inline-ref recreating
+    const settingsRef = useRef<any>(null);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (settingsRef.current) {
+                const node = findNodeHandle(settingsRef.current);
+                if (node) setSettingsTabNode(node);
+            }
+        }, 800);
+        return () => clearTimeout(timer);
+    }, [activeTab, isScrolled]);
+
+    const handleTabPress = (tab: typeof TEXT_TABS[0] | typeof ICON_TABS[0]) => {
         setIsScrolled(false);
         router.replace({ pathname: tab.route as any });
     };
@@ -99,15 +112,21 @@ export const TopNavBar: React.FC = () => {
 
             {/* Icon tabs */}
             <View style={styles.iconGroup}>
-                {ICON_TABS.map((tab) => (
-                    <NavIconButton
-                        key={tab.id}
-                        icon={<MaterialCommunityIcons name={tab.icon} size={scale(18)} />}
-                        isActive={activeTab === tab.id}
-                        onPress={() => handleTabPress(tab)}
-                        testID={`nav-tab-${tab.id}`}
-                    />
-                ))}
+                {ICON_TABS.map((tab, index) => {
+                    const isLastTab = index === ICON_TABS.length - 1;
+                    return (
+                        <NavIconButton
+                            key={tab.id}
+                            innerRef={isLastTab ? settingsRef : undefined}
+                            icon={<MaterialCommunityIcons name={tab.icon} size={scale(18)} />}
+                            isActive={activeTab === tab.id}
+                            onPress={() => handleTabPress(tab)}
+                            testID={`nav-tab-${tab.id}`}
+                            nextFocusRight={isLastTab ? (searchBarNode || undefined) : undefined}
+                            nextFocusDown={tab.id === 'settings' ? (settingsSidebarNode || undefined) : undefined}
+                        />
+                    );
+                })}
             </View>
         </View>
     );

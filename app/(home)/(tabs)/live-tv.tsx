@@ -14,8 +14,8 @@ import { useTab } from '@/context/TabContext';
 import { Channel } from '@/types';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
-import { FlatList, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { FlatList, ScrollView, StyleSheet, Text, View, findNodeHandle } from 'react-native';
 
 
 
@@ -23,13 +23,20 @@ import { FlatList, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function LiveTVScreen() {
     const router = useRouter();
-    const { setIsScrolled } = useTab();
+    const { setIsScrolled, setSearchBarNode, settingsTabNode, searchBarNode } = useTab();
     const [activeCategory, setActiveCategory] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
+    const [categoryAllNode, setCategoryAllNode] = useState<number | undefined>(undefined);
+    const [lastCategoryNode, setLastCategoryNode] = useState<number | undefined>(undefined);
+    const [firstChannelNode, setFirstChannelNode] = useState<number | undefined>(undefined);
 
-    useEffect(() => {
-        return () => setIsScrolled(false);
-    }, [setIsScrolled]);
+    // Track nodes for the first few items to handle row wrapping (up to 24 items / 6 rows)
+    const [channelNodes, setChannelNodes] = useState<Record<number, number>>({});
+
+    const searchRef = useRef<any>(null);
+    const categoryAllRef = useRef<any>(null);
+    const lastCategoryRef = useRef<any>(null);
+    const channelRefs = useRef<Record<number, any>>({});
 
     const filteredChannels = useMemo(() => {
         let result = MOCK_CHANNELS;
@@ -49,6 +56,44 @@ export default function LiveTVScreen() {
         return result;
     }, [activeCategory, searchQuery]);
 
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (searchRef.current) {
+                const node = findNodeHandle(searchRef.current);
+                if (node) setSearchBarNode(node);
+            }
+            if (categoryAllRef.current) {
+                const node = findNodeHandle(categoryAllRef.current);
+                if (node) setCategoryAllNode(node);
+            }
+            if (lastCategoryRef.current) {
+                const node = findNodeHandle(lastCategoryRef.current);
+                if (node) setLastCategoryNode(node);
+            }
+
+            // Map the first 24 channel nodes for row wrapping
+            const newNodes: Record<number, number> = {};
+            let firstNode: number | undefined = undefined;
+
+            Object.keys(channelRefs.current).forEach((key) => {
+                const idx = parseInt(key);
+                const node = findNodeHandle(channelRefs.current[idx]);
+                if (node) {
+                    newNodes[idx] = node;
+                    if (idx === 0) firstNode = node;
+                }
+            });
+
+            setChannelNodes(newNodes);
+            if (firstNode) setFirstChannelNode(firstNode);
+        }, 1200); // Increased delay for better stability in list rendering
+        return () => clearTimeout(timer);
+    }, [activeCategory, filteredChannels]); // Added filteredChannels to dependency to re-resolve if list changes
+
+    useEffect(() => {
+        return () => setIsScrolled(false);
+    }, [setIsScrolled]);
+
     const handleChannelPress = (channel: Channel) => {
         router.push({
             pathname: '/channel/[id]',
@@ -66,15 +111,30 @@ export default function LiveTVScreen() {
         setIsScrolled(offsetY > xdHeight(60));
     };
 
-    const renderChannel = ({ item }: { item: Channel }) => (
-        <BackdropCard
-            title={item.name}
-            subtitle={item.category}
-            image={{ uri: item.image }}
-            style={styles.cardSpacing}
-            onPress={() => handleChannelPress(item)}
-        />
-    );
+    const renderChannel = ({ item, index }: { item: Channel; index: number }) => {
+        const isRowStart = index % 4 === 0;
+        const isRowEnd = index % 4 === 3;
+
+        return (
+            <BackdropCard
+                innerRef={(ref) => { if (ref) channelRefs.current[index] = ref; }}
+                title={item.name}
+                subtitle={item.category}
+                image={{ uri: item.image }}
+                style={styles.cardSpacing}
+                onPress={() => handleChannelPress(item)}
+                // Up navigation: first row goes to categories, others go to previous row item
+                nextFocusUp={index < 4 ? lastCategoryNode : channelNodes[index - 4]}
+                // Down navigation: explicitly point to next row item if available
+                nextFocusDown={channelNodes[index + 4]}
+                // Left navigation: ONLY the very first item wraps back to category menu.
+                // Others go to the previous item, which implicitly handles row wrapping.
+                nextFocusLeft={index === 0 ? lastCategoryNode : channelNodes[index - 1]}
+                // Right navigation: last item of row wraps to first item of next row
+                nextFocusRight={isRowEnd ? channelNodes[index + 1] : channelNodes[index + 1]}
+            />
+        );
+    };
 
     const renderHeader = () => (
         <View style={styles.headerContainer}>
@@ -82,8 +142,8 @@ export default function LiveTVScreen() {
             <View style={styles.heroContainer}>
                 <View style={styles.heroOverlay}>
                     <Text style={styles.heroTitle}>
-                        What's{' '}
-                        <Text style={{ color: Colors.secondary[950] }}>Live Now!</Text>
+                        What's Live{' '}
+                        <Text style={{ color: Colors.secondary[900] }}>Now!</Text>
                     </Text>
                     <Text style={styles.heroSubtitle}>
                         Jump into live channels and see what's happening right now across
@@ -101,7 +161,15 @@ export default function LiveTVScreen() {
 
             {/* Search Bar */}
             <View style={styles.searchWrapper}>
-                <SearchBar value={searchQuery} onChangeText={setSearchQuery} />
+                <SearchBar
+                    innerRef={searchRef}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    nextFocusLeft={settingsTabNode || undefined}
+                    nextFocusUp={settingsTabNode || undefined}
+                    nextFocusRight={categoryAllNode}
+                    nextFocusDown={categoryAllNode}
+                />
             </View>
 
 
@@ -112,16 +180,25 @@ export default function LiveTVScreen() {
                 showsHorizontalScrollIndicator={false}
                 style={styles.categoryRow}
             >
-                {LIVE_TV_CATEGORIES.map((cat) => (
-                    <CategoryButton
-                        key={cat}
-                        isActive={activeCategory === cat}
-                        onPress={() => setActiveCategory(cat)}
-                        style={{ marginRight: xdWidth(8) }}
-                    >
-                        {cat}
-                    </CategoryButton>
-                ))}
+                {LIVE_TV_CATEGORIES.map((cat, index) => {
+                    const isFirst = index === 0;
+                    const isLast = index === LIVE_TV_CATEGORIES.length - 1;
+                    return (
+                        <CategoryButton
+                            key={cat}
+                            ref={isFirst ? categoryAllRef : (isLast ? lastCategoryRef : undefined)}
+                            isActive={activeCategory === cat}
+                            onPress={() => setActiveCategory(cat)}
+                            style={{ marginRight: xdWidth(8) }}
+                            nextFocusLeft={isFirst ? (searchBarNode || undefined) : undefined}
+                            nextFocusUp={isFirst ? (searchBarNode || undefined) : undefined}
+                            nextFocusRight={isLast ? firstChannelNode : undefined}
+                            nextFocusDown={firstChannelNode}
+                        >
+                            {cat}
+                        </CategoryButton>
+                    );
+                })}
             </ScrollView>
 
             {/* Channel Count */}
@@ -139,12 +216,15 @@ export default function LiveTVScreen() {
                 contentContainerStyle={[styles.content, styles.gridContainer]}
                 keyExtractor={(item) => item.id}
                 ListHeaderComponent={renderHeader()}
-                renderItem={renderChannel}
+                renderItem={(props) => renderChannel({ ...props })}
                 numColumns={4}
                 columnWrapperStyle={filteredChannels.length > 1 ? { gap: xdWidth(18) } : null}
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
                 showsVerticalScrollIndicator={false}
+                initialNumToRender={12} // Render enough to cover typical off-screen start
+                windowSize={5} // Keep more items in memory
+                removeClippedSubviews={false} // Crucial for TV focus to find off-screen items
                 ListEmptyComponent={
                     <EmptyState
                         icon="television"
@@ -161,7 +241,7 @@ export default function LiveTVScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#141416' },
-    content: { paddingHorizontal: xdWidth(32), paddingBottom: xdHeight(40) },
+    content: { paddingBottom: xdHeight(40) },
     headerContainer: {
         marginBottom: xdHeight(16),
     },
@@ -173,13 +253,13 @@ const styles = StyleSheet.create({
         backgroundColor: '#141416',
     },
     gridContainer: {
-        padding: xdWidth(16),
+        paddingHorizontal: xdWidth(16),
     },
     heroOverlay: { width: '45%', justifyContent: 'center', paddingHorizontal: xdWidth(40), zIndex: 1 },
     heroImageWrapper: { width: '55%', height: '100%' },
     heroImage: { opacity: 0.6, width: '100%', height: '100%' },
     heroTitle: { fontSize: scale(32), fontWeight: '800', color: Colors.gray[100], marginBottom: xdHeight(12) },
-    heroSubtitle: { fontSize: scale(14), color: Colors.gray[400], maxWidth: xdWidth(480), lineHeight: scale(22) },
+    heroSubtitle: { fontSize: scale(14), color: Colors.dark[3], maxWidth: xdWidth(480), lineHeight: scale(22) },
     searchWrapper: { marginBottom: xdHeight(32) },
     sectionTitle: { fontSize: scale(18), fontWeight: '700', color: Colors.gray[100], marginBottom: xdHeight(16) },
     categoryRow: { marginBottom: xdHeight(16) },

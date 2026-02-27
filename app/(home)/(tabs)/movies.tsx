@@ -14,7 +14,7 @@ import { scale, xdWidth } from '@/constants/scaling';
 import { Movie } from '@/types';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     FlatList,
     ScrollView,
@@ -22,9 +22,11 @@ import {
     Text,
     TouchableOpacity,
     View,
+    findNodeHandle,
 } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
+import { useTab } from '@/context/TabContext';
 import { useMovies } from '@/hooks/useMovies';
 import { styles } from '@/styles/movies.styles';
 
@@ -43,16 +45,71 @@ export default function MoviesScreen() {
         goToHero,
         handleScroll,
     } = useMovies();
+    const { setSearchBarNode, settingsTabNode, searchBarNode } = useTab();
 
-    const renderMovieItem = ({ item }: { item: Movie }) => (
-        <PosterCard
-            image={item.image}
-            title={item.title}
-            subtitle={item.duration}
-            onPress={() => handleMoviePress(item)}
-            style={styles.cardSpacing}
-        />
-    );
+    // ── Focus Tracking ───────────────────────────────────────────
+    const [categoryAllNode, setCategoryAllNode] = useState<number | undefined>(undefined);
+    const [lastCategoryNode, setLastCategoryNode] = useState<number | undefined>(undefined);
+    const [firstMovieNode, setFirstMovieNode] = useState<number | undefined>(undefined);
+    const [movieNodes, setMovieNodes] = useState<Record<number, number>>({});
+
+    const searchRef = useRef<any>(null);
+    const categoryAllRef = useRef<any>(null);
+    const lastCategoryRef = useRef<any>(null);
+    const movieRefs = useRef<Record<number, any>>({});
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (searchRef.current) {
+                const node = findNodeHandle(searchRef.current);
+                if (node) setSearchBarNode(node);
+            }
+            if (categoryAllRef.current) {
+                const node = findNodeHandle(categoryAllRef.current);
+                if (node) setCategoryAllNode(node);
+            }
+            if (lastCategoryRef.current) {
+                const node = findNodeHandle(lastCategoryRef.current);
+                if (node) setLastCategoryNode(node);
+            }
+
+            const newNodes: Record<number, number> = {};
+            let firstNode: number | undefined = undefined;
+            Object.keys(movieRefs.current).forEach((key) => {
+                const idx = parseInt(key);
+                const node = findNodeHandle(movieRefs.current[idx]);
+                if (node) {
+                    newNodes[idx] = node;
+                    if (idx === 0) firstNode = node;
+                }
+            });
+            setMovieNodes(newNodes);
+            if (firstNode) setFirstMovieNode(firstNode);
+        }, 1200);
+        return () => clearTimeout(timer);
+    }, [activeCategory, filteredMovies]);
+
+    const renderMovieItem = ({ item, index }: { item: Movie; index: number }) => {
+        const isRowEnd = index % 5 === 4;
+
+        return (
+            <PosterCard
+                innerRef={(ref) => { if (ref) movieRefs.current[index] = ref; }}
+                image={item.image}
+                title={item.title}
+                subtitle={item.duration}
+                onPress={() => handleMoviePress(item)}
+                style={styles.cardSpacing}
+                // Up navigation: first row goes to categories
+                nextFocusUp={index < 5 ? lastCategoryNode : movieNodes[index - 5]}
+                nextFocusDown={movieNodes[index + 5]}
+                // Left navigation: ONLY index 0 wraps back to category menu
+                nextFocusLeft={index === 0 ? lastCategoryNode : movieNodes[index - 1]}
+                // Right navigation: wrap row-by-row
+                nextFocusRight={isRowEnd ? movieNodes[index + 1] : movieNodes[index + 1]}
+            />
+        );
+    };
 
     const renderHeader = () => (
         <View style={styles.headerContainer}>
@@ -124,9 +181,14 @@ export default function MoviesScreen() {
             {/* ── Search Bar ── */}
             <View style={styles.searchWrapper}>
                 <SearchBar
+                    innerRef={searchRef}
                     value={searchQuery}
                     onChangeText={setSearchQuery}
                     placeholder="Search for movies...."
+                    nextFocusLeft={settingsTabNode || undefined}
+                    nextFocusUp={settingsTabNode || undefined}
+                    nextFocusRight={categoryAllNode}
+                    nextFocusDown={categoryAllNode}
                 />
             </View>
 
@@ -138,16 +200,25 @@ export default function MoviesScreen() {
                 style={styles.categoryRow}
                 contentContainerStyle={styles.categoryContent}
             >
-                {MOVIES_CATEGORIES.map((cat) => (
-                    <CategoryButton
-                        key={cat}
-                        isActive={activeCategory === cat}
-                        onPress={() => setActiveCategory(cat)}
-                        style={{ marginRight: xdWidth(8) }}
-                    >
-                        {cat}
-                    </CategoryButton>
-                ))}
+                {MOVIES_CATEGORIES.map((cat, index) => {
+                    const isFirst = index === 0;
+                    const isLast = index === MOVIES_CATEGORIES.length - 1;
+                    return (
+                        <CategoryButton
+                            key={cat}
+                            ref={isFirst ? categoryAllRef : (isLast ? lastCategoryRef : undefined)}
+                            isActive={activeCategory === cat}
+                            onPress={() => setActiveCategory(cat)}
+                            style={{ marginRight: xdWidth(8) }}
+                            nextFocusLeft={isFirst ? (searchBarNode || undefined) : undefined}
+                            nextFocusUp={isFirst ? (searchBarNode || undefined) : undefined}
+                            nextFocusRight={isLast ? firstMovieNode : undefined}
+                            nextFocusDown={firstMovieNode}
+                        >
+                            {cat}
+                        </CategoryButton>
+                    );
+                })}
             </ScrollView>
         </View>
     );
@@ -159,13 +230,16 @@ export default function MoviesScreen() {
                 data={filteredMovies}
                 keyExtractor={(item) => item.id}
                 ListHeaderComponent={renderHeader()}
-                renderItem={renderMovieItem}
+                renderItem={(props) => renderMovieItem({ ...props })}
                 numColumns={5}
                 contentContainerStyle={[styles.content, styles.gridContainer]}
                 columnWrapperStyle={filteredMovies.length > 1 ? styles.columnWrapper : undefined}
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
                 showsVerticalScrollIndicator={false}
+                initialNumToRender={10}
+                windowSize={5}
+                removeClippedSubviews={false}
                 ListEmptyComponent={
                     <EmptyState
                         icon="movie-open"

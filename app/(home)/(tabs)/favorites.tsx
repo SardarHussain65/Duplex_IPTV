@@ -6,8 +6,8 @@ import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useTab } from '@/context/TabContext';
 import { FavoriteItem, FavoriteType } from '@/types';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { FlatList, StyleSheet, Text, View, findNodeHandle } from 'react-native';
 
 
 
@@ -21,6 +21,45 @@ export default function FavoritesScreen() {
     useEffect(() => {
         return () => setIsScrolled(false);
     }, [setIsScrolled]);
+
+    const { settingsTabNode } = useTab();
+
+    // ── Focus Tracking ───────────────────────────────────────────
+    const [categoryAllNode, setCategoryAllNode] = useState<number | undefined>(undefined);
+    const [lastCategoryNode, setLastCategoryNode] = useState<number | undefined>(undefined);
+    const [firstItemNode, setFirstItemNode] = useState<number | undefined>(undefined);
+    const [itemNodes, setItemNodes] = useState<Record<number, number>>({});
+
+    const categoryAllRef = useRef<any>(null);
+    const lastCategoryRef = useRef<any>(null);
+    const itemRefs = useRef<Record<number, any>>({});
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (categoryAllRef.current) {
+                const node = findNodeHandle(categoryAllRef.current);
+                if (node) setCategoryAllNode(node);
+            }
+            if (lastCategoryRef.current) {
+                const node = findNodeHandle(lastCategoryRef.current);
+                if (node) setLastCategoryNode(node);
+            }
+
+            const newNodes: Record<number, number> = {};
+            let firstNode: number | undefined = undefined;
+            Object.keys(itemRefs.current).forEach((key) => {
+                const idx = parseInt(key);
+                const node = findNodeHandle(itemRefs.current[idx]);
+                if (node) {
+                    newNodes[idx] = node;
+                    if (idx === 0) firstNode = node;
+                }
+            });
+            setItemNodes(newNodes);
+            if (firstNode) setFirstItemNode(firstNode);
+        }, 1200);
+        return () => clearTimeout(timer);
+    }, [activeTab]);
 
     const filteredItems = MOCK_FAVORITES.filter(item => item.type === activeTab);
 
@@ -77,23 +116,42 @@ export default function FavoritesScreen() {
     const backdropColumns = 4;
     const numColumns = activeTab === 'Live TV' ? backdropColumns : posterColumns;
 
-    const renderItem = ({ item }: { item: FavoriteItem }) =>
-        activeTab === 'Live TV' ? (
-            <BackdropCard
-                title={item.title}
-                image={item.image}
-                style={styles.cardSpacing}
-                onPress={() => handlePress(item)}
-            />
-        ) : (
+    const renderItem = ({ item, index }: { item: FavoriteItem; index: number }) => {
+        const isBackdrop = activeTab === 'Live TV';
+        const cols = isBackdrop ? 4 : 5;
+        const isRowEnd = index % cols === cols - 1;
+
+        if (isBackdrop) {
+            return (
+                <BackdropCard
+                    innerRef={(ref) => { if (ref) itemRefs.current[index] = ref; }}
+                    title={item.title}
+                    image={item.image}
+                    style={styles.cardSpacing}
+                    onPress={() => handlePress(item)}
+                    nextFocusUp={index < cols ? lastCategoryNode : itemNodes[index - cols]}
+                    nextFocusDown={itemNodes[index + cols]}
+                    nextFocusLeft={index === 0 ? lastCategoryNode : itemNodes[index - 1]}
+                    nextFocusRight={isRowEnd ? itemNodes[index + 1] : itemNodes[index + 1]}
+                />
+            );
+        }
+
+        return (
             <PosterCard
+                innerRef={(ref) => { if (ref) itemRefs.current[index] = ref; }}
                 title={item.title}
                 subtitle={item.subtitle}
                 image={item.image}
                 style={styles.cardSpacing}
                 onPress={() => handlePress(item)}
+                nextFocusUp={index < cols ? lastCategoryNode : itemNodes[index - cols]}
+                nextFocusDown={itemNodes[index + cols]}
+                nextFocusLeft={index === 0 ? lastCategoryNode : itemNodes[index - 1]}
+                nextFocusRight={isRowEnd ? itemNodes[index + 1] : itemNodes[index + 1]}
             />
         );
+    };
 
     const renderCategoryLabel = (cat: FavoriteType) => {
         return (
@@ -111,17 +169,26 @@ export default function FavoritesScreen() {
 
             {/* Category Filter */}
             <View style={styles.categoryRow}>
-                {FAVORITE_CATEGORIES.map((cat) => (
-                    <CategoryButton
-                        key={cat.label}
-                        icon={cat.icon}
-                        isActive={activeTab === cat.label}
-                        onPress={() => setActiveTab(cat.label)}
-                        style={{ marginRight: xdWidth(12) }}
-                    >
-                        {renderCategoryLabel(cat.label)}
-                    </CategoryButton>
-                ))}
+                {FAVORITE_CATEGORIES.map((cat, index) => {
+                    const isFirst = index === 0;
+                    const isLast = index === FAVORITE_CATEGORIES.length - 1;
+                    return (
+                        <CategoryButton
+                            key={cat.label}
+                            ref={isFirst ? categoryAllRef : (isLast ? lastCategoryRef : undefined)}
+                            icon={cat.icon}
+                            isActive={activeTab === cat.label}
+                            onPress={() => setActiveTab(cat.label)}
+                            style={{ marginRight: xdWidth(12) }}
+                            nextFocusLeft={isFirst ? (settingsTabNode || undefined) : undefined}
+                            nextFocusUp={isFirst ? (settingsTabNode || undefined) : undefined}
+                            nextFocusRight={isLast ? firstItemNode : undefined}
+                            nextFocusDown={firstItemNode}
+                        >
+                            {renderCategoryLabel(cat.label)}
+                        </CategoryButton>
+                    );
+                })}
             </View>
         </View>
     );
@@ -140,6 +207,9 @@ export default function FavoritesScreen() {
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
                 showsVerticalScrollIndicator={false}
+                initialNumToRender={10}
+                windowSize={5}
+                removeClippedSubviews={false}
                 ListEmptyComponent={
                     <EmptyState
                         icon="heart-outline"

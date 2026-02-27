@@ -29,6 +29,15 @@ const DeviceVerification = () => {
         setCurrentStep(0);
     };
 
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            router.push("/(auth)/selectPlaylists");
+        }, 3000);
+
+        return () => clearTimeout(timer);
+    }, []);
+
     useEffect(() => {
         if (status !== "syncing") return;
 

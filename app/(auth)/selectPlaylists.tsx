@@ -1,7 +1,7 @@
 import { PlaylistButton } from "@/components/ui/buttons/PlaylistButton";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Colors, scale as s, width } from "../../constants";
 
@@ -19,6 +19,15 @@ const PLAYLIST_OPTIONS: {
 
 const SelectPlaylistScreen = () => {
     const [selected, setSelected] = useState<PlaylistType>("m3u");
+
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            router.replace("/playlistList");
+        }, 3000);
+
+        return () => clearTimeout(timer);
+    }, []);
 
     const isLarge = width >= 900;
     const circleSize = s(isLarge ? 130 : 90);
