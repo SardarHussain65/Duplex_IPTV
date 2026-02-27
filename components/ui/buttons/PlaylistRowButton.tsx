@@ -37,10 +37,15 @@ export const PlaylistRowButton = React.forwardRef<View, PlaylistRowButtonProps>(
     disabled = false,
     onPress,
     hasTVPreferredFocus = false,
-    ...rest
+    nextFocusLeft,
+    nextFocusRight,
+    nextFocusUp,
+    nextFocusDown,
+    ...restProps
 }, ref) => {
     const {
-        state,
+        isFocused,
+        isPressed,
         scaleAnim,
         handleFocus,
         handleBlur,
@@ -64,11 +69,13 @@ export const PlaylistRowButton = React.forwardRef<View, PlaylistRowButtonProps>(
         return val;
     };
 
-    const active = state === 'active' || state === 'focused' || state === 'pressed';
+    // highlighted = item has keyboard/TV focus or is being pressed
+    const highlighted = isFocused || isPressed;
 
 
     return (
         <AnimatedPressable
+            {...restProps}
             ref={(node) => {
                 // @ts-ignore
                 innerRef.current = node;
@@ -88,30 +95,31 @@ export const PlaylistRowButton = React.forwardRef<View, PlaylistRowButtonProps>(
             style={[
                 styles.pressable,
                 {
-                    borderColor: active ? Colors.dark[5] : Colors.dark[8],
-                    backgroundColor: active ? Colors.dark[12] : Colors.dark[10],
+                    // Border visible only on focus/press, not just selection
+                    borderColor: highlighted ? Colors.dark[5] : 'transparent',
+                    backgroundColor: highlighted ? Colors.dark[12] : Colors.dark[10],
                     transform: [{ scale: scaleAnim }],
                     opacity: disabled ? 0.4 : 1,
                 },
             ]}
-            nextFocusLeft={resolveFocus(rest.nextFocusLeft as any)}
-            nextFocusRight={resolveFocus(rest.nextFocusRight as any)}
-            nextFocusUp={resolveFocus(rest.nextFocusUp as any)}
-            nextFocusDown={resolveFocus(rest.nextFocusDown as any)}
+            nextFocusLeft={resolveFocus(nextFocusLeft as any)}
+            nextFocusRight={resolveFocus(nextFocusRight as any)}
+            nextFocusUp={resolveFocus(nextFocusUp as any)}
+            nextFocusDown={resolveFocus(nextFocusDown as any)}
         >
             {/* Icon box */}
             <View
                 style={[
                     styles.iconBox,
                     {
-                        backgroundColor: active ? Colors.dark[5] : Colors.dark[9],
+                        backgroundColor: highlighted ? Colors.dark[5] : Colors.dark[9],
                     },
                 ]}
             >
                 <Ionicons
                     name="layers-outline"
                     size={20}
-                    color={active ? Colors.dark[1] : Colors.dark[4]}
+                    color={highlighted ? Colors.dark[1] : Colors.dark[4]}
                 />
             </View>
 
@@ -121,8 +129,8 @@ export const PlaylistRowButton = React.forwardRef<View, PlaylistRowButtonProps>(
                     style={[
                         styles.label,
                         {
-                            color: active ? Colors.dark[1] : Colors.dark[4],
-                            fontWeight: active ? "600" : "400",
+                            color: highlighted ? Colors.dark[1] : Colors.dark[4],
+                            fontWeight: highlighted ? "600" : "400",
                         },
                     ]}
                 >
@@ -131,13 +139,23 @@ export const PlaylistRowButton = React.forwardRef<View, PlaylistRowButtonProps>(
                 <Text
                     style={[
                         styles.url,
-                        { color: active ? Colors.dark[4] : Colors.dark[5] },
+                        { color: highlighted ? Colors.dark[4] : Colors.dark[5] },
                     ]}
                     numberOfLines={1}
                 >
                     {url}
                 </Text>
             </View>
+
+            {/* Checkmark — visible only when this item is selected */}
+            {isSelected && (
+                <Ionicons
+                    name="checkmark"
+                    size={20}
+                    color={Colors.dark[1]}
+                    style={{ marginLeft: 8 }}
+                />
+            )}
         </AnimatedPressable>
     );
 });

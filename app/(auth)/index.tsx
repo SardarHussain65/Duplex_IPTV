@@ -83,7 +83,7 @@ const ActivationScreen = () => {
     useEffect(() => {
         const timer = setTimeout(() => {
             router.replace("/deviceVerification");
-        }, 3000);
+        }, 5000);
 
         return () => clearTimeout(timer);
     }, []);

@@ -1,7 +1,7 @@
 import { PlaylistRowButton } from "@/components/ui/buttons/PlaylistRowButton";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useRef, useState } from "react";
 import {
     FlatList,
     StyleSheet,
@@ -29,13 +29,8 @@ const PLAYLISTS: Playlist[] = [
 const PlaylistListScreen = () => {
     const [selectedId, setSelectedId] = useState<string | null>(null);
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            router.replace("/(home)/(tabs)/live-tv");
-        }, 3000);
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-        return () => clearTimeout(timer);
-    }, []);
 
 
     return (
@@ -75,7 +70,10 @@ const PlaylistListScreen = () => {
                                 isSelected={selectedId === item.id}
                                 onPress={() => {
                                     setSelectedId(item.id);
-                                    // router.push("/(home)");
+                                    if (timerRef.current) clearTimeout(timerRef.current);
+                                    timerRef.current = setTimeout(() => {
+                                        router.replace("/(home)/(tabs)/live-tv");
+                                    }, 3000);
                                 }}
                                 hasTVPreferredFocus={index === 0}
                             />

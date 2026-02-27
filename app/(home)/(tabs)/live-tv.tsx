@@ -78,7 +78,8 @@ export default function LiveTVScreen() {
             let firstNode: number | undefined = undefined;
 
             Object.keys(channelRefs.current).forEach((key) => {
-                const idx = parseInt(key);
+                const idx = Number.parseInt(key, 10);
+                if (idx >= filteredChannels.length) return;
                 const node = findNodeHandle(channelRefs.current[idx]);
                 if (node) {
                     newNodes[idx] = node;
@@ -119,7 +120,10 @@ export default function LiveTVScreen() {
 
         return (
             <BackdropCard
-                innerRef={(ref) => { if (ref) channelRefs.current[index] = ref; }}
+                innerRef={(ref) => {
+                    if (ref) channelRefs.current[index] = ref;
+                    else delete channelRefs.current[index];
+                }}
                 title={item.name}
                 subtitle={item.category}
                 image={{ uri: item.image }}

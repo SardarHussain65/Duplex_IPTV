@@ -30,13 +30,7 @@ const DeviceVerification = () => {
     };
 
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            router.push("/(auth)/selectPlaylists");
-        }, 3000);
 
-        return () => clearTimeout(timer);
-    }, []);
 
     useEffect(() => {
         if (status !== "syncing") return;
@@ -46,11 +40,6 @@ const DeviceVerification = () => {
         const processStep = async (index: number) => {
             if (index >= STEPS.length) {
                 setStatus("success");
-                // Navigate to home after success or let user click
-                const timer = setTimeout(() => {
-                    // router.replace("/(tabs)"); // Example navigation
-                }, 1500);
-                timers.push(timer);
                 return;
             }
 
@@ -94,6 +83,15 @@ const DeviceVerification = () => {
             timers.forEach(timer => clearTimeout(timer));
         };
     }, [currentStep, status]);
+
+    // Navigate to selectPlaylists 3 seconds after all steps succeed
+    useEffect(() => {
+        if (status !== "success") return;
+        const timer = setTimeout(() => {
+            router.push("/(auth)/selectPlaylists");
+        }, 3000);
+        return () => clearTimeout(timer);
+    }, [status]);
 
     return (
         <View style={styles.container}>
@@ -141,7 +139,7 @@ const DeviceVerification = () => {
             </View>
             <View style={[styles.footer, { marginTop: s(20) }]}>
                 {status === "success" ? (
-                    <Text style={[styles.successText, { fontSize: s(12) }]} onPress={() => router.push("/(auth)/selectPlaylists")}>
+                    <Text style={[styles.successText, { fontSize: s(12) }]}>
                         All set! Taking you to the home screen…
                     </Text>
                 ) : (

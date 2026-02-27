@@ -1,7 +1,7 @@
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { ResizeMode, Video } from 'expo-av';
 import React, { useRef } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const DUMMY_VIDEO_URI =
     'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
@@ -16,7 +16,7 @@ interface VideoPreviewCardProps {
     onExpandPress: () => void;
 }
 
-import { TouchableOpacity } from 'react-native';
+
 
 export const VideoPreviewCard: React.FC<VideoPreviewCardProps> = ({
     title,

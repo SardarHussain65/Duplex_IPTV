@@ -1,7 +1,7 @@
 import { PlaylistButton } from "@/components/ui/buttons/PlaylistButton";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Colors, scale as s, width } from "../../constants";
 
@@ -20,14 +20,7 @@ const PLAYLIST_OPTIONS: {
 const SelectPlaylistScreen = () => {
     const [selected, setSelected] = useState<PlaylistType>("m3u");
 
-
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            router.replace("/playlistList");
-        }, 3000);
-
-        return () => clearTimeout(timer);
-    }, []);
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const isLarge = width >= 900;
     const circleSize = s(isLarge ? 130 : 90);
@@ -60,7 +53,14 @@ const SelectPlaylistScreen = () => {
                             label={option.label}
                             count={option.count}
                             isSelected={selected === option.id}
-                            onPress={() => setSelected(option.id)}
+                            onPress={() => {
+                                setSelected(option.id);
+                                // Clear any previous pending navigation
+                                if (timerRef.current) clearTimeout(timerRef.current);
+                                timerRef.current = setTimeout(() => {
+                                    router.replace("/playlistList");
+                                }, 3000);
+                            }}
                             circleSize={circleSize}
                             hasTVPreferredFocus={index === 0}
 
