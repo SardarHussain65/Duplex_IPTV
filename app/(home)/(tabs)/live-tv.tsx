@@ -16,6 +16,8 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, ScrollView, StyleSheet, Text, View, findNodeHandle } from 'react-native';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+
 
 
 
@@ -121,17 +123,19 @@ export default function LiveTVScreen() {
                 title={item.name}
                 subtitle={item.category}
                 image={{ uri: item.image }}
+                width={xdWidth(160)}
+                height={xdHeight(90)}
                 style={styles.cardSpacing}
                 onPress={() => handleChannelPress(item)}
                 // Up navigation: first row goes to categories, others go to previous row item
-                nextFocusUp={index < 4 ? lastCategoryNode : channelNodes[index - 4]}
+                nextFocusUp={index < 5 ? lastCategoryNode : channelNodes[index - 5]}
                 // Down navigation: explicitly point to next row item if available
-                nextFocusDown={channelNodes[index + 4]}
+                nextFocusDown={channelNodes[index + 5]}
                 // Left navigation: ONLY the very first item wraps back to category menu.
                 // Others go to the previous item, which implicitly handles row wrapping.
                 nextFocusLeft={index === 0 ? lastCategoryNode : channelNodes[index - 1]}
                 // Right navigation: last item of row wraps to first item of next row
-                nextFocusRight={isRowEnd ? channelNodes[index + 1] : channelNodes[index + 1]}
+                nextFocusRight={index === filteredChannels.length - 1 ? undefined : channelNodes[index + 1]}
             />
         );
     };
@@ -156,9 +160,21 @@ export default function LiveTVScreen() {
                         style={styles.heroImage}
                         contentFit="cover"
                     />
+                    <Svg style={StyleSheet.absoluteFillObject}>
+                        <Defs>
+                            {/* Horizontal Gradient (Right-to-Left) */}
+                            <LinearGradient id="rightToLeft" x1="1" y1="0" x2="0" y2="0">
+                                <Stop offset="0" stopColor="#141416" stopOpacity="1" />
+                                <Stop offset="0.5" stopColor="#141416" stopOpacity="0.6" />
+                                <Stop offset="1" stopColor="#141416" stopOpacity="0.6" />
+                            </LinearGradient>
+                        </Defs>
+                        {/* Apply right fade */}
+                        <Rect x="0" y="0" width="100%" height="100%" fill="url(#rightToLeft)" />
+                    </Svg>
                 </View>
-            </View>
 
+            </View>
             {/* Search Bar */}
             <View style={styles.searchWrapper}>
                 <SearchBar
@@ -205,20 +221,21 @@ export default function LiveTVScreen() {
             <Text style={styles.channelCount}>
                 {filteredChannels.length} channel{filteredChannels.length !== 1 ? 's' : ''} found
             </Text>
+
         </View>
     );
 
     return (
         <View style={styles.container}>
             <FlatList
-                key={`livetv-${activeCategory}`}
+                key={`livetv-${activeCategory}-${searchQuery}-5`}
                 data={filteredChannels}
                 contentContainerStyle={[styles.content, styles.gridContainer]}
                 keyExtractor={(item) => item.id}
                 ListHeaderComponent={renderHeader()}
                 renderItem={(props) => renderChannel({ ...props })}
-                numColumns={4}
-                columnWrapperStyle={filteredChannels.length > 1 ? { gap: xdWidth(18) } : null}
+                numColumns={5}
+                columnWrapperStyle={filteredChannels.length > 1 ? { gap: xdWidth(16) } : null}
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
                 showsVerticalScrollIndicator={false}
@@ -251,19 +268,23 @@ const styles = StyleSheet.create({
         marginBottom: xdHeight(24),
         overflow: 'hidden',
         backgroundColor: '#141416',
+        marginHorizontal: -xdWidth(40),
     },
     gridContainer: {
-        paddingHorizontal: xdWidth(16),
+        paddingHorizontal: xdWidth(40),
     },
-    heroOverlay: { width: '45%', justifyContent: 'center', paddingHorizontal: xdWidth(40), zIndex: 1 },
-    heroImageWrapper: { width: '55%', height: '100%' },
-    heroImage: { opacity: 0.6, width: '100%', height: '100%' },
+    heroOverlay: { width: '45%', justifyContent: 'center', paddingHorizontal: xdWidth(40), zIndex: 1, paddingTop: xdHeight(50) },
+
+    heroImageWrapper: { width: '55%', height: '100%', position: 'relative' },
+    heroImage: { opacity: 0.8, width: '100%', height: '100%' },
+
     heroTitle: { fontSize: scale(32), fontWeight: '800', color: Colors.gray[100], marginBottom: xdHeight(12) },
     heroSubtitle: { fontSize: scale(14), color: Colors.dark[3], maxWidth: xdWidth(480), lineHeight: scale(22) },
     searchWrapper: { marginBottom: xdHeight(32) },
-    sectionTitle: { fontSize: scale(18), fontWeight: '700', color: Colors.gray[100], marginBottom: xdHeight(16) },
+    sectionTitle: { fontSize: scale(18), fontWeight: '700', color: Colors.gray[100], marginBottom: xdHeight(16), marginLeft: xdWidth(0) },
     categoryRow: { marginBottom: xdHeight(16) },
     channelCount: { fontSize: scale(13), color: Colors.gray[400], marginBottom: xdHeight(16) },
     grid: { flexDirection: 'row', flexWrap: 'wrap' },
-    cardSpacing: { marginRight: xdWidth(18), marginBottom: xdHeight(16) },
+    cardSpacing: { marginBottom: xdHeight(16) },
+
 });

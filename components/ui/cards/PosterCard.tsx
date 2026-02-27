@@ -19,6 +19,8 @@ import {
 } from 'react-native';
 import { useButtonState } from '../buttons/useButtonState';
 
+import { xdHeight, xdWidth } from '@/constants/scaling';
+
 export interface PosterCardProps {
     image?: ImageSourcePropType | string;
     title?: string;
@@ -33,10 +35,9 @@ export interface PosterCardProps {
     nextFocusUp?: number;
     nextFocusRight?: number;
     nextFocusDown?: number;
+    width?: number;
+    height?: number;
 }
-
-const WIDTH = 160;
-const HEIGHT = 240;
 
 export const PosterCard: React.FC<PosterCardProps> = ({
     image,
@@ -52,7 +53,11 @@ export const PosterCard: React.FC<PosterCardProps> = ({
     nextFocusUp,
     nextFocusRight,
     nextFocusDown,
+    width = xdWidth(160),
+    height = xdHeight(240),
 }) => {
+    const WIDTH = width;
+    const HEIGHT = height;
     const {
         state,
         scaleAnim,

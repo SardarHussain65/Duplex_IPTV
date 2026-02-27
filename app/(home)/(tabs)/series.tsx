@@ -90,7 +90,7 @@ export default function SeriesScreen() {
     }, [activeCategory, filteredSeries]);
 
     const renderSeriesItem = ({ item, index }: { item: Series; index: number }) => {
-        const isRowEnd = index % 5 === 4;
+        const isRowEnd = index % 6 === 5;
 
         return (
             <PosterCard
@@ -98,15 +98,16 @@ export default function SeriesScreen() {
                 image={item.image}
                 title={item.title}
                 subtitle={item.season}
+                width={xdWidth(132)}
                 onPress={() => handleSeriesPress(item)}
                 style={styles.cardSpacing}
                 // Up navigation: first row goes to categories
-                nextFocusUp={index < 5 ? lastCategoryNode : seriesNodes[index - 5]}
-                nextFocusDown={seriesNodes[index + 5]}
+                nextFocusUp={index < 6 ? lastCategoryNode : seriesNodes[index - 6]}
+                nextFocusDown={seriesNodes[index + 6]}
                 // Left navigation: ONLY index 0 wraps back to category menu
                 nextFocusLeft={index === 0 ? lastCategoryNode : seriesNodes[index - 1]}
                 // Right navigation: wrap row-by-row
-                nextFocusRight={isRowEnd ? seriesNodes[index + 1] : seriesNodes[index + 1]}
+                nextFocusRight={index === filteredSeries.length - 1 ? undefined : seriesNodes[index + 1]}
             />
         );
     };
@@ -227,14 +228,14 @@ export default function SeriesScreen() {
         <View style={styles.container}>
             {/* ── Poster Grid — FlatList nested inside ScrollView ── */}
             <FlatList
-                key={`series-grid-${activeCategory}`}
+                key={`series-grid-${activeCategory}-6`}
                 data={filteredSeries}
                 keyExtractor={(item) => item.id}
                 ListHeaderComponent={renderHeader()}
                 renderItem={(props) => renderSeriesItem({ ...props })}
-                numColumns={5}
+                numColumns={6}
                 contentContainerStyle={[styles.content, styles.gridContainer]}
-                columnWrapperStyle={filteredSeries.length > 1 ? styles.columnWrapper : undefined}
+                columnWrapperStyle={filteredSeries.length > 1 ? { gap: xdWidth(12) } : undefined}
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
                 showsVerticalScrollIndicator={false}

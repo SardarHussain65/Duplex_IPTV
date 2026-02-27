@@ -1,6 +1,4 @@
-import { NavIconButton } from '@/components/ui/buttons/NavIconButton';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ResizeMode, Video } from 'expo-av';
 import React, { useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -18,6 +16,8 @@ interface VideoPreviewCardProps {
     onExpandPress: () => void;
 }
 
+import { TouchableOpacity } from 'react-native';
+
 export const VideoPreviewCard: React.FC<VideoPreviewCardProps> = ({
     title,
     onExpandPress,
@@ -25,7 +25,11 @@ export const VideoPreviewCard: React.FC<VideoPreviewCardProps> = ({
     const videoRef = useRef<Video>(null);
 
     return (
-        <View style={cardStyles.card}>
+        <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={onExpandPress}
+            style={cardStyles.card}
+        >
             {/* ── Inline Video fills the card ── */}
             <Video
                 ref={videoRef}
@@ -51,28 +55,14 @@ export const VideoPreviewCard: React.FC<VideoPreviewCardProps> = ({
                 <View style={cardStyles.liveDot} />
                 <Text style={cardStyles.liveText}>Live</Text>
             </View>
-
-            {/* Expand button bottom-right */}
-            <View style={cardStyles.expandBtn}>
-                <NavIconButton
-                    icon={
-                        <MaterialCommunityIcons
-                            name="arrow-expand-all"
-                            size={scale(18)}
-                            color="#fff"
-                        />
-                    }
-                    onPress={onExpandPress}
-                />
-            </View>
-        </View>
+        </TouchableOpacity>
     );
 };
 
 const cardStyles = StyleSheet.create({
     card: {
-        width: xdWidth(390),
-        height: xdHeight(220),
+        width: xdWidth(480), // Increased from 390
+        height: xdHeight(270), // Increased from 220
         borderRadius: scale(18),
         overflow: 'hidden',
         position: 'relative',

@@ -6,7 +6,7 @@ import { useTab } from '@/context/TabContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { FlatList, ScrollView, StyleSheet, Text, View, findNodeHandle } from 'react-native';
+import { FlatList, StyleSheet, Text, View, findNodeHandle } from 'react-native';
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -132,14 +132,13 @@ export default function ParentalControlScreen() {
         setIsScrolled(offsetY > xdHeight(60));
     };
 
-    const posterColumns = 5;
-    const backdropColumns = 4;
+    const posterColumns = 6;
+    const backdropColumns = 5;
     const numColumns = activeSubTab === 'Live TV' ? backdropColumns : posterColumns;
 
     const renderItem = ({ item, index }: { item: LockedItem; index: number }) => {
         const isBackdrop = activeSubTab === 'Live TV';
-        const cols = isBackdrop ? 4 : 5;
-        const isRowEnd = index % cols === cols - 1;
+        const cols = isBackdrop ? 5 : 6;
 
         if (isBackdrop) {
             return (
@@ -147,12 +146,14 @@ export default function ParentalControlScreen() {
                     innerRef={(ref) => { if (ref) itemRefs.current[index] = ref; }}
                     title={item.title}
                     image={item.image}
+                    width={xdWidth(160)}
+                    height={xdHeight(90)}
                     style={styles.cardSpacing}
                     onPress={() => handlePress(item)}
                     nextFocusUp={index < cols ? lastCategoryNode : itemNodes[index - cols]}
                     nextFocusDown={itemNodes[index + cols]}
                     nextFocusLeft={index === 0 ? lastCategoryNode : itemNodes[index - 1]}
-                    nextFocusRight={isRowEnd ? itemNodes[index + 1] : itemNodes[index + 1]}
+                    nextFocusRight={index === filteredItems.length - 1 ? undefined : itemNodes[index + 1]}
                 />
             );
         }
@@ -163,12 +164,13 @@ export default function ParentalControlScreen() {
                 title={item.title}
                 subtitle={item.subtitle}
                 image={item.image}
+                width={xdWidth(132)}
                 style={styles.cardSpacing}
                 onPress={() => handlePress(item)}
                 nextFocusUp={index < cols ? lastCategoryNode : itemNodes[index - cols]}
                 nextFocusDown={itemNodes[index + cols]}
                 nextFocusLeft={index === 0 ? lastCategoryNode : itemNodes[index - 1]}
-                nextFocusRight={isRowEnd ? itemNodes[index + 1] : itemNodes[index + 1]}
+                nextFocusRight={index === filteredItems.length - 1 ? undefined : itemNodes[index + 1]}
             />
         );
     };
@@ -185,6 +187,35 @@ export default function ParentalControlScreen() {
         router.replace('/live-tv');
     };
 
+    const renderHeader = () => (
+        <View style={styles.headerContainer}>
+            <Text style={styles.pageTitle}>Parental Control</Text>
+
+            <View style={styles.categoryRow}>
+                {CATEGORIES.map((cat, index) => {
+                    const isFirst = index === 0;
+                    const isLast = index === CATEGORIES.length - 1;
+                    return (
+                        <CategoryButton
+                            key={cat.label}
+                            ref={isFirst ? categoryAllRef : (isLast ? lastCategoryRef : undefined)}
+                            icon={cat.icon}
+                            isActive={activeSubTab === cat.label}
+                            onPress={() => setActiveSubTab(cat.label)}
+                            style={{ marginRight: xdWidth(12) }}
+                            nextFocusLeft={isFirst ? (settingsTabNode || undefined) : undefined}
+                            nextFocusUp={isFirst ? (settingsTabNode || undefined) : undefined}
+                            nextFocusRight={isLast ? firstItemNode : undefined}
+                            nextFocusDown={firstItemNode}
+                        >
+                            {renderCategoryLabel(cat.label)}
+                        </CategoryButton>
+                    );
+                })}
+            </View>
+        </View>
+    );
+
     return (
         <View style={{ flex: 1, backgroundColor: '#141416' }}>
             <EnterPinModal
@@ -194,68 +225,41 @@ export default function ParentalControlScreen() {
                 expectedPin={parentalPin}
             />
 
-            <ScrollView
-                style={styles.container}
+            <FlatList
+                key={`parental-${activeSubTab}-${numColumns}`}
+                data={filteredItems}
                 contentContainerStyle={styles.content}
+                keyExtractor={(item) => item.id}
+                ListHeaderComponent={renderHeader}
+                renderItem={(props) => renderItem({ ...props })}
+                numColumns={numColumns}
+                columnWrapperStyle={{ gap: xdWidth(activeSubTab === 'Live TV' ? 16 : 12) }}
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
-            >
-                <Text style={styles.pageTitle}>Parental Control</Text>
-
-                <View style={styles.categoryRow}>
-                    {CATEGORIES.map((cat, index) => {
-                        const isFirst = index === 0;
-                        const isLast = index === CATEGORIES.length - 1;
-                        return (
-                            <CategoryButton
-                                key={cat.label}
-                                ref={isFirst ? categoryAllRef : (isLast ? lastCategoryRef : undefined)}
-                                icon={cat.icon}
-                                isActive={activeSubTab === cat.label}
-                                onPress={() => setActiveSubTab(cat.label)}
-                                style={{ marginRight: xdWidth(12) }}
-                                nextFocusLeft={isFirst ? (settingsTabNode || undefined) : undefined}
-                                nextFocusUp={isFirst ? (settingsTabNode || undefined) : undefined}
-                                nextFocusRight={isLast ? firstItemNode : undefined}
-                                nextFocusDown={firstItemNode}
-                            >
-                                {renderCategoryLabel(cat.label)}
-                            </CategoryButton>
-                        );
-                    })}
-                </View>
-
-                {/* Content Grid — FlatList nested inside ScrollView (scrollEnabled=false) */}
-                <FlatList
-                    key={`parental-${activeSubTab}-${numColumns}`}
-                    data={filteredItems}
-                    keyExtractor={(item) => item.id}
-                    renderItem={(props) => renderItem({ ...props })}
-                    numColumns={numColumns}
-                    columnWrapperStyle={{ gap: xdWidth(activeSubTab === 'Live TV' ? 18 : 20) }}
-                    scrollEnabled={false}
-                    initialNumToRender={10}
-                    removeClippedSubviews={false}
-                    ListEmptyComponent={
-                        <EmptyState
-                            icon="lock-outline"
-                            title="No Content Locked Yet"
-                            subtitle="No content has been restricted under parental control."
-                            style={styles.emptyState}
-                        />
-                    }
-                />
-            </ScrollView>
+                showsVerticalScrollIndicator={false}
+                initialNumToRender={10}
+                removeClippedSubviews={false}
+                ListEmptyComponent={
+                    <EmptyState
+                        icon="lock-outline"
+                        title="No Content Locked Yet"
+                        subtitle="No content has been restricted under parental control."
+                        style={styles.emptyState}
+                    />
+                }
+            />
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
     content: {
-        paddingHorizontal: xdWidth(32),
+        paddingHorizontal: xdWidth(40),
         paddingTop: xdHeight(90),
         paddingBottom: xdHeight(40),
+    },
+    headerContainer: {
+        marginBottom: xdHeight(16),
     },
     pageTitle: {
         fontSize: scale(22),
@@ -272,7 +276,6 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
     },
     cardSpacing: {
-        marginRight: xdWidth(18),
         marginBottom: xdHeight(16),
     },
     emptyState: {

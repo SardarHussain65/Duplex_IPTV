@@ -20,6 +20,7 @@ export const styles = StyleSheet.create({
         position: 'relative',
         justifyContent: 'flex-end',
         marginBottom: xdHeight(28),
+        marginHorizontal: -xdWidth(40),
     },
     heroBg: {
         ...StyleSheet.absoluteFillObject,
@@ -79,7 +80,6 @@ export const styles = StyleSheet.create({
 
     // Search
     searchWrapper: {
-        paddingHorizontal: xdWidth(32),
         marginBottom: xdHeight(24),
     },
 
@@ -89,18 +89,16 @@ export const styles = StyleSheet.create({
         fontWeight: '700',
         color: Colors.gray[100],
         marginBottom: xdHeight(14),
-        paddingHorizontal: xdWidth(32),
     },
     categoryRow: {
         marginBottom: xdHeight(20),
     },
     categoryContent: {
-        paddingHorizontal: xdWidth(32),
     },
 
     // Grid
     gridContainer: {
-        paddingHorizontal: xdWidth(32),
+        paddingHorizontal: xdWidth(40),
     },
     columnWrapper: {
         gap: xdWidth(20),

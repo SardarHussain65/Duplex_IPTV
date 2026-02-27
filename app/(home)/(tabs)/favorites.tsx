@@ -112,14 +112,13 @@ export default function FavoritesScreen() {
         setIsScrolled(offsetY > xdHeight(60));
     };
 
-    const posterColumns = 5;
-    const backdropColumns = 4;
+    const posterColumns = 6;
+    const backdropColumns = 5;
     const numColumns = activeTab === 'Live TV' ? backdropColumns : posterColumns;
 
     const renderItem = ({ item, index }: { item: FavoriteItem; index: number }) => {
         const isBackdrop = activeTab === 'Live TV';
-        const cols = isBackdrop ? 4 : 5;
-        const isRowEnd = index % cols === cols - 1;
+        const cols = isBackdrop ? 5 : 6;
 
         if (isBackdrop) {
             return (
@@ -127,12 +126,14 @@ export default function FavoritesScreen() {
                     innerRef={(ref) => { if (ref) itemRefs.current[index] = ref; }}
                     title={item.title}
                     image={item.image}
+                    width={xdWidth(160)}
+                    height={xdHeight(90)}
                     style={styles.cardSpacing}
                     onPress={() => handlePress(item)}
                     nextFocusUp={index < cols ? lastCategoryNode : itemNodes[index - cols]}
                     nextFocusDown={itemNodes[index + cols]}
                     nextFocusLeft={index === 0 ? lastCategoryNode : itemNodes[index - 1]}
-                    nextFocusRight={isRowEnd ? itemNodes[index + 1] : itemNodes[index + 1]}
+                    nextFocusRight={index === filteredItems.length - 1 ? undefined : itemNodes[index + 1]}
                 />
             );
         }
@@ -143,12 +144,13 @@ export default function FavoritesScreen() {
                 title={item.title}
                 subtitle={item.subtitle}
                 image={item.image}
+                width={xdWidth(132)}
                 style={styles.cardSpacing}
                 onPress={() => handlePress(item)}
                 nextFocusUp={index < cols ? lastCategoryNode : itemNodes[index - cols]}
                 nextFocusDown={itemNodes[index + cols]}
                 nextFocusLeft={index === 0 ? lastCategoryNode : itemNodes[index - 1]}
-                nextFocusRight={isRowEnd ? itemNodes[index + 1] : itemNodes[index + 1]}
+                nextFocusRight={index === filteredItems.length - 1 ? undefined : itemNodes[index + 1]}
             />
         );
     };
@@ -203,7 +205,7 @@ export default function FavoritesScreen() {
                 ListHeaderComponent={renderHeader}
                 renderItem={renderItem}
                 numColumns={numColumns}
-                columnWrapperStyle={{ gap: xdWidth(activeTab === 'Live TV' ? 18 : 20) }}
+                columnWrapperStyle={{ gap: xdWidth(activeTab === 'Live TV' ? 16 : 12) }}
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
                 showsVerticalScrollIndicator={false}
@@ -228,7 +230,6 @@ export default function FavoritesScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#141416' },
     content: {
-        paddingHorizontal: xdWidth(32),
         paddingTop: xdHeight(90),
         paddingBottom: xdHeight(40),
     },
@@ -242,14 +243,13 @@ const styles = StyleSheet.create({
         marginBottom: xdHeight(10),
     },
     gridContainer: {
-        padding: xdWidth(16),
+        paddingHorizontal: xdWidth(40),
     },
     categoryRow: {
         flexDirection: 'row',
         marginBottom: xdHeight(32),
     },
     cardSpacing: {
-        marginRight: xdWidth(18),
         marginBottom: xdHeight(16),
     },
     emptyState: {

@@ -1,8 +1,8 @@
+import { ChangePlayList } from '@/assets/icons';
 import { ActionFilledButton } from '@/components/ui/buttons/ActionFilledButton';
 import { ActionOutlineButton } from '@/components/ui/buttons/ActionOutlineButton';
 import { Colors } from '@/constants';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
 import { Modal, StyleSheet, Text, View } from 'react-native';
 
@@ -27,7 +27,7 @@ export const ConfirmPlaylistModal: React.FC<ConfirmPlaylistModalProps> = ({
             <View style={styles.overlay}>
                 <View style={styles.modalBox}>
                     <View style={styles.iconContainer}>
-                        <MaterialCommunityIcons name="database-sync" size={scale(48)} color={Colors.primary[500]} />
+                        <ChangePlayList width={xdWidth(48)} height={xdHeight(48)} />
                     </View>
 
                     <Text style={styles.title}>Change Playlist?</Text>
@@ -54,14 +54,14 @@ export const ConfirmPlaylistModal: React.FC<ConfirmPlaylistModalProps> = ({
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+        backgroundColor: 'rgba(0, 0, 0, 0.75)',
         justifyContent: 'center',
         alignItems: 'center',
     },
     modalBox: {
         width: xdWidth(480),
-        backgroundColor: Colors.dark[11],
-        borderRadius: scale(16),
+        backgroundColor: Colors.dark[9],
+        borderRadius: scale(12),
         padding: scale(40),
         alignItems: 'center',
         borderWidth: 1,

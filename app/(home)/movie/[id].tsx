@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
     screen: {
         flex: 1,
         backgroundColor: '#141416',
-        paddingVertical: xdHeight(40),
+        paddingTop: xdHeight(70),
 
     },
     bgImage: {

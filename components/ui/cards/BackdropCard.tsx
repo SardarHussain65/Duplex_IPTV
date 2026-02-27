@@ -19,6 +19,8 @@ import {
 } from 'react-native';
 import { useButtonState } from '../buttons/useButtonState';
 
+import { xdHeight, xdWidth } from '@/constants/scaling';
+
 export interface BackdropCardProps {
     image?: ImageSourcePropType | string;
     title?: string;
@@ -33,10 +35,9 @@ export interface BackdropCardProps {
     nextFocusUp?: number;
     nextFocusRight?: number;
     nextFocusDown?: number;
+    width?: number;
+    height?: number;
 }
-
-const WIDTH = 200;
-const HEIGHT = 110;
 
 export const BackdropCard: React.FC<BackdropCardProps> = ({
     image,
@@ -52,7 +53,11 @@ export const BackdropCard: React.FC<BackdropCardProps> = ({
     nextFocusUp,
     nextFocusRight,
     nextFocusDown,
+    width = xdWidth(200),
+    height = xdHeight(110),
 }) => {
+    const WIDTH = width;
+    const HEIGHT = height;
     const {
         state,
         scaleAnim,
