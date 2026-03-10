@@ -100,7 +100,7 @@ const GET_SECTION_INFO = (id: SettingId): { title: string; subtitle: string } =>
 
 // ── Main component ────────────────────────────────────────────
 export default function SettingsScreen() {
-    const { setSettingsSidebarNode, settingsContentNode, setSettingsContentNode, settingsTabNode } = useTab();
+    const { setIsScrolled, setSettingsSidebarNode, settingsContentNode, setSettingsContentNode, settingsTabNode } = useTab();
     const [activeSection, setActiveSection] = useState<SettingId>('language');
     const [selectedLanguage, setSelectedLanguage] = useState('English');
     const contentStartRef = useRef(null);
@@ -115,6 +115,15 @@ export default function SettingsScreen() {
         }, 500);
         return () => clearTimeout(timer);
     }, []);
+
+    React.useEffect(() => {
+        return () => setIsScrolled(false);
+    }, [setIsScrolled]);
+
+    const handleScroll = (event: any) => {
+        const offsetY = event.nativeEvent.contentOffset.y;
+        setIsScrolled(offsetY > xdHeight(60));
+    };
 
     // Stable node handle capturing
     React.useEffect(() => {
@@ -162,6 +171,9 @@ export default function SettingsScreen() {
                 style={styles.sidebar}
                 contentContainerStyle={styles.sidebarContent}
                 removeClippedSubviews={false}
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
+                showsVerticalScrollIndicator={false}
             >
                 {SETTINGS.map((item, index) => (
                     <SettingTabButton
@@ -186,6 +198,9 @@ export default function SettingsScreen() {
                 style={styles.panel}
                 contentContainerStyle={styles.panelContent}
                 removeClippedSubviews={false}
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
+                showsVerticalScrollIndicator={false}
             >
                 <Text style={styles.panelTitle}>{active.title}</Text>
                 <Text style={styles.panelSubtitle}>{active.subtitle}</Text>

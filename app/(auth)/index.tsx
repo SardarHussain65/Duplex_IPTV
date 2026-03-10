@@ -1,15 +1,18 @@
+import { ActionFilledButton, ActionOutlineButton } from "@/components/ui/buttons";
 import { Colors, scale as s, width } from "@/constants";
 import { useDeviceInfo } from "@/hooks/useDeviceInfo";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import React, { useEffect } from "react";
+import React, { useState } from "react";
 import {
-    ActivityIndicator,
+    BackHandler,
     StyleSheet,
     Text,
     View
 } from "react-native";
+
+type ScreenState = 'trial' | 'warning' | 'expired' | 'blocked';
 
 
 // ─── Free Trial Banner (pure code, no image) ─────────────────────────────────
@@ -31,8 +34,8 @@ const FreeTrialBanner = ({ s }: { s: (n: number) => number }) => (
             <Text style={[bannerStyles.title, { fontSize: s(14) }]}>
                 7-Day Free Trial Available
             </Text>
-            <Text style={[bannerStyles.subtitle, { fontSize: s(11) }]}>
-                Activate now and enjoy. No credit card required to start trial.
+            <Text style={[bannerStyles.subtitle, { fontSize: s(12) }]}>
+                Enjoy your 7-day free trial! Activation will be required when the trial ends.
             </Text>
         </View>
 
@@ -78,15 +81,58 @@ const ActivationScreen = () => {
     const isLargeScreen = width >= 900;
     const contentWidth = isLargeScreen ? width * 0.5 : width * 0.92;
 
+    // TODO: This state should be managed by a global context or fetched from an API
+    const [screenState, setScreenState] = useState<ScreenState>('warning');
+    const expiryDays = 5;
 
+    const handleContinue = () => {
+        if (screenState === 'warning') {
+            router.push("/(auth)/playlistSource");
+        } else {
+            router.push("/(auth)/deviceVerification");
+        }
+    };
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            router.replace("/deviceVerification");
-        }, 5000);
+    const handleExit = () => {
+        BackHandler.exitApp();
+    };
 
-        return () => clearTimeout(timer);
-    }, []);
+    const renderHeader = () => {
+        switch (screenState) {
+            case 'warning':
+                return `Your subscription will expire in ${expiryDays} days`;
+            case 'expired':
+                return "License Expired!";
+            case 'blocked':
+                return "Device Blocked!";
+            default:
+                return "Your MAC is Activated!";
+        }
+    };
+
+    const renderInstructions = () => {
+        if (screenState === 'expired') {
+            return (
+                <Text style={[styles.instructions, { fontSize: s(13), lineHeight: s(18), marginBottom: s(24) }]}>
+                    Please contact your license reseller to activate Or visit{" "}
+                    <Text style={styles.link}>www.duplexnew.tv/activate</Text> for more info.{"\n"}
+                    <Text style={{ color: Colors.dark[3] }}>You can activate 6-Months | 1 Year | Lifetime plan.</Text>
+                </Text>
+            );
+        }
+        if (screenState === 'blocked') {
+            return (
+                <Text style={[styles.instructions, { fontSize: s(14), lineHeight: s(20), marginBottom: s(24) }]}>
+                    Please contact your license reseller/admin to unblock your device.
+                </Text>
+            );
+        }
+        return (
+            <Text style={[styles.instructions, { fontSize: s(14), lineHeight: s(20), marginBottom: s(14) }]}>
+                Visit our website <Text style={styles.link}>www.duplexnew.tv/manageplaylists</Text> to add/manage playlists.{" "}
+            </Text>
+        );
+    };
 
     return (
         <View style={styles.container}>
@@ -100,71 +146,126 @@ const ActivationScreen = () => {
 
                 {/* Title */}
                 <Text style={[styles.title, { fontSize: s(20), marginBottom: s(6) }]} onPress={() => router.replace("/deviceVerification")}>
-                    Device Activation
+                    {renderHeader()}
                 </Text>
 
                 {/* Instructions */}
-                <Text style={[styles.instructions, { fontSize: s(13), lineHeight: s(20), marginBottom: s(14) }]}>
-                    Go to Web Portal{" "}
-                    <Text style={styles.link}>(www.portal.duplex.tv/activate)</Text>.
-                    {" "}Enter your Mac Address and Device ID. Sync Playlist to start watching
-                </Text>
+                {renderInstructions()}
 
-                {/* ✅ Free Trial Banner — pure code, no image asset */}
-                <FreeTrialBanner s={s} />
+                {/* ✅ Free Trial Banner — shown only in trial state */}
+                {screenState === 'trial' && <FreeTrialBanner s={s} />}
 
                 {/* Info Grid */}
-                <View
-                    style={[
-                        styles.infoGrid,
-                        { marginBottom: s(16), flexDirection: isLargeScreen ? "row" : "column" },
-                    ]}
-                >
+                {screenState !== 'blocked' && (
+                    <View
+                        style={[
+                            styles.infoGrid,
+                            { marginBottom: s(16), flexDirection: isLargeScreen ? "row" : "column" },
+                        ]}
+                    >
 
-                    <View style={{ flex: 1 }}>
-                        <View style={[styles.infoBox, { padding: s(12), marginBottom: s(10), borderRadius: s(10) }]}>
-                            <Text style={[styles.boxLabel, { fontSize: s(12) }]}>Mac Address</Text>
-                            <Text style={[styles.boxValue, { fontSize: s(20) }]}>{deviceInfo.macAddress}</Text>
+                        <View style={{ flex: 1 }}>
+                            <View style={[styles.infoBox, { padding: s(12), marginBottom: s(10), borderRadius: s(10) }]}>
+                                <Text style={[styles.boxLabel, { fontSize: s(12) }]}>Mac Address</Text>
+                                <Text style={[styles.boxValue, { fontSize: s(20) }]}>{deviceInfo.macAddress}</Text>
+                            </View>
+                            <View style={[styles.infoBox, { padding: s(12), borderRadius: s(10) }]}>
+                                <View style={styles.boxHeader}>
+                                    <Ionicons name="key-outline" size={s(14)} color="#9BA1A6" />
+                                    <Text style={[styles.boxLabel, { fontSize: s(12), marginLeft: s(6) }]}>
+                                        Device ID
+                                    </Text>
+                                </View>
+                                <Text style={[styles.boxValue, { fontSize: s(20) }]}>{deviceInfo.deviceId}</Text>
+                            </View>
                         </View>
-                        <View style={[styles.infoBox, { padding: s(12), borderRadius: s(10) }]}>
-                            <View style={styles.boxHeader}>
-                                <Ionicons name="key-outline" size={s(14)} color="#9BA1A6" />
-                                <Text style={[styles.boxLabel, { fontSize: s(12), marginLeft: s(6) }]}>
-                                    Device ID
+
+                        <View style={[styles.verticalDivider, { marginHorizontal: s(24) }]} />
+
+                        <View style={styles.qrSection}>
+                            <Image
+                                source={require("../../assets/images/qr.png")}
+                                style={{ width: s(120), height: s(120), marginBottom: s(8) }}
+                            />
+                            <Text style={[styles.qrText, { fontSize: s(13) }]}>Scan to add playlist</Text>
+                        </View>
+                    </View>
+                )}
+
+                {/* Warning / Secondary Info */}
+                <View style={[styles.warningContainer, { marginBottom: s(14) }]}>
+                    {screenState === 'trial' ? (
+                        <>
+                            <Ionicons name="information-circle-outline" size={s(18)} color="#FF5252" />
+                            <Text style={[styles.warningText, { fontSize: s(12), lineHeight: s(18), marginLeft: s(8) }]}>
+                                This app does not provide any content such as live channels or VODs.
+                                {" "}You must enter your own content to proceed.
+                            </Text>
+                        </>
+                    ) : (
+                        screenState !== 'blocked' && (
+                            <View style={{ width: '100%', alignItems: 'center' }}>
+                                <Text style={[styles.instructions, { fontSize: s(13) }]}>
+                                    Visit our website <Text style={styles.link}>www.duplexnew.tv/manageplaylists</Text> to add/manage playlists.
                                 </Text>
                             </View>
-                            <Text style={[styles.boxValue, { fontSize: s(20) }]}>{deviceInfo.deviceId}</Text>
+                        )
+                    )}
+                </View>
+
+                {/* Actions */}
+                <View style={[styles.actionsContainer, { marginTop: s(10) }]}>
+                    {screenState === 'trial' ? (
+                        <>
+                            <View style={{ flex: 1, marginRight: s(12) }}>
+                                <ActionOutlineButton
+                                    onPress={() => { }}
+                                    style={{
+                                        backgroundColor: '#1C1C1E',
+                                        borderColor: '#3A3A3C',
+                                        height: s(48),
+                                        borderRadius: s(10),
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        width: '100%',
+                                    }}
+                                >
+                                    Refresh
+                                </ActionOutlineButton>
+                            </View>
+
+                            <View style={{ flex: 1.5 }}>
+                                <ActionFilledButton
+                                    onPress={() => router.push("/(auth)/xtremeSetup")}
+                                    style={{
+                                        backgroundColor: '#FFFFFF',
+                                        height: s(48),
+                                        borderRadius: s(10),
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        width: '100%',
+                                    }}
+                                    textColor="#000000"
+                                >
+                                    Quick Setup (Xtreme Codes)
+                                </ActionFilledButton>
+                            </View>
+                        </>
+                    ) : (
+                        <View style={{ flex: 1 }}>
+                            <ActionFilledButton
+                                onPress={(screenState === 'expired' || screenState === 'blocked') ? handleExit : handleContinue}
+                                style={{
+                                    backgroundColor: '#FFFFFF',
+                                    borderRadius: s(8),
+                                    width: '100%',
+                                }}
+                                textColor="#000000"
+                            >
+                                {(screenState === 'expired' || screenState === 'blocked') ? "Exit App" : "Continue"}
+                            </ActionFilledButton>
                         </View>
-                    </View>
-
-                    <View style={[styles.verticalDivider, { marginHorizontal: s(24) }]} />
-
-                    <View style={styles.qrSection}>
-                        <Image
-                            source={require("../../assets/images/qr.png")}
-                            style={{ width: s(120), height: s(120), marginBottom: s(8) }}
-                        />
-                        <Text style={[styles.qrText, { fontSize: s(13) }]}>Scan to Activate</Text>
-                    </View>
-
-
-                </View>
-
-                {/* Warning */}
-                <View style={[styles.warningContainer, { marginBottom: s(14) }]}>
-                    <Ionicons name="information-circle-outline" size={s(18)} color="#FF5252" />
-                    <Text style={[styles.warningText, { fontSize: s(12), lineHeight: s(18), marginLeft: s(8) }]}>
-                        This app does not provide any content such as live channels or VODs.
-                        {" "}You must enter your own content to proceed.
-                    </Text>
-                </View>
-
-                {/* Loading Status */}
-                <View style={styles.statusContainer}>
-                    <ActivityIndicator size="small" color="#9BA1A6" />
-                    <Text style={[styles.statusText, { fontSize: s(14), marginLeft: s(10) }]}>
-                        Waiting for activation...
-                    </Text>
+                    )}
                 </View>
             </View>
 
@@ -249,6 +350,12 @@ const styles = StyleSheet.create({
     },
     statusText: {
         color: Colors.dark[3],
+    },
+    actionsContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '100%',
     }
 });
 
