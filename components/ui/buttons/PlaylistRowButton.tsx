@@ -95,10 +95,8 @@ export const PlaylistRowButton = React.forwardRef<View, PlaylistRowButtonProps>(
             style={[
                 styles.pressable,
                 {
-                    // Border visible only on focus/press, not just selection
-                    borderColor: highlighted ? Colors.dark[5] : 'transparent',
-                    backgroundColor: highlighted ? Colors.dark[12] : Colors.dark[10],
-                    transform: [{ scale: scaleAnim }],
+                    borderColor: highlighted ? Colors.gray[100] : 'transparent',
+                    backgroundColor: highlighted ? Colors.dark[9] : 'transparent',
                     opacity: disabled ? 0.4 : 1,
                 },
             ]}
@@ -112,14 +110,14 @@ export const PlaylistRowButton = React.forwardRef<View, PlaylistRowButtonProps>(
                 style={[
                     styles.iconBox,
                     {
-                        backgroundColor: highlighted ? Colors.dark[5] : Colors.dark[9],
+                        backgroundColor: highlighted ? Colors.dark[5] : Colors.dark[10],
                     },
                 ]}
             >
                 <Ionicons
                     name="layers-outline"
                     size={20}
-                    color={highlighted ? Colors.dark[1] : Colors.dark[4]}
+                    color={highlighted ? Colors.gray[100] : Colors.dark[4]}
                 />
             </View>
 
@@ -129,19 +127,22 @@ export const PlaylistRowButton = React.forwardRef<View, PlaylistRowButtonProps>(
                     style={[
                         styles.label,
                         {
-                            color: highlighted ? Colors.dark[1] : Colors.dark[4],
-                            fontWeight: highlighted ? "600" : "400",
+                            color: Colors.gray[100],
+                            fontWeight: highlighted ? "600" : "500",
                         },
                     ]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
                 >
                     {label}
                 </Text>
                 <Text
                     style={[
                         styles.url,
-                        { color: highlighted ? Colors.dark[4] : Colors.dark[5] },
+                        { color: Colors.gray[400] },
                     ]}
                     numberOfLines={1}
+                    ellipsizeMode="tail"
                 >
                     {url}
                 </Text>
@@ -152,7 +153,7 @@ export const PlaylistRowButton = React.forwardRef<View, PlaylistRowButtonProps>(
                 <Ionicons
                     name="checkmark"
                     size={20}
-                    color={Colors.dark[1]}
+                    color={Colors.gray[100]}
                     style={{ marginLeft: 8 }}
                 />
             )}
@@ -167,24 +168,26 @@ const styles = StyleSheet.create({
         alignItems: "center",
         borderWidth: 1,
         borderRadius: 12,
-        padding: 14,
-        marginBottom: 10,
+        padding: 12,
+        marginBottom: 8,
         width: "100%",
     },
     iconBox: {
-        width: 38,
-        height: 38,
-        borderRadius: 9,
+        width: 44,
+        height: 44,
+        borderRadius: 12,
         alignItems: "center",
         justifyContent: "center",
-        marginRight: 14,
+        marginRight: 16,
     },
     textBlock: {
         flex: 1,
+        overflow: 'hidden',
+        paddingRight: 8,
     },
     label: {
-        fontSize: 14,
-        marginBottom: 2,
+        fontSize: 16,
+        marginBottom: 4,
     },
     url: {
         fontSize: 11,

@@ -11,8 +11,9 @@ import { NavIconButton } from '@/components/ui/buttons/NavIconButton';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useTab } from '@/context/TabContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { PlaylistSidebarModal } from '@/components/ui/modals';
 import { usePathname, useRouter } from 'expo-router';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Image, StyleSheet, View, findNodeHandle } from 'react-native';
 
 // ── Tab Definitions ───────────────────────────────────────────
@@ -57,6 +58,7 @@ export const TopNavBar: React.FC = () => {
     const { isScrolled, setIsScrolled, searchBarNode, setSettingsTabNode, settingsSidebarNode } = useTab();
     const router = useRouter();
     const pathname = usePathname();
+    const [isPlaylistModalVisible, setIsPlaylistModalVisible] = useState(false);
 
     const getActiveTab = (): TabId => {
         for (const { prefix, tab } of ROUTE_TAB_MAP) {
@@ -112,6 +114,12 @@ export const TopNavBar: React.FC = () => {
 
             {/* Icon tabs */}
             <View style={styles.iconGroup}>
+                <NavIconButton
+                    icon={<MaterialCommunityIcons name="layers-outline" size={scale(18)} />}
+                    isActive={false}
+                    onPress={() => setIsPlaylistModalVisible(true)}
+                    testID="nav-tab-playlist"
+                />
                 {ICON_TABS.map((tab, index) => {
                     const isLastTab = index === ICON_TABS.length - 1;
                     return (
@@ -128,6 +136,11 @@ export const TopNavBar: React.FC = () => {
                     );
                 })}
             </View>
+
+            <PlaylistSidebarModal 
+                visible={isPlaylistModalVisible} 
+                onClose={() => setIsPlaylistModalVisible(false)} 
+            />
         </View>
     );
 };
