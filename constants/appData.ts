@@ -56,6 +56,14 @@ export const MOCK_CHANNELS: Channel[] = [
     { id: '18', name: 'Peace TV', category: 'Religious', image: 'https://image.tmdb.org/t/p/w500/nkayOAUBUu4mMvyNf9iHSUiPjF1.jpg' },
 ];
 
+export const MOCK_RECENTLY_WATCHED_CHANNELS = [
+    { ...MOCK_CHANNELS[0], progress: 0.45 },
+    { ...MOCK_CHANNELS[1], progress: 0.2 },
+    { ...MOCK_CHANNELS[2], progress: 0.8 },
+    { ...MOCK_CHANNELS[3], progress: 0.1 },
+    { ...MOCK_CHANNELS[4], progress: 0.65 },
+];
+
 export const generateEPG = (channelName: string): EPGSlot[] => [
     {
         id: '1',
@@ -108,6 +116,14 @@ export const MOCK_MOVIES: Movie[] = [
     { id: '10', title: 'Retro Cinema', genre: 'Drama', year: '2018', duration: '1h 20m', description: '', image: 'https://image.tmdb.org/t/p/w500/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg' },
     { id: '11', title: 'BBC Exclusive', genre: 'Thriller', year: '2021', duration: '1h 20m', description: '', image: 'https://image.tmdb.org/t/p/w500/4EYPN5mVIhKLfxGruy7Dy41dTVn.jpg' },
     { id: '12', title: 'Star Chronicles', genre: 'Comedy', year: '2022', duration: '1h 20m', description: '', image: 'https://image.tmdb.org/t/p/w500/bOGkgRGdhrBYJSLpXaxhXVstddV.jpg' },
+];
+
+export const MOCK_RECENTLY_WATCHED_MOVIES = [
+    { ...MOCK_MOVIES[2], progress: 0.35 },
+    { ...MOCK_MOVIES[5], progress: 0.6 },
+    { ...MOCK_MOVIES[0], progress: 0.15 },
+    { ...MOCK_MOVIES[3], progress: 0.9 },
+    { ...MOCK_MOVIES[1], progress: 0.5 },
 ];
 
 export const HERO_MOVIES_SLIDES: Movie[] = [
@@ -172,7 +188,16 @@ export const MOCK_SERIES: Series[] = [
     { id: '12', title: 'Ted Lasso', genre: 'Comedy', year: '2020', season: 'S3', description: '', image: 'https://image.tmdb.org/t/p/w500/bOGkgRGdhrBYJSLpXaxhXVstddV.jpg' },
 ];
 
+export const MOCK_RECENTLY_WATCHED_SERIES = [
+    { ...MOCK_SERIES[0], progress: 0.4 },
+    { ...MOCK_SERIES[2], progress: 0.1 },
+    { ...MOCK_SERIES[4], progress: 0.75 },
+    { ...MOCK_SERIES[6], progress: 0.9 },
+    { ...MOCK_SERIES[1], progress: 0.2 },
+];
+
 export const HERO_SERIES_SLIDES: Series[] = [
+
     {
         id: 'h1',
         title: '96 Minutes',

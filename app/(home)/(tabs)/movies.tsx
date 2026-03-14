@@ -8,9 +8,10 @@
 import { CategoryLockedState, EmptyState, SearchBar } from '@/components/ui';
 import { CategoryButton } from '@/components/ui/buttons/CategoryButton';
 import { NavButton } from '@/components/ui/buttons/NavButton';
+import { BackdropCard } from '@/components/ui/cards/BackdropCard';
 import { PosterCard } from '@/components/ui/cards/PosterCard';
 import { EnterPinModal, ManageCategoryModal, RenameCategoryModal } from '@/components/ui/modals';
-import { HERO_MOVIES_SLIDES, MOVIES_CATEGORIES } from '@/constants/appData';
+import { HERO_MOVIES_SLIDES, MOCK_RECENTLY_WATCHED_MOVIES, MOVIES_CATEGORIES } from '@/constants/appData';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useCategoryManagement } from '@/context/CategoryManagementContext';
 import { Movie } from '@/types';
@@ -219,6 +220,31 @@ export default function MoviesScreen() {
                     ))}
                 </View>
             </View>
+
+            {/* ── Recently Watched ── */}
+            {MOCK_RECENTLY_WATCHED_MOVIES.length > 0 && (
+                <View style={{ marginBottom: xdHeight(32) }}>
+                    <Text style={styles.sectionTitle}>Recently Watched</Text>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        style={{ marginHorizontal: -xdWidth(40) }}
+                        contentContainerStyle={{ paddingHorizontal: xdWidth(40) }}
+                    >
+                        {MOCK_RECENTLY_WATCHED_MOVIES.map((movie, index) => (
+                            <BackdropCard
+                                key={`recent-${movie.id}`}
+                                image={{ uri: movie.image }}
+                                progress={movie.progress}
+                                width={xdWidth(170)}
+                                height={xdHeight(96)}
+                                style={{ marginRight: xdWidth(12) }}
+                                onPress={() => handleMoviePress(movie)}
+                            />
+                        ))}
+                    </ScrollView>
+                </View>
+            )}
 
             {/* ── Search Bar ── */}
             <View style={styles.searchWrapper}>

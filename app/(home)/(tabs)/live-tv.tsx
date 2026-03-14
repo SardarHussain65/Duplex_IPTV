@@ -9,7 +9,7 @@ import { BackdropCard, CategoryLockedState, EmptyState, SearchBar } from '@/comp
 import { CategoryButton } from '@/components/ui/buttons/CategoryButton';
 import { EnterPinModal, ManageCategoryModal, RenameCategoryModal } from '@/components/ui/modals';
 import { Colors } from '@/constants';
-import { LIVE_TV_CATEGORIES, MOCK_CHANNELS } from '@/constants/appData';
+import { LIVE_TV_CATEGORIES, MOCK_CHANNELS, MOCK_RECENTLY_WATCHED_CHANNELS } from '@/constants/appData';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useCategoryManagement } from '@/context/CategoryManagementContext';
 import { useTab } from '@/context/TabContext';
@@ -221,6 +221,31 @@ export default function LiveTVScreen() {
                 </View>
 
             </View>
+            {/* ── Recently Watched ── */}
+            {MOCK_RECENTLY_WATCHED_CHANNELS.length > 0 && (
+                <View style={{ marginBottom: xdHeight(32) }}>
+                    <Text style={styles.sectionTitle}>Recently Watched</Text>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        style={{ marginHorizontal: -xdWidth(40) }}
+                        contentContainerStyle={{ paddingHorizontal: xdWidth(40) }}
+                    >
+                        {MOCK_RECENTLY_WATCHED_CHANNELS.map((channel, index) => (
+                            <BackdropCard
+                                key={`recent-${channel.id}`}
+                                image={{ uri: channel.image }}
+                                progress={channel.progress}
+                                width={xdWidth(170)}
+                                height={xdHeight(96)}
+                                style={{ marginRight: xdWidth(12) }}
+                                onPress={() => handleChannelPress(channel)}
+                            />
+                        ))}
+                    </ScrollView>
+                </View>
+            )}
+            
             {/* Search Bar */}
             <View style={styles.searchWrapper}>
                 <SearchBar

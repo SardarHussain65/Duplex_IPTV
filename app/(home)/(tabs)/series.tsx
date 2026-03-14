@@ -8,9 +8,10 @@
 import { CategoryLockedState, EmptyState, SearchBar } from '@/components/ui';
 import { CategoryButton } from '@/components/ui/buttons/CategoryButton';
 import { NavButton } from '@/components/ui/buttons/NavButton';
+import { BackdropCard } from '@/components/ui/cards/BackdropCard';
 import { PosterCard } from '@/components/ui/cards/PosterCard';
 import { EnterPinModal, ManageCategoryModal, RenameCategoryModal } from '@/components/ui/modals';
-import { HERO_SERIES_SLIDES, SERIES_CATEGORIES } from '@/constants/appData';
+import { HERO_SERIES_SLIDES, MOCK_RECENTLY_WATCHED_SERIES, SERIES_CATEGORIES } from '@/constants/appData';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useCategoryManagement } from '@/context/CategoryManagementContext';
 import { Series } from '@/types';
@@ -219,6 +220,31 @@ export default function SeriesScreen() {
                     ))}
                 </View>
             </View>
+
+            {/* ── Recently Watched ── */}
+            {MOCK_RECENTLY_WATCHED_SERIES.length > 0 && (
+                <View style={{ marginBottom: xdHeight(32) }}>
+                    <Text style={styles.sectionTitle}>Recently Watched</Text>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        style={{ marginHorizontal: -xdWidth(40) }}
+                        contentContainerStyle={{ paddingHorizontal: xdWidth(40) }}
+                    >
+                        {MOCK_RECENTLY_WATCHED_SERIES.map((series, index) => (
+                            <BackdropCard
+                                key={`recent-${series.id}`}
+                                image={{ uri: series.image }}
+                                progress={series.progress}
+                                width={xdWidth(170)}
+                                height={xdHeight(96)}
+                                style={{ marginRight: xdWidth(12) }}
+                                onPress={() => handleSeriesPress(series)}
+                            />
+                        ))}
+                    </ScrollView>
+                </View>
+            )}
 
             {/* ── Search Bar ── */}
             <View style={styles.searchWrapper}>

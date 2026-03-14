@@ -37,6 +37,7 @@ export interface BackdropCardProps {
     nextFocusDown?: number;
     width?: number;
     height?: number;
+    progress?: number;
 }
 
 export const BackdropCard: React.FC<BackdropCardProps> = ({
@@ -55,6 +56,7 @@ export const BackdropCard: React.FC<BackdropCardProps> = ({
     nextFocusDown,
     width = xdWidth(200),
     height = xdHeight(110),
+    progress,
 }) => {
     const WIDTH = width;
     const HEIGHT = height;
@@ -76,7 +78,8 @@ export const BackdropCard: React.FC<BackdropCardProps> = ({
         width: WIDTH,
         height: HEIGHT,
         borderRadius: 12,
-        overflow: 'hidden',
+        // Make sure the image inside gets clipped by the border radius, 
+        // but let the stroke stay visible. We remove overflow: hidden here.
         borderWidth: isFocused ? 2 : 0,
         borderColor: '#FFFFFF',
         backgroundColor: Colors.dark[10],
@@ -89,7 +92,7 @@ export const BackdropCard: React.FC<BackdropCardProps> = ({
     };
 
     return (
-        <View style={[styles.container, { width: WIDTH }]}>
+        <View style={[styles.container, { width: WIDTH }, style]}>
             <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
                 <Pressable
                     ref={innerRef}
@@ -100,18 +103,25 @@ export const BackdropCard: React.FC<BackdropCardProps> = ({
                     onFocus={handleFocus}
                     onBlur={handleBlur}
                     disabled={disabled}
-                    style={[cardStyle, style]}
+                    style={cardStyle}
                     nextFocusLeft={nextFocusLeft}
                     nextFocusUp={nextFocusUp}
                     nextFocusRight={nextFocusRight}
                     nextFocusDown={nextFocusDown}
                 >
                     {image ? (
-                        <Image
-                            source={typeof image === 'string' ? { uri: image } : image}
-                            style={[styles.image, { opacity: isVisible ? 1 : 0.8 }]}
-                            resizeMode="cover"
-                        />
+                        <View style={{ flex: 1, borderRadius: 10, overflow: 'hidden' }}>
+                            <Image
+                                source={typeof image === 'string' ? { uri: image } : image}
+                                style={[styles.image, { opacity: isVisible ? 1 : 0.8 }]}
+                                resizeMode="cover"
+                            />
+                            {progress !== undefined && (
+                                <View style={styles.progressTrack}>
+                                    <View style={[styles.progressBar, { width: `${progress * 100}%` }]} />
+                                </View>
+                            )}
+                        </View>
                     ) : (
                         <View style={styles.placeholder}>
                             <View style={styles.placeholderIcon} />
@@ -133,6 +143,7 @@ export const BackdropCard: React.FC<BackdropCardProps> = ({
 const styles = StyleSheet.create({
     container: {
         marginBottom: Spacing.xxs,
+        padding: 4, // Add padding so the focus scale/stroke is not implicitly clipped by parents
     },
     image: {
         width: '100%',
@@ -164,5 +175,18 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: Colors.gray[400],
         marginTop: 2,
+    },
+    progressTrack: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 6,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    },
+    progressBar: {
+        height: '100%',
+        backgroundColor: '#E91E63', // Same as HistoryCard pink/red
+        borderBottomLeftRadius: 10,
     },
 });
