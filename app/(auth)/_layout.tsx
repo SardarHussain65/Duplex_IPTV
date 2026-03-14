@@ -23,13 +23,19 @@ export const AuthLayout = () => {
         }}
       />
       <Stack.Screen
-        name="test"
+        name="playlistList"
         options={{
           headerShown: false,
         }}
       />
       <Stack.Screen
-        name="playlistList"
+        name="xtremeSetup"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="playlistSource"
         options={{
           headerShown: false,
         }}

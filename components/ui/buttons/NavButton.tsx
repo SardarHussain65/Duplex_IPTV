@@ -64,6 +64,8 @@ export const NavButton: React.FC<NavButtonProps> = ({
                 return {
                     ...baseStyle,
                     backgroundColor: Colors.primaryBlue[950],
+                    borderColor: Colors.primaryBlue[900],
+                    borderWidth: 1,
                 };
             case 'focused':
                 return {

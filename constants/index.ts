@@ -33,3 +33,5 @@ export {
 // Scaling
 export * from './scaling';
 
+// App Data
+export * from './appData';

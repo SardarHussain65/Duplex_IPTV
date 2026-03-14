@@ -1,45 +1,90 @@
 /**
  * ─────────────────────────────────────────────────────────────
  *  DUPLEX IPTV — Top Navigation Bar
- *  Persistent header bar across all tab screens.
- *  Contains: Logo · Live TV · Movies · Series · Favorite · Lock · Settings
- *  All 6 items (including icon buttons) behave as tabs.
+ *  Persistent overlay nav bar across all screens (except player).
+ *  Layout: Logo | [Live TV · Movies · Series · Favorite] | [🔒 ⚙]
  * ─────────────────────────────────────────────────────────────
  */
 
 import { NavButton } from '@/components/ui/buttons/NavButton';
 import { NavIconButton } from '@/components/ui/buttons/NavIconButton';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
-import { Tab, useTab } from '@/context/TabContext';
+import { useTab } from '@/context/TabContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { PlaylistSidebarModal } from '@/components/ui/modals';
 import { usePathname, useRouter } from 'expo-router';
-import React from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Image, StyleSheet, View, findNodeHandle } from 'react-native';
 
+// ── Tab Definitions ───────────────────────────────────────────
 
-// ── Nav Tab Definitions ───────────────────────────────────────
+type TabId =
+    | 'live-tv'
+    | 'movies'
+    | 'series'
+    | 'favorites'
+    | 'parental-control'
+    | 'settings';
 
-const NAV_TABS: { id: Tab; label: string; icon: keyof typeof MaterialCommunityIcons.glyphMap }[] = [
-    { id: 'live-tv', label: 'Live TV', icon: 'television-play' },
-    { id: 'movies', label: 'Movies', icon: 'movie' },
-    { id: 'series', label: 'Series', icon: 'view-list' },
-    { id: 'favorites', label: 'Favorite', icon: 'heart' },
+const TEXT_TABS: { id: TabId; label: string; icon: keyof typeof MaterialCommunityIcons.glyphMap; route: string }[] = [
+    { id: 'live-tv', label: 'Live TV', icon: 'television-play', route: '/live-tv' },
+    { id: 'movies', label: 'Movies', icon: 'movie', route: '/movies' },
+    { id: 'series', label: 'Series', icon: 'view-list', route: '/series' },
+    { id: 'favorites', label: 'Favorite', icon: 'heart', route: '/favorites' },
+];
+
+const ICON_TABS: { id: TabId; icon: keyof typeof MaterialCommunityIcons.glyphMap; route: string }[] = [
+    { id: 'parental-control', icon: 'lock', route: '/parental-control' },
+    { id: 'settings', icon: 'cog', route: '/settings' },
+];
+
+// Map route prefixes → which tab appears active.
+// Longer/more specific prefixes must come first.
+const ROUTE_TAB_MAP: { prefix: string; tab: TabId }[] = [
+    { prefix: '/channel', tab: 'live-tv' },
+    { prefix: '/live-tv', tab: 'live-tv' },
+    { prefix: '/movie', tab: 'movies' },
+    { prefix: '/movies', tab: 'movies' },
+    { prefix: '/series-detail', tab: 'series' },
+    { prefix: '/series', tab: 'series' },
+    { prefix: '/favorites', tab: 'favorites' },
+    { prefix: '/parental-control', tab: 'parental-control' },
+    { prefix: '/settings', tab: 'settings' },
 ];
 
 // ── Component ─────────────────────────────────────────────────
 
 export const TopNavBar: React.FC = () => {
-    const { activeTab, setActiveTab, isScrolled, setIsScrolled, setParentalModalVisible } = useTab();
+    const { isScrolled, setIsScrolled, searchBarNode, setSettingsTabNode, settingsSidebarNode } = useTab();
     const router = useRouter();
     const pathname = usePathname();
+    const [isPlaylistModalVisible, setIsPlaylistModalVisible] = useState(false);
 
-    const handleTabPress = (tabId: Tab) => {
-        setActiveTab(tabId);
-        setIsScrolled(false);
-        // If we are not on the main screen (index), navigate back to it
-        if (pathname !== '/') {
-            router.replace('/');
+    const getActiveTab = (): TabId => {
+        for (const { prefix, tab } of ROUTE_TAB_MAP) {
+            if (pathname.startsWith(prefix)) return tab;
         }
+        return 'live-tv';
+    };
+
+    const activeTab = getActiveTab();
+
+    // Use a robust ref to get the node handle to avoid inline-ref recreating
+    const settingsRef = useRef<any>(null);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (settingsRef.current) {
+                const node = findNodeHandle(settingsRef.current);
+                if (node) setSettingsTabNode(node);
+            }
+        }, 800);
+        return () => clearTimeout(timer);
+    }, [activeTab, isScrolled]);
+
+    const handleTabPress = (tab: typeof TEXT_TABS[0] | typeof ICON_TABS[0]) => {
+        setIsScrolled(false);
+        router.replace({ pathname: tab.route as any });
     };
 
     return (
@@ -51,15 +96,15 @@ export const TopNavBar: React.FC = () => {
                 resizeMode="contain"
             />
 
-            {/* Text tabs: Live TV, Movies, Series, Favorite */}
+            {/* Text tabs */}
             <View style={styles.tabGroup}>
-                {NAV_TABS.map((tab, index) => (
+                {TEXT_TABS.map((tab, index) => (
                     <NavButton
                         key={tab.id}
                         icon={<MaterialCommunityIcons name={tab.icon} size={scale(18)} />}
                         isActive={activeTab === tab.id}
-                        onPress={() => handleTabPress(tab.id)}
-                        hasTVPreferredFocus={index === 0}
+                        onPress={() => handleTabPress(tab)}
+                        hasTVPreferredFocus={activeTab === tab.id}
                         testID={`nav-tab-${tab.id}`}
                     >
                         {tab.label}
@@ -67,26 +112,40 @@ export const TopNavBar: React.FC = () => {
                 ))}
             </View>
 
-            {/* Icon tabs: Parental Control (Lock) + Settings */}
+            {/* Icon tabs */}
             <View style={styles.iconGroup}>
                 <NavIconButton
-                    icon={<MaterialCommunityIcons name="lock" size={scale(18)} />}
-                    isActive={activeTab === 'parental-control'}
-                    onPress={() => setParentalModalVisible(true)}
-                    testID="nav-tab-parental-control"
+                    icon={<MaterialCommunityIcons name="layers-outline" size={scale(18)} />}
+                    isActive={false}
+                    onPress={() => setIsPlaylistModalVisible(true)}
+                    testID="nav-tab-playlist"
                 />
-                <NavIconButton
-                    icon={<MaterialCommunityIcons name="cog" size={scale(18)} />}
-                    isActive={activeTab === 'settings'}
-                    onPress={() => handleTabPress('settings')}
-                    testID="nav-tab-settings"
-                />
+                {ICON_TABS.map((tab, index) => {
+                    const isLastTab = index === ICON_TABS.length - 1;
+                    return (
+                        <NavIconButton
+                            key={tab.id}
+                            innerRef={isLastTab ? settingsRef : undefined}
+                            icon={<MaterialCommunityIcons name={tab.icon} size={scale(18)} />}
+                            isActive={activeTab === tab.id}
+                            onPress={() => handleTabPress(tab)}
+                            testID={`nav-tab-${tab.id}`}
+                            nextFocusRight={isLastTab ? (searchBarNode || undefined) : undefined}
+                            nextFocusDown={tab.id === 'settings' ? (settingsSidebarNode || undefined) : undefined}
+                        />
+                    );
+                })}
             </View>
+
+            <PlaylistSidebarModal 
+                visible={isPlaylistModalVisible} 
+                onClose={() => setIsPlaylistModalVisible(false)} 
+            />
         </View>
     );
 };
 
-// ── Styles ───────────────────────────────────────────────────
+// ── Styles ────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
     container: {
@@ -101,7 +160,7 @@ const styles = StyleSheet.create({
     logo: {
         width: xdWidth(32),
         height: xdHeight(32),
-        marginRight: "20%",
+        marginRight: '20%',
     },
     tabGroup: {
         flexDirection: 'row',
@@ -115,4 +174,3 @@ const styles = StyleSheet.create({
         gap: xdWidth(10),
     },
 });
-

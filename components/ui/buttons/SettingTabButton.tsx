@@ -20,18 +20,31 @@ export interface SettingTabButtonProps {
     onLongPress?: () => void;
     style?: ViewStyle;
     testID?: string;
+    nativeID?: string;
+    nextFocusLeft?: number;
+    nextFocusRight?: number;
+    nextFocusUp?: number;
+    nextFocusDown?: number;
 }
 
-export const SettingTabButton: React.FC<SettingTabButtonProps> = ({
-    icon,
-    children,
-    isActive = false,
-    disabled = false,
-    onPress,
-    onLongPress,
-    style,
-    testID,
-}) => {
+export const SettingTabButton = React.forwardRef<any, SettingTabButtonProps>((
+    {
+        icon,
+        children,
+        isActive = false,
+        disabled = false,
+        onPress,
+        onLongPress,
+        style,
+        testID,
+        nativeID,
+        nextFocusLeft,
+        nextFocusRight,
+        nextFocusUp,
+        nextFocusDown,
+    },
+    ref
+) => {
     const {
         state,
         scaleAnim,
@@ -48,11 +61,11 @@ export const SettingTabButton: React.FC<SettingTabButtonProps> = ({
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'flex-start',
-            gap: Spacing.md,
-            paddingVertical: Spacing.md,
-            paddingHorizontal: Spacing.xl,
+            gap: Spacing.lg,
+            paddingVertical: 10,
+            paddingHorizontal: Spacing.sm,
             borderRadius: 12,
-            minWidth: 200,
+            width: '100%',
         };
 
         const isHighlighted = state === 'focused' || isActive;
@@ -60,7 +73,9 @@ export const SettingTabButton: React.FC<SettingTabButtonProps> = ({
         if (isHighlighted) {
             return {
                 ...baseStyle,
-                backgroundColor: Colors.primary[950],
+                backgroundColor: Colors.dark[8],
+                borderWidth: 1,
+                borderColor: Colors.dark[7],
             };
         }
 
@@ -74,21 +89,20 @@ export const SettingTabButton: React.FC<SettingTabButtonProps> = ({
         const isHighlighted = state === 'focused' || isActive;
 
         return {
-            color: isHighlighted ? Colors.dark[11] : Colors.gray[100],
+            color: Colors.gray[100],
             fontSize: 18,
-            fontWeight: '600',
+            fontWeight: isHighlighted ? '700' : '500',
         };
     };
 
     const getIconColor = (): string => {
-        const isHighlighted = state === 'focused' || isActive;
-
-        return isHighlighted ? Colors.dark[11] : Colors.gray[100];
+        return Colors.gray[100];
     };
 
     return (
         <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
             <Pressable
+                ref={ref}
                 onPress={handlePress}
                 onLongPress={handleLongPress}
                 onPressIn={handlePressIn}
@@ -103,6 +117,14 @@ export const SettingTabButton: React.FC<SettingTabButtonProps> = ({
                 disabled={disabled}
                 style={[getButtonStyle(), style]}
                 testID={testID}
+                nativeID={nativeID}
+                nextFocusLeft={nextFocusLeft}
+                nextFocusRight={nextFocusRight}
+                nextFocusUp={nextFocusUp}
+                nextFocusDown={nextFocusDown}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel={children}
                 hasTVPreferredFocus={false}
                 focusable={true}
                 tvParallaxProperties={{
@@ -120,4 +142,4 @@ export const SettingTabButton: React.FC<SettingTabButtonProps> = ({
             </Pressable>
         </Animated.View>
     );
-};
+});
