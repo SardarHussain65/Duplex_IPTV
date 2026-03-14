@@ -5,12 +5,14 @@
  * ─────────────────────────────────────────────────────────────
  */
 
-import { EmptyState, SearchBar } from '@/components/ui';
+import { CategoryLockedState, EmptyState, SearchBar } from '@/components/ui';
 import { CategoryButton } from '@/components/ui/buttons/CategoryButton';
 import { NavButton } from '@/components/ui/buttons/NavButton';
 import { PosterCard } from '@/components/ui/cards/PosterCard';
+import { EnterPinModal, ManageCategoryModal, RenameCategoryModal } from '@/components/ui/modals';
 import { HERO_MOVIES_SLIDES, MOVIES_CATEGORIES } from '@/constants/appData';
-import { scale, xdWidth } from '@/constants/scaling';
+import { scale, xdHeight, xdWidth } from '@/constants/scaling';
+import { useCategoryManagement } from '@/context/CategoryManagementContext';
 import { Movie } from '@/types';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -46,6 +48,12 @@ export default function MoviesScreen() {
         handleScroll,
     } = useMovies();
     const { setSearchBarNode, settingsTabNode, searchBarNode } = useTab();
+    const { isCategoryLocked, lockCategory, unlockCategory, renameCategory, getCategoryLabel } = useCategoryManagement();
+
+    const [isManageModalVisible, setManageModalVisible] = useState(false);
+    const [isRenameModalVisible, setRenameModalVisible] = useState(false);
+    const [isPinModalVisible, setPinModalVisible] = useState(false);
+    const [categoryToManage, setCategoryToManage] = useState<string | null>(null);
 
     // ── Focus Tracking ───────────────────────────────────────────
     const [categoryAllNode, setCategoryAllNode] = useState<number | undefined>(undefined);
@@ -88,6 +96,39 @@ export default function MoviesScreen() {
         }, 1200);
         return () => clearTimeout(timer);
     }, [activeCategory, filteredMovies]);
+
+    const handleCategoryLongPress = (category: string) => {
+        setCategoryToManage(category);
+        setManageModalVisible(true);
+    };
+
+    const handleLockToggle = () => {
+        setManageModalVisible(false);
+        setPinModalVisible(true);
+    };
+
+    const handleRenamePress = () => {
+        setManageModalVisible(false);
+        setRenameModalVisible(true);
+    };
+
+    const handlePinSuccess = () => {
+        if (categoryToManage) {
+            if (isCategoryLocked(categoryToManage)) {
+                unlockCategory(categoryToManage);
+            } else {
+                lockCategory(categoryToManage);
+            }
+        }
+        setPinModalVisible(false);
+    };
+
+    const handleRenameSave = (newName: string) => {
+        if (categoryToManage) {
+            renameCategory(categoryToManage, newName);
+        }
+        setRenameModalVisible(false);
+    };
 
     const renderMovieItem = ({ item, index }: { item: Movie; index: number }) => {
         const isRowEnd = index % 6 === 5;
@@ -210,13 +251,15 @@ export default function MoviesScreen() {
                             ref={isFirst ? categoryAllRef : (isLast ? lastCategoryRef : undefined)}
                             isActive={activeCategory === cat}
                             onPress={() => setActiveCategory(cat)}
+                            onLongPress={() => handleCategoryLongPress(cat)}
+                            isLocked={isCategoryLocked(cat)}
                             style={{ marginRight: xdWidth(8) }}
                             nextFocusLeft={isFirst ? (searchBarNode || undefined) : undefined}
                             nextFocusUp={isFirst ? (searchBarNode || undefined) : undefined}
                             nextFocusRight={isLast ? firstMovieNode : undefined}
                             nextFocusDown={firstMovieNode}
                         >
-                            {cat}
+                            {getCategoryLabel(cat)}
                         </CategoryButton>
                     );
                 })}
@@ -224,16 +267,18 @@ export default function MoviesScreen() {
         </View>
     );
 
+    const isCurrentCategoryLocked = activeCategory !== 'All' && isCategoryLocked(activeCategory);
+
     return (
         <View style={styles.container}>
             <FlatList
-                key={`movies-grid-${activeCategory}-6`}
-                data={filteredMovies}
+                key="movies-grid"
+                data={isCurrentCategoryLocked ? [] : filteredMovies}
                 keyExtractor={(item) => item.id}
                 ListHeaderComponent={renderHeader()}
                 renderItem={(props) => renderMovieItem({ ...props })}
                 numColumns={6}
-                contentContainerStyle={[styles.content, styles.gridContainer]}
+                contentContainerStyle={[styles.content, styles.gridContainer, { flexGrow: 1 }]}
                 columnWrapperStyle={filteredMovies.length > 1 ? { gap: xdWidth(12) } : undefined}
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
@@ -242,12 +287,43 @@ export default function MoviesScreen() {
                 windowSize={5}
                 removeClippedSubviews={false}
                 ListEmptyComponent={
-                    <EmptyState
-                        icon="movie-open"
-                        title="No Movies Found"
-                        subtitle="On this categories we can't find any movie. Try another category"
-                    />
+                    isCurrentCategoryLocked ? (
+                        <CategoryLockedState />
+                    ) : (
+                        <EmptyState
+                            icon="movie-open"
+                            title="No Movies Found"
+                            subtitle="On this categories we can't find any movie. Try another category"
+                        />
+                    )
                 }
+            />
+
+
+
+            {/* Modals */}
+            <ManageCategoryModal
+                visible={isManageModalVisible}
+                onClose={() => setManageModalVisible(false)}
+                onLockPress={handleLockToggle}
+                onRenamePress={handleRenamePress}
+                isLocked={!!categoryToManage && isCategoryLocked(categoryToManage)}
+                categoryName={categoryToManage || ''}
+            />
+
+            <RenameCategoryModal
+                visible={isRenameModalVisible}
+                onClose={() => setRenameModalVisible(false)}
+                onSave={handleRenameSave}
+                currentName={categoryToManage || ''}
+            />
+
+            <EnterPinModal
+                visible={isPinModalVisible}
+                onClose={() => setPinModalVisible(false)}
+                onSuccess={handlePinSuccess}
+                expectedPin="1234"
+                title={categoryToManage && isCategoryLocked(categoryToManage) ? 'Enter PIN to Unlock' : 'Enter PIN to Lock'}
             />
         </View>
     );

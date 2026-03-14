@@ -86,11 +86,15 @@ const HomeLayoutContent = () => {
     );
 };
 
+import { CategoryManagementProvider } from "@/context/CategoryManagementContext";
+
 export const HomeLayout = () => {
     return (
-        <TabContextProvider>
-            <HomeLayoutContent />
-        </TabContextProvider>
+        <CategoryManagementProvider>
+            <TabContextProvider>
+                <HomeLayoutContent />
+            </TabContextProvider>
+        </CategoryManagementProvider>
     );
 };
 

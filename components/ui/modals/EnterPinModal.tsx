@@ -103,12 +103,17 @@ export const EnterPinModal: React.FC<EnterPinModalProps> = ({
 
                     <View style={styles.buttonRow}>
                         <View style={styles.btnWrapper}>
-                            <ActionOutlineButton onPress={handleCancel} style={styles.btn}>
+                            <ActionOutlineButton onPress={handleCancel} style={[styles.btn, { borderRadius: scale(10) }]}>
                                 Cancel
                             </ActionOutlineButton>
                         </View>
                         <View style={styles.btnWrapper}>
-                            <ActionFilledButton onPress={handleContinue} style={styles.btn} disabled={pin.length < 4}>
+                            <ActionFilledButton 
+                                onPress={handleContinue} 
+                                style={[styles.btn, { backgroundColor: Colors.gray[100], borderRadius: scale(10) }]} 
+                                disabled={pin.length < 4}
+                                textColor={Colors.dark[11]}
+                            >
                                 {buttonText}
                             </ActionFilledButton>
                         </View>
@@ -128,16 +133,16 @@ const styles = StyleSheet.create({
     },
     modalBox: {
         width: xdWidth(480),
-        backgroundColor: Colors.dark[11],
+        backgroundColor: '#1E222D',
         borderRadius: scale(16),
         padding: scale(40),
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: Colors.dark[8],
+        borderColor: 'rgba(255, 255, 255, 0.05)',
     },
     title: {
-        fontSize: scale(20),
-        fontWeight: '600',
+        fontSize: scale(22),
+        fontWeight: '700',
         color: Colors.gray[100],
         marginBottom: xdHeight(32),
     },

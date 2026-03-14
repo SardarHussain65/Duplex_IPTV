@@ -17,6 +17,7 @@ export * from './inputs/SearchBar';
 // Feedback & Empty States
 export * from './EmptyState';
 export * from './SyncingStep';
+export * from './CategoryLockedState';
 
 // Modals
 export * from './modals/EnterPinModal';

@@ -5,11 +5,13 @@
  * ─────────────────────────────────────────────────────────────
  */
 
-import { BackdropCard, EmptyState, SearchBar } from '@/components/ui';
+import { BackdropCard, CategoryLockedState, EmptyState, SearchBar } from '@/components/ui';
 import { CategoryButton } from '@/components/ui/buttons/CategoryButton';
+import { EnterPinModal, ManageCategoryModal, RenameCategoryModal } from '@/components/ui/modals';
 import { Colors } from '@/constants';
 import { LIVE_TV_CATEGORIES, MOCK_CHANNELS } from '@/constants/appData';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
+import { useCategoryManagement } from '@/context/CategoryManagementContext';
 import { useTab } from '@/context/TabContext';
 import { Channel } from '@/types';
 import { Image } from 'expo-image';
@@ -26,11 +28,18 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 export default function LiveTVScreen() {
     const router = useRouter();
     const { setIsScrolled, setSearchBarNode, settingsTabNode, searchBarNode } = useTab();
+    const { isCategoryLocked, lockCategory, unlockCategory, renameCategory, getCategoryLabel } = useCategoryManagement();
+
     const [activeCategory, setActiveCategory] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryAllNode, setCategoryAllNode] = useState<number | undefined>(undefined);
     const [lastCategoryNode, setLastCategoryNode] = useState<number | undefined>(undefined);
     const [firstChannelNode, setFirstChannelNode] = useState<number | undefined>(undefined);
+
+    const [isManageModalVisible, setManageModalVisible] = useState(false);
+    const [isRenameModalVisible, setRenameModalVisible] = useState(false);
+    const [isPinModalVisible, setPinModalVisible] = useState(false);
+    const [categoryToManage, setCategoryToManage] = useState<string | null>(null);
 
     // Track nodes for the first few items to handle row wrapping (up to 24 items / 6 rows)
     const [channelNodes, setChannelNodes] = useState<Record<number, number>>({});
@@ -112,6 +121,39 @@ export default function LiveTVScreen() {
     const handleScroll = (event: any) => {
         const offsetY = event.nativeEvent.contentOffset.y;
         setIsScrolled(offsetY > xdHeight(60));
+    };
+
+    const handleCategoryLongPress = (category: string) => {
+        setCategoryToManage(category);
+        setManageModalVisible(true);
+    };
+
+    const handleLockToggle = () => {
+        setManageModalVisible(false);
+        setPinModalVisible(true);
+    };
+
+    const handleRenamePress = () => {
+        setManageModalVisible(false);
+        setRenameModalVisible(true);
+    };
+
+    const handlePinSuccess = () => {
+        if (categoryToManage) {
+            if (isCategoryLocked(categoryToManage)) {
+                unlockCategory(categoryToManage);
+            } else {
+                lockCategory(categoryToManage);
+            }
+        }
+        setPinModalVisible(false);
+    };
+
+    const handleRenameSave = (newName: string) => {
+        if (categoryToManage) {
+            renameCategory(categoryToManage, newName);
+        }
+        setRenameModalVisible(false);
     };
 
     const renderChannel = ({ item, index }: { item: Channel; index: number }) => {
@@ -209,13 +251,15 @@ export default function LiveTVScreen() {
                             ref={isFirst ? categoryAllRef : (isLast ? lastCategoryRef : undefined)}
                             isActive={activeCategory === cat}
                             onPress={() => setActiveCategory(cat)}
+                            onLongPress={() => handleCategoryLongPress(cat)}
+                            isLocked={isCategoryLocked(cat)}
                             style={{ marginRight: xdWidth(8) }}
                             nextFocusLeft={isFirst ? (searchBarNode || undefined) : undefined}
                             nextFocusUp={isFirst ? (searchBarNode || undefined) : undefined}
                             nextFocusRight={isLast ? firstChannelNode : undefined}
                             nextFocusDown={firstChannelNode}
                         >
-                            {cat}
+                            {getCategoryLabel(cat)}
                         </CategoryButton>
                     );
                 })}
@@ -229,12 +273,14 @@ export default function LiveTVScreen() {
         </View>
     );
 
+    const isCurrentCategoryLocked = activeCategory !== 'All' && isCategoryLocked(activeCategory);
+
     return (
         <View style={styles.container}>
             <FlatList
-                key={`livetv-${activeCategory}-${searchQuery}-5`}
-                data={filteredChannels}
-                contentContainerStyle={[styles.content, styles.gridContainer]}
+                key="livetv-grid"
+                data={isCurrentCategoryLocked ? [] : filteredChannels}
+                contentContainerStyle={[styles.content, styles.gridContainer, { flexGrow: 1 }]}
                 keyExtractor={(item) => item.id}
                 ListHeaderComponent={renderHeader()}
                 renderItem={(props) => renderChannel({ ...props })}
@@ -247,12 +293,43 @@ export default function LiveTVScreen() {
                 windowSize={5} // Keep more items in memory
                 removeClippedSubviews={false} // Crucial for TV focus to find off-screen items
                 ListEmptyComponent={
-                    <EmptyState
-                        icon="television"
-                        title="No Live TV Found"
-                        subtitle="On this categories we can't find any live tv. Try another category"
-                    />
+                    isCurrentCategoryLocked ? (
+                        <CategoryLockedState />
+                    ) : (
+                        <EmptyState
+                            icon="television"
+                            title="No Live TV Found"
+                            subtitle="On this categories we can't find any live tv. Try another category"
+                        />
+                    )
                 }
+            />
+
+
+
+            {/* Modals */}
+            <ManageCategoryModal
+                visible={isManageModalVisible}
+                onClose={() => setManageModalVisible(false)}
+                onLockPress={handleLockToggle}
+                onRenamePress={handleRenamePress}
+                isLocked={!!categoryToManage && isCategoryLocked(categoryToManage)}
+                categoryName={categoryToManage || ''}
+            />
+
+            <RenameCategoryModal
+                visible={isRenameModalVisible}
+                onClose={() => setRenameModalVisible(false)}
+                onSave={handleRenameSave}
+                currentName={categoryToManage || ''}
+            />
+
+            <EnterPinModal
+                visible={isPinModalVisible}
+                onClose={() => setPinModalVisible(false)}
+                onSuccess={handlePinSuccess}
+                expectedPin="1234" // Default PIN for category management
+                title={categoryToManage && isCategoryLocked(categoryToManage) ? 'Enter PIN to Unlock' : 'Enter PIN to Lock'}
             />
         </View>
     );

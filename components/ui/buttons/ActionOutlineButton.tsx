@@ -6,9 +6,9 @@
  * ─────────────────────────────────────────────────────────────
  */
 
-import { Colors, Spacing } from '@/constants';
+import { Colors, Spacing, scale } from '@/constants';
 import React from 'react';
-import { Animated, Pressable, Text, TextStyle, ViewStyle } from 'react-native';
+import { Animated, Pressable, StyleProp, StyleSheet, Text, TextStyle, ViewStyle } from 'react-native';
 import { useButtonState } from './useButtonState';
 
 export interface ActionOutlineButtonProps {
@@ -16,7 +16,7 @@ export interface ActionOutlineButtonProps {
     disabled?: boolean;
     onPress?: () => void;
     onLongPress?: () => void;
-    style?: ViewStyle;
+    style?: StyleProp<ViewStyle>;
     testID?: string;
 }
 
@@ -73,23 +73,29 @@ export const ActionOutlineButton: React.FC<ActionOutlineButtonProps> = ({
     };
 
     const getTextStyle = (): TextStyle => {
+        const baseTextStyle: TextStyle = {
+            fontSize: scale(16),
+            fontWeight: '600',
+            textAlign: 'center',
+            textAlignVertical: 'center',
+            width: '100%',
+        };
+
         switch (state) {
             case 'focused':
                 return {
+                    ...baseTextStyle,
                     color: Colors.gray[100],
-                    fontSize: 16,
-                    fontWeight: '600',
                 };
             case 'pressed':
                 return {
+                    ...baseTextStyle,
                     color: Colors.gray[400],
-                    fontSize: 16,
-                    fontWeight: '600',
                 };
             default:
                 return {
+                    ...baseTextStyle,
                     color: Colors.gray[300],
-                    fontSize: 16,
                     fontWeight: '500',
                 };
         }

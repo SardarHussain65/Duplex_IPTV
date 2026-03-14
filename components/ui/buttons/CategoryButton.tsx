@@ -18,6 +18,7 @@ export interface CategoryButtonProps {
     nextFocusRight?: number | 'self';
     nextFocusUp?: number | 'self';
     nextFocusDown?: number | 'self';
+    isLocked?: boolean;
 }
 
 export const CategoryButton = React.forwardRef<any, CategoryButtonProps>(({
@@ -34,6 +35,7 @@ export const CategoryButton = React.forwardRef<any, CategoryButtonProps>(({
     nextFocusRight,
     nextFocusUp,
     nextFocusDown,
+    isLocked = false,
 }, ref) => {
     const {
         state,
@@ -186,6 +188,14 @@ export const CategoryButton = React.forwardRef<any, CategoryButtonProps>(({
                     />
                 )}
                 <Text style={getTextStyle()}>{children}</Text>
+                {isLocked && (
+                    <MaterialCommunityIcons 
+                        name="lock-outline" 
+                        size={14} 
+                        color={getIconColor()} 
+                        style={{ marginLeft: 6 }} 
+                    />
+                )}
             </Pressable>
         </Animated.View>
     );

@@ -6,9 +6,9 @@
  * ─────────────────────────────────────────────────────────────
  */
 
-import { Colors, Spacing } from '@/constants';
+import { Colors, Spacing, scale } from '@/constants';
 import React from 'react';
-import { Animated, findNodeHandle, Pressable, StyleSheet, Text, TextStyle, ViewStyle } from 'react-native';
+import { Animated, findNodeHandle, Pressable, StyleProp, StyleSheet, Text, TextStyle, ViewStyle } from 'react-native';
 import { useButtonState } from './useButtonState';
 
 export interface ActionFilledButtonProps {
@@ -20,7 +20,7 @@ export interface ActionFilledButtonProps {
     iconPosition?: 'left' | 'right';
     gap?: number;
     textColor?: string;
-    style?: ViewStyle;
+    style?: StyleProp<ViewStyle>;
     testID?: string;
     nativeID?: string;
     nextFocusLeft?: number | 'self';
@@ -111,12 +111,30 @@ export const ActionFilledButton = React.forwardRef<any, ActionFilledButtonProps>
 
     const getTextStyle = (): TextStyle => {
         const flattenedStyle = StyleSheet.flatten(style);
-        const isRedBg = flattenedStyle?.backgroundColor === Colors.error[500];
+        const bg = flattenedStyle?.backgroundColor;
+        
+        // If background is very dark (like dark[8] or dark[11]), force light text
+        const isDarkBg = bg === Colors.dark[8] || bg === Colors.dark[9] || bg === Colors.dark[10] || bg === Colors.dark[11] || bg === Colors.dark[12];
+        const isRedBg = bg === Colors.error[500];
+
+        let finalTextColor = textColor;
+        if (!finalTextColor) {
+            if (isRedBg || isDarkBg) {
+                finalTextColor = Colors.dark[1]; // Light text for red/dark backgrounds
+            } else if (state === 'focused') {
+                finalTextColor = Colors.dark[11]; // Dark text on white focused background
+            } else {
+                finalTextColor = Colors.dark[11]; // Default dark text
+            }
+        }
 
         return {
-            color: textColor || (isRedBg ? Colors.dark[1] : Colors.dark[11]),
-            fontSize: 16,
+            color: finalTextColor,
+            fontSize: scale(16),
             fontWeight: '600',
+            textAlign: 'center',
+            textAlignVertical: 'center',
+            width: '100%',
         };
     };
 
