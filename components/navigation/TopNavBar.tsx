@@ -6,15 +6,17 @@
  * ─────────────────────────────────────────────────────────────
  */
 
+import { FavoritesIcon, LiveTVIcon, MoviesIcon, ParentalControlIcon, SeriesIcon, SettingIcon } from '@/assets/icons';
 import { NavButton } from '@/components/ui/buttons/NavButton';
 import { NavIconButton } from '@/components/ui/buttons/NavIconButton';
+import { PlaylistSidebarModal } from '@/components/ui/modals';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useTab } from '@/context/TabContext';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { PlaylistSidebarModal } from '@/components/ui/modals';
+import { Ionicons } from '@expo/vector-icons';
 import { usePathname, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { ReactNode, useEffect, useRef, useState } from 'react';
 import { Image, StyleSheet, View, findNodeHandle } from 'react-native';
+
 
 // ── Tab Definitions ───────────────────────────────────────────
 
@@ -26,16 +28,16 @@ type TabId =
     | 'parental-control'
     | 'settings';
 
-const TEXT_TABS: { id: TabId; label: string; icon: keyof typeof MaterialCommunityIcons.glyphMap; route: string }[] = [
-    { id: 'live-tv', label: 'Live TV', icon: 'television-play', route: '/live-tv' },
-    { id: 'movies', label: 'Movies', icon: 'movie', route: '/movies' },
-    { id: 'series', label: 'Series', icon: 'view-list', route: '/series' },
-    { id: 'favorites', label: 'Favorite', icon: 'heart', route: '/favorites' },
+const TEXT_TABS: { id: TabId; label: string; icon: ReactNode; route: string }[] = [
+    { id: 'live-tv', label: 'Live TV', icon: <LiveTVIcon />, route: '/live-tv' },
+    { id: 'movies', label: 'Movies', icon: <MoviesIcon />, route: '/movies' },
+    { id: 'series', label: 'Series', icon: <SeriesIcon />, route: '/series' },
+    { id: 'favorites', label: 'Favorite', icon: <FavoritesIcon />, route: '/favorites' },
 ];
 
-const ICON_TABS: { id: TabId; icon: keyof typeof MaterialCommunityIcons.glyphMap; route: string }[] = [
-    { id: 'parental-control', icon: 'lock', route: '/parental-control' },
-    { id: 'settings', icon: 'cog', route: '/settings' },
+const ICON_TABS: { id: TabId; icon: ReactNode; route: string }[] = [
+    { id: 'parental-control', icon: <ParentalControlIcon />, route: '/parental-control' },
+    { id: 'settings', icon: <SettingIcon />, route: '/settings' },
 ];
 
 // Map route prefixes → which tab appears active.
@@ -101,7 +103,7 @@ export const TopNavBar: React.FC = () => {
                 {TEXT_TABS.map((tab, index) => (
                     <NavButton
                         key={tab.id}
-                        icon={<MaterialCommunityIcons name={tab.icon} size={scale(18)} />}
+                        icon={tab.icon}
                         isActive={activeTab === tab.id}
                         onPress={() => handleTabPress(tab)}
                         hasTVPreferredFocus={activeTab === tab.id}
@@ -115,7 +117,7 @@ export const TopNavBar: React.FC = () => {
             {/* Icon tabs */}
             <View style={styles.iconGroup}>
                 <NavIconButton
-                    icon={<MaterialCommunityIcons name="layers-outline" size={scale(18)} />}
+                    icon={<Ionicons name="layers-outline" size={scale(18)} />}
                     isActive={false}
                     onPress={() => setIsPlaylistModalVisible(true)}
                     testID="nav-tab-playlist"
@@ -126,7 +128,7 @@ export const TopNavBar: React.FC = () => {
                         <NavIconButton
                             key={tab.id}
                             innerRef={isLastTab ? settingsRef : undefined}
-                            icon={<MaterialCommunityIcons name={tab.icon} size={scale(18)} />}
+                            icon={tab.icon}
                             isActive={activeTab === tab.id}
                             onPress={() => handleTabPress(tab)}
                             testID={`nav-tab-${tab.id}`}
@@ -137,9 +139,9 @@ export const TopNavBar: React.FC = () => {
                 })}
             </View>
 
-            <PlaylistSidebarModal 
-                visible={isPlaylistModalVisible} 
-                onClose={() => setIsPlaylistModalVisible(false)} 
+            <PlaylistSidebarModal
+                visible={isPlaylistModalVisible}
+                onClose={() => setIsPlaylistModalVisible(false)}
             />
         </View>
     );
