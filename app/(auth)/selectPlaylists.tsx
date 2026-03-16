@@ -1,7 +1,8 @@
+import { PlaylistButton } from "@/components/ui/buttons/PlaylistButton";
 import { Image } from "expo-image";
-import React, { useState } from "react";
+import { router } from "expo-router";
+import React, { useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { PlaylistButton } from "../../components/PlaylistButton";
 import { Colors, scale as s, width } from "../../constants";
 
 type PlaylistType = "m3u" | "m3u8" | "xtream";
@@ -19,6 +20,8 @@ const PLAYLIST_OPTIONS: {
 const SelectPlaylistScreen = () => {
     const [selected, setSelected] = useState<PlaylistType>("m3u");
 
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
     const isLarge = width >= 900;
     const circleSize = s(isLarge ? 130 : 90);
 
@@ -33,7 +36,7 @@ const SelectPlaylistScreen = () => {
                 />
 
                 {/* Title */}
-                <Text style={[styles.title, { fontSize: s(24), marginBottom: s(8) }]}>
+                <Text style={[styles.title, { fontSize: s(24), marginBottom: s(8) }]} onPress={() => router.replace("/playlistList")}>
                     Select Playlist Source
                 </Text>
 
@@ -50,7 +53,14 @@ const SelectPlaylistScreen = () => {
                             label={option.label}
                             count={option.count}
                             isSelected={selected === option.id}
-                            onPress={() => setSelected(option.id)}
+                            onPress={() => {
+                                setSelected(option.id);
+                                // Clear any previous pending navigation
+                                if (timerRef.current) clearTimeout(timerRef.current);
+                                timerRef.current = setTimeout(() => {
+                                    router.replace("/playlistList");
+                                }, 3000);
+                            }}
                             circleSize={circleSize}
                             hasTVPreferredFocus={index === 0}
 

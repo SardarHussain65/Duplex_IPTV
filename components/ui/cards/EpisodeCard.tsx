@@ -9,7 +9,7 @@ import { Colors } from '@/constants';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { Image } from 'expo-image';
 import React from 'react';
-import { Animated, Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { useButtonState } from '../buttons/useButtonState';
 
 export interface EpisodeCardProps {
@@ -51,7 +51,7 @@ export const EpisodeCard: React.FC<EpisodeCardProps> = ({
     const isMini = variant === 'mini';
 
     return (
-        <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+        <View style={style}>
             <Pressable
                 onPress={handlePress}
                 onPressIn={handlePressIn}
@@ -62,7 +62,6 @@ export const EpisodeCard: React.FC<EpisodeCardProps> = ({
                     styles.episodeRow,
                     isMini && styles.episodeRowMini,
                     isFocused && isMini && styles.episodeRowMiniFocused,
-                    style
                 ]}
                 focusable={true}
             >
@@ -105,7 +104,7 @@ export const EpisodeCard: React.FC<EpisodeCardProps> = ({
                     </View>
                 </View>
             </Pressable>
-        </Animated.View>
+        </View>
     );
 };
 

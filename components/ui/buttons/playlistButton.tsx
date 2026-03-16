@@ -1,35 +1,28 @@
+import { PlaylistFocusIcon, PlaylistIcon } from "@/assets/icons";
 import { Colors } from "@/constants";
-import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import {
-    Animated,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
-} from "react-native";
+import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { useButtonState } from "./useButtonState";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-type PlaylistRowButtonProps = {
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+interface PlaylistButtonProps {
     label: string;
-    url: string;
+    count: number;
     isSelected?: boolean;
     disabled?: boolean;
     onPress?: () => void;
+    circleSize?: number;
     hasTVPreferredFocus?: boolean;
-};
+}
 
-// ── AnimatedPressable (same pattern as PlaylistButton) ────────────────────────
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
-// ── Component ─────────────────────────────────────────────────────────────────
-export const PlaylistRowButton: React.FC<PlaylistRowButtonProps> = ({
+export const PlaylistButton: React.FC<PlaylistButtonProps> = ({
     label,
-    url,
+    count,
     isSelected = false,
     disabled = false,
     onPress,
+    circleSize = 100,
     hasTVPreferredFocus = false,
 }) => {
     const {
@@ -42,8 +35,8 @@ export const PlaylistRowButton: React.FC<PlaylistRowButtonProps> = ({
         handlePress,
     } = useButtonState({ isActive: isSelected, disabled, onPress });
 
-    const active = state === 'active' || state === 'focused' || state === 'pressed';
-
+    const active = state === 'focused' || state === 'active';
+    const sSize = circleSize;
 
     return (
         <AnimatedPressable
@@ -54,89 +47,80 @@ export const PlaylistRowButton: React.FC<PlaylistRowButtonProps> = ({
             onBlur={handleBlur}
             focusable={!disabled}
             hasTVPreferredFocus={hasTVPreferredFocus}
-            disabled={disabled}
-            accessible={true}
-            isTVSelectable={!disabled}
             style={[
                 styles.pressable,
                 {
-                    borderColor: active ? Colors.dark[5] : Colors.dark[8],
-                    backgroundColor: active ? Colors.dark[12] : Colors.dark[10],
+                    width: sSize,
                     transform: [{ scale: scaleAnim }],
-                    opacity: disabled ? 0.4 : 1,
-                },
+                }
             ]}
+            accessible={true}
+            isTVSelectable={!disabled}
+            disabled={disabled}
         >
-            {/* Icon box */}
             <View
                 style={[
-                    styles.iconBox,
+                    styles.circle,
                     {
-                        backgroundColor: active ? Colors.dark[5] : Colors.dark[9],
+                        width: sSize,
+                        height: sSize,
+                        borderRadius: sSize / 2,
+                        backgroundColor: active ? Colors.dark[12] : undefined,
+                        borderColor: active ? Colors.dark[5] : Colors.dark[8],
                     },
                 ]}
             >
-                <Ionicons
-                    name="layers-outline"
-                    size={20}
-                    color={active ? Colors.dark[1] : Colors.dark[4]}
-                />
+                {active ? (
+                    <PlaylistFocusIcon width={sSize * 0.55} height={sSize * 0.55} />
+                ) : (
+                    <PlaylistIcon width={sSize * 0.55} height={sSize * 0.55} />
+                )}
             </View>
 
-            {/* Text */}
-            <View style={styles.textBlock}>
-                <Text
-                    style={[
-                        styles.label,
-                        {
-                            color: active ? Colors.dark[1] : Colors.dark[4],
-                            fontWeight: active ? "600" : "400",
-                        },
-                    ]}
-                >
-                    {label}
-                </Text>
-                <Text
-                    style={[
-                        styles.url,
-                        { color: active ? Colors.dark[4] : Colors.dark[5] },
-                    ]}
-                    numberOfLines={1}
-                >
-                    {url}
-                </Text>
-            </View>
+            <Text
+                style={[
+                    styles.label,
+                    {
+                        color: active ? Colors.dark[1] : Colors.dark[4],
+                        fontWeight: active ? "600" : "400",
+                    },
+                ]}
+            >
+                {label}
+            </Text>
+
+            <Text
+                style={[
+                    styles.count,
+                    {
+                        color: active ? Colors.dark[4] : Colors.dark[5],
+                    },
+                ]}
+            >
+                {count} {count === 1 ? 'Playlist' : 'Playlists'}
+            </Text>
         </AnimatedPressable>
     );
 };
 
-// ── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
     pressable: {
-        flexDirection: "row",
-        alignItems: "center",
-        borderWidth: 1,
-        borderRadius: 12,
-        padding: 14,
-        marginBottom: 10,
-        width: "100%",
-    },
-    iconBox: {
-        width: 38,
-        height: 38,
-        borderRadius: 9,
         alignItems: "center",
         justifyContent: "center",
-        marginRight: 14,
     },
-    textBlock: {
-        flex: 1,
+    circle: {
+        alignItems: "center",
+        justifyContent: "center",
+        borderWidth: 1.5,
+        marginBottom: 12,
     },
     label: {
-        fontSize: 14,
-        marginBottom: 2,
+        textAlign: "center",
+        fontSize: 16,
+        marginBottom: 4,
     },
-    url: {
-        fontSize: 11,
+    count: {
+        textAlign: "center",
+        fontSize: 12,
     },
 });

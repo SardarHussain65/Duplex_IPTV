@@ -19,6 +19,8 @@ import {
 } from 'react-native';
 import { useButtonState } from '../buttons/useButtonState';
 
+import { xdHeight, xdWidth } from '@/constants/scaling';
+
 export interface BackdropCardProps {
     image?: ImageSourcePropType | string;
     title?: string;
@@ -28,10 +30,15 @@ export interface BackdropCardProps {
     onPress?: () => void;
     onLongPress?: () => void;
     style?: ViewStyle;
+    innerRef?: React.Ref<any>;
+    nextFocusLeft?: number;
+    nextFocusUp?: number;
+    nextFocusRight?: number;
+    nextFocusDown?: number;
+    width?: number;
+    height?: number;
+    progress?: number;
 }
-
-const WIDTH = 200;
-const HEIGHT = 110;
 
 export const BackdropCard: React.FC<BackdropCardProps> = ({
     image,
@@ -42,7 +49,17 @@ export const BackdropCard: React.FC<BackdropCardProps> = ({
     onPress,
     onLongPress,
     style,
+    innerRef,
+    nextFocusLeft,
+    nextFocusUp,
+    nextFocusRight,
+    nextFocusDown,
+    width = xdWidth(200),
+    height = xdHeight(110),
+    progress,
 }) => {
+    const WIDTH = width;
+    const HEIGHT = height;
     const {
         state,
         scaleAnim,
@@ -61,22 +78,24 @@ export const BackdropCard: React.FC<BackdropCardProps> = ({
         width: WIDTH,
         height: HEIGHT,
         borderRadius: 12,
-        overflow: 'hidden',
+        // Make sure the image inside gets clipped by the border radius, 
+        // but let the stroke stay visible. We remove overflow: hidden here.
         borderWidth: isFocused ? 2 : 0,
         borderColor: '#FFFFFF',
         backgroundColor: Colors.dark[10],
         shadowColor: '#FFFFFF',
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: isFocused ? 0.6 : 0,
-        shadowRadius: 15,
-        elevation: isFocused ? 12 : 0,
-        opacity: isVisible ? 1 : 0.7,
+        shadowRadius: 5,
+        elevation: isFocused ? 5 : 0,
+        opacity: isVisible ? 0.9 : 0.7,
     };
 
     return (
-        <View style={[styles.container, { width: WIDTH }]}>
+        <View style={[styles.container, { width: WIDTH }, style]}>
             <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
                 <Pressable
+                    ref={innerRef}
                     onPress={handlePress}
                     onLongPress={handleLongPress}
                     onPressIn={handlePressIn}
@@ -84,14 +103,25 @@ export const BackdropCard: React.FC<BackdropCardProps> = ({
                     onFocus={handleFocus}
                     onBlur={handleBlur}
                     disabled={disabled}
-                    style={[cardStyle, style]}
+                    style={cardStyle}
+                    nextFocusLeft={nextFocusLeft}
+                    nextFocusUp={nextFocusUp}
+                    nextFocusRight={nextFocusRight}
+                    nextFocusDown={nextFocusDown}
                 >
                     {image ? (
-                        <Image
-                            source={typeof image === 'string' ? { uri: image } : image}
-                            style={[styles.image, { opacity: isVisible ? 1 : 0.8 }]}
-                            resizeMode="cover"
-                        />
+                        <View style={{ flex: 1, borderRadius: 10, overflow: 'hidden' }}>
+                            <Image
+                                source={typeof image === 'string' ? { uri: image } : image}
+                                style={[styles.image, { opacity: isVisible ? 1 : 0.8 }]}
+                                resizeMode="cover"
+                            />
+                            {progress !== undefined && (
+                                <View style={styles.progressTrack}>
+                                    <View style={[styles.progressBar, { width: `${progress * 100}%` }]} />
+                                </View>
+                            )}
+                        </View>
                     ) : (
                         <View style={styles.placeholder}>
                             <View style={styles.placeholderIcon} />
@@ -113,6 +143,7 @@ export const BackdropCard: React.FC<BackdropCardProps> = ({
 const styles = StyleSheet.create({
     container: {
         marginBottom: Spacing.xxs,
+        padding: 4, // Add padding so the focus scale/stroke is not implicitly clipped by parents
     },
     image: {
         width: '100%',
@@ -131,7 +162,9 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.dark[7],
     },
     info: {
-        marginTop: 0,
+        marginBottom: 4,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
     },
     title: {
         fontSize: 14,
@@ -142,5 +175,18 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: Colors.gray[400],
         marginTop: 2,
+    },
+    progressTrack: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 6,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    },
+    progressBar: {
+        height: '100%',
+        backgroundColor: '#E91E63', // Same as HistoryCard pink/red
+        borderBottomLeftRadius: 10,
     },
 });
