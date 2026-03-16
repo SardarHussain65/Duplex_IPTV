@@ -1,7 +1,7 @@
 import { PlaylistRowButton } from "@/components/ui/buttons/PlaylistRowButton";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
     FlatList,
     StyleSheet,
@@ -30,6 +30,14 @@ const PlaylistListScreen = () => {
     const [selectedId, setSelectedId] = useState<string | null>(null);
 
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+
+    useEffect(() => {
+        return () => {
+            if (timerRef.current) clearTimeout(timerRef.current);
+        };
+    }, []);
+
 
 
 
