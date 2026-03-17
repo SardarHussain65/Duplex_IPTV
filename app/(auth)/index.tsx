@@ -1,4 +1,5 @@
 import { ActionFilledButton, ActionOutlineButton } from "@/components/ui/buttons";
+import { useGenerateDeviceId } from "@/lib/api";
 import { Colors, scale as s, width } from "@/constants";
 import { useDeviceInfo } from "@/hooks/useDeviceInfo";
 import { Ionicons } from "@expo/vector-icons";
@@ -78,11 +79,12 @@ const bannerStyles = StyleSheet.create({
 
 const ActivationScreen = () => {
     const deviceInfo = useDeviceInfo();
+    const { deviceId: apiDeviceId, loading: deviceIdLoading } = useGenerateDeviceId();
     const isLargeScreen = width >= 900;
     const contentWidth = isLargeScreen ? width * 0.5 : width * 0.92;
 
     // TODO: This state should be managed by a global context or fetched from an API
-    const [screenState, setScreenState] = useState<ScreenState>('warning');
+    const [screenState, setScreenState] = useState<ScreenState>('trial');
     const expiryDays = 5;
 
     const handleContinue = () => {
@@ -176,7 +178,9 @@ const ActivationScreen = () => {
                                         Device ID
                                     </Text>
                                 </View>
-                                <Text style={[styles.boxValue, { fontSize: s(20) }]}>{deviceInfo.deviceId}</Text>
+                                <Text style={[styles.boxValue, { fontSize: s(20) }]}>
+                                    {deviceIdLoading ? "LOADING..." : (apiDeviceId || "N/A")}
+                                </Text>
                             </View>
                         </View>
 
