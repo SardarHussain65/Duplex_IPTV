@@ -8,7 +8,7 @@
 
 import { Colors, Spacing, scale } from '@/constants';
 import React from 'react';
-import { Animated, Pressable, StyleProp, StyleSheet, Text, TextStyle, ViewStyle } from 'react-native';
+import { Animated, Pressable, StyleProp, Text, TextStyle, ViewStyle } from 'react-native';
 import { useButtonState } from './useButtonState';
 
 export interface ActionOutlineButtonProps {
@@ -18,6 +18,7 @@ export interface ActionOutlineButtonProps {
     onLongPress?: () => void;
     style?: StyleProp<ViewStyle>;
     testID?: string;
+    textColor?: string;
 }
 
 export const ActionOutlineButton: React.FC<ActionOutlineButtonProps> = ({
@@ -27,6 +28,7 @@ export const ActionOutlineButton: React.FC<ActionOutlineButtonProps> = ({
     onLongPress,
     style,
     testID,
+    textColor,
 }) => {
     const {
         state,
@@ -48,6 +50,7 @@ export const ActionOutlineButton: React.FC<ActionOutlineButtonProps> = ({
             minWidth: 100,
             alignItems: 'center',
             justifyContent: 'center',
+
         };
 
         switch (state) {
@@ -79,6 +82,7 @@ export const ActionOutlineButton: React.FC<ActionOutlineButtonProps> = ({
             textAlign: 'center',
             textAlignVertical: 'center',
             width: '100%',
+            color: textColor,
         };
 
         switch (state) {
@@ -95,7 +99,7 @@ export const ActionOutlineButton: React.FC<ActionOutlineButtonProps> = ({
             default:
                 return {
                     ...baseTextStyle,
-                    color: Colors.gray[300],
+                    color: textColor || Colors.gray[300],
                     fontWeight: '500',
                 };
         }

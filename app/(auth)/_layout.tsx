@@ -17,18 +17,6 @@ export const AuthLayout = () => {
         }}
       />
       <Stack.Screen
-        name="selectPlaylists"
-        options={{
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
-        name="playlistList"
-        options={{
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
         name="xtremeSetup"
         options={{
           headerShown: false,

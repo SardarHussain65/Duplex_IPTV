@@ -5,7 +5,7 @@
 
 export const API_BASE_URL = 'https://duplex-iptv-backend.replatechnologies.com';
 
-export const REST_BASE_URL = `${API_BASE_URL}/api`;
+export const REST_BASE_URL = `${API_BASE_URL}`;
 
 export const GRAPHQL_URL = `${API_BASE_URL}/graphql`;
 

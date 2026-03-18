@@ -43,6 +43,19 @@ export interface CreatePlaylistInput {
 }
 
 export interface Playlist {
-  deviceId: string;
+  id: string;
   name: string;
+  url: string;
+  isPinRequired: boolean;
+}
+
+export interface VerifyPlaylistPinInput {
+  pin: string;
+  playlistId: string;
+}
+
+export interface GetPlaylistsByDeviceResponse {
+  getPlaylistsByDevice: {
+    items: Playlist[];
+  };
 }

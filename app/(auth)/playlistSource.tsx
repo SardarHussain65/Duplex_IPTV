@@ -1,10 +1,15 @@
 import { EnterPinModal } from "@/components/ui/modals/EnterPinModal";
 import { Colors, scale as s, width } from "@/constants";
+import { usePlaylists } from "@/lib/api/hooks/usePlaylists";
+import { useVerifyPlaylistPin } from "@/lib/api/hooks/useVerifyPlaylistPin";
+import { Playlist as ApiPlaylist } from "@/lib/api/types";
+import { useDeviceStore } from "@/lib/store/useDeviceStore";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
+    ActivityIndicator,
     FlatList,
     Pressable,
     StyleSheet,
@@ -12,38 +17,18 @@ import {
     View,
 } from "react-native";
 
-interface Playlist {
+interface UIPlaylist {
     id: string;
     name: string;
     urlOrInfo: string;
     type: "Playlist URL" | "Xtreme Codes";
     isProtected?: boolean;
+    pin?: string | null;
 }
 
-const MOCK_PLAYLISTS: Playlist[] = [
-    {
-        id: "1",
-        name: "Playlist 1",
-        urlOrInfo: "This playlist is protected.",
-        type: "Playlist URL",
-        isProtected: true,
-    },
-    {
-        id: "2",
-        name: "Playlist 2",
-        urlOrInfo: "https://example.com/live/stream.m3u8",
-        type: "Playlist URL",
-    },
-    {
-        id: "3",
-        name: "Playlist 3",
-        urlOrInfo: "https://example.com/live/stream.m3u8",
-        type: "Xtreme Codes",
-    },
-];
 
 const PlaylistCard = ({ item, isFocused, onFocus, onPress }: {
-    item: Playlist;
+    item: UIPlaylist;
     isFocused: boolean;
     onFocus: () => void;
     onPress: () => void;
@@ -84,14 +69,18 @@ const PlaylistCard = ({ item, isFocused, onFocus, onPress }: {
 
 const PlaylistSourceScreen = () => {
     const router = useRouter();
+    const deviceId = useDeviceStore((state) => state.id);
+    const { playlists, loading, error } = usePlaylists({ deviceId: deviceId || '' });
+    const { verifyPin } = useVerifyPlaylistPin();
+
     const [focusedIndex, setFocusedIndex] = useState(0);
     const [pinModalVisible, setPinModalVisible] = useState(false);
-    const [pendingPlaylistId, setPendingPlaylistId] = useState<string | null>(null);
+    const [selectedPlaylist, setSelectedPlaylist] = useState<ApiPlaylist | null>(null);
     const isLargeScreen = width >= 900;
 
-    const handlePlaylistPress = (item: Playlist) => {
-        if (item.isProtected) {
-            setPendingPlaylistId(item.id);
+    const handlePlaylistPress = (item: ApiPlaylist) => {
+        if (item.isPinRequired) {
+            setSelectedPlaylist(item);
             setPinModalVisible(true);
         } else {
             router.push("/(home)/(tabs)");
@@ -100,7 +89,7 @@ const PlaylistSourceScreen = () => {
 
     const handlePinSuccess = () => {
         setPinModalVisible(false);
-        setPendingPlaylistId(null);
+        setSelectedPlaylist(null);
         router.push("/(home)/(tabs)");
     };
 
@@ -123,20 +112,40 @@ const PlaylistSourceScreen = () => {
                 <View style={styles.mainArea}>
                     {/* Left: Playlists List */}
                     <View style={styles.listContainer}>
-                        <FlatList
-                            data={MOCK_PLAYLISTS}
-                            keyExtractor={(item) => item.id}
-                            renderItem={({ item, index }) => (
-                                <PlaylistCard
-                                    item={item}
-                                    isFocused={focusedIndex === index}
-                                    onFocus={() => setFocusedIndex(index)}
-                                    onPress={() => handlePlaylistPress(item)}
-                                />
-                            )}
-                            contentContainerStyle={{ paddingRight: s(20) }}
-                            showsVerticalScrollIndicator={false}
-                        />
+                        {loading ? (
+                            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                                <ActivityIndicator size="large" color="#FFFFFF" />
+                                <Text style={{ color: '#FFFFFF', marginTop: s(10) }}>Loading Playlists...</Text>
+                            </View>
+                        ) : error ? (
+                            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                                <Text style={{ color: '#FF5252' }}>Error loading playlists</Text>
+                            </View>
+                        ) : (
+                            <FlatList
+                                data={playlists}
+                                keyExtractor={(item) => item.id}
+                                renderItem={({ item, index }) => (
+                                    <PlaylistCard
+                                        item={{
+                                            id: item.id,
+                                            name: item.name,
+                                            urlOrInfo: item.isPinRequired ? "This playlist is protected." : item.url,
+                                            type: "Playlist URL",
+                                            isProtected: item.isPinRequired,
+                                        }}
+                                        isFocused={focusedIndex === index}
+                                        onFocus={() => setFocusedIndex(index)}
+                                        onPress={() => handlePlaylistPress(item)}
+                                    />
+                                )}
+                                contentContainerStyle={{ paddingRight: s(20) }}
+                                showsVerticalScrollIndicator={false}
+                                ListEmptyComponent={() => (
+                                    <Text style={[styles.subtitle, { marginTop: s(20) }]}>No playlists found.</Text>
+                                )}
+                            />
+                        )}
                     </View>
 
                     {/* Divider */}
@@ -170,10 +179,16 @@ const PlaylistSourceScreen = () => {
                 {/* PIN Modal */}
                 <EnterPinModal
                     visible={pinModalVisible}
-                    onClose={() => setPinModalVisible(false)}
+                    onClose={() => {
+                        setPinModalVisible(false);
+                        setSelectedPlaylist(null);
+                    }}
                     onSuccess={handlePinSuccess}
-                    expectedPin="0000"
-                    title="Enter PIN"
+                    onVerify={async (pin: string) => {
+                        if (!selectedPlaylist) return false;
+                        return await verifyPin(selectedPlaylist.id, pin);
+                    }}
+                    title={`Enter PIN for ${selectedPlaylist?.name || "Playlist"}`}
                     buttonText="Continue"
                 />
             </View>

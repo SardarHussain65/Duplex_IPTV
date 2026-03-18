@@ -38,3 +38,9 @@ export const CREATE_PLAYLIST = gql`
     }
   }
 `;
+
+export const VERIFY_PLAYLIST_PIN = gql`
+  mutation VerifyPlaylistPin($input: VerifyPlaylistPinInput!) {
+    verifyPlaylistPin(input: $input)
+  }
+`;

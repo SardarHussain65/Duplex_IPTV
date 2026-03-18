@@ -90,8 +90,8 @@ const ActivationScreen = () => {
     const [screenState, setScreenState] = useState<ScreenState>(isTrial ? 'trial' : 'intro');
 
     useEffect(() => {
-        if (deviceInfo.macAddress && 
-            deviceInfo.macAddress !== 'LOADING...' && 
+        if (deviceInfo.macAddress &&
+            deviceInfo.macAddress !== 'LOADING...' &&
             deviceInfo.macAddress !== 'ERROR') {
             generateDeviceId(deviceInfo.macAddress);
         }
