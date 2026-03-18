@@ -12,7 +12,7 @@ import { Animated, Pressable, StyleProp, StyleSheet, Text, TextStyle, ViewStyle 
 import { useButtonState } from './useButtonState';
 
 export interface ActionOutlineButtonProps {
-    children: string;
+    children: React.ReactNode;
     disabled?: boolean;
     onPress?: () => void;
     onLongPress?: () => void;
@@ -123,7 +123,11 @@ export const ActionOutlineButton: React.FC<ActionOutlineButtonProps> = ({
                     magnification: 1.05,
                 }}
             >
-                <Text style={getTextStyle()}>{children}</Text>
+                {typeof children === 'string' ? (
+                    <Text style={getTextStyle()}>{children}</Text>
+                ) : (
+                    children
+                )}
             </Pressable>
         </Animated.View>
     );

@@ -29,3 +29,20 @@ export interface AuthTokens {
 export interface RefreshTokenRequest {
   refreshToken: string;
 }
+
+// ─── Playlists ───────────────────────────────────────────────────────────────
+
+export interface CreatePlaylistInput {
+  deviceId: string;
+  isPinRequired: boolean;
+  name: string;
+  type: string;
+  url: string;
+  username?: string;
+  password?: string;
+}
+
+export interface Playlist {
+  deviceId: string;
+  name: string;
+}

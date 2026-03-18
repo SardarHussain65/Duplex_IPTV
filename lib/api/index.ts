@@ -7,14 +7,15 @@
  */
 
 // ─── Core Clients ──────────────────────────────────────────────────────────────
-export { queryClient } from './queryClient';
+export * from './config';
 export { apolloClient } from './graphqlClient';
+export * from './mutations';
+export { queryClient } from './queryClient';
 export { ApiRequestError, restClient } from './restClient';
 export { tokenStorage } from './tokenStorage';
-export * from './queries';
-export * from './config';
 
 // ─── Hooks ─────────────────────────────────────────────────────────────────────
-export { useHealthCheck } from './hooks/useHealthCheck';
 export { useGenerateDeviceId } from './hooks/useGenerateDeviceId';
+export { useHealthCheck } from './hooks/useHealthCheck';
 export * from './types';
+

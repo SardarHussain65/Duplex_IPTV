@@ -7,7 +7,7 @@
  * swap the underlying storage implementation.
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 
 const ACCESS_TOKEN_KEY = 'duplex_access_token';
 const REFRESH_TOKEN_KEY = 'duplex_refresh_token';
@@ -15,7 +15,7 @@ const REFRESH_TOKEN_KEY = 'duplex_refresh_token';
 export const tokenStorage = {
   async getAccessToken(): Promise<string | null> {
     try {
-      return await AsyncStorage.getItem(ACCESS_TOKEN_KEY);
+      return await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
     } catch {
       return null;
     }
@@ -23,7 +23,7 @@ export const tokenStorage = {
 
   async getRefreshToken(): Promise<string | null> {
     try {
-      return await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
+      return await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
     } catch {
       return null;
     }
@@ -31,15 +31,15 @@ export const tokenStorage = {
 
   async setTokens(accessToken: string, refreshToken: string): Promise<void> {
     await Promise.all([
-      AsyncStorage.setItem(ACCESS_TOKEN_KEY, accessToken),
-      AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken),
+      SecureStore.setItemAsync(ACCESS_TOKEN_KEY, accessToken),
+      SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken),
     ]);
   },
 
   async clearTokens(): Promise<void> {
     await Promise.all([
-      AsyncStorage.removeItem(ACCESS_TOKEN_KEY),
-      AsyncStorage.removeItem(REFRESH_TOKEN_KEY),
+      SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY),
+      SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY),
     ]);
   },
 };

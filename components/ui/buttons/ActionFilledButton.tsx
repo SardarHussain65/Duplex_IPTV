@@ -12,7 +12,7 @@ import { Animated, findNodeHandle, Pressable, StyleProp, StyleSheet, Text, TextS
 import { useButtonState } from './useButtonState';
 
 export interface ActionFilledButtonProps {
-    children: string;
+    children: React.ReactNode;
     disabled?: boolean;
     onPress?: () => void;
     onLongPress?: () => void;
@@ -172,7 +172,11 @@ export const ActionFilledButton = React.forwardRef<any, ActionFilledButtonProps>
                 }}
             >
                 {iconPosition === 'left' && icon}
-                <Text style={getTextStyle()}>{children}</Text>
+                {typeof children === 'string' ? (
+                    <Text style={getTextStyle()}>{children}</Text>
+                ) : (
+                    children
+                )}
                 {iconPosition === 'right' && icon}
             </Pressable>
         </Animated.View>

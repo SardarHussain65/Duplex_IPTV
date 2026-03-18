@@ -47,7 +47,8 @@
           "isTV": true,
           "showToggleState": true
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
