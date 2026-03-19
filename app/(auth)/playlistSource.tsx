@@ -72,6 +72,7 @@ const PlaylistSourceScreen = () => {
     const deviceId = useDeviceStore((state) => state.id);
     const { playlists, loading, error } = usePlaylists({ deviceId: deviceId || '' });
     const { verifyPin } = useVerifyPlaylistPin();
+    const setActivePlaylistId = useDeviceStore((state) => state.setActivePlaylistId);
 
     const [focusedIndex, setFocusedIndex] = useState(0);
     const [pinModalVisible, setPinModalVisible] = useState(false);
@@ -83,11 +84,15 @@ const PlaylistSourceScreen = () => {
             setSelectedPlaylist(item);
             setPinModalVisible(true);
         } else {
+            setActivePlaylistId(item.id);
             router.push("/(home)/(tabs)");
         }
     };
 
     const handlePinSuccess = () => {
+        if (selectedPlaylist) {
+            setActivePlaylistId(selectedPlaylist.id);
+        }
         setPinModalVisible(false);
         setSelectedPlaylist(null);
         router.push("/(home)/(tabs)");

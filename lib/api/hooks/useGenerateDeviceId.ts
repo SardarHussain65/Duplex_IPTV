@@ -20,10 +20,12 @@ export function useGenerateDeviceId() {
 
         // 2. Update device and subscription state
         if (result.device) {
+          const isBlocked = result.subscription?.status === 'blocked' || result.subscription?.status === 'blocked_device';
           setDeviceData({
             id: result.device.id,
             hasUsedTrial: result.device.hasUsedTrial,
             isTrial: result.device.isTrial,
+            isBlocked: isBlocked,
             subscription: result.subscription,
           });
         }

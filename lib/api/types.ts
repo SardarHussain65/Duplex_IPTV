@@ -59,3 +59,21 @@ export interface GetPlaylistsByDeviceResponse {
     items: Playlist[];
   };
 }
+
+// ─── Channels ────────────────────────────────────────────────────────────────
+
+export interface Channel {
+  name: string;
+  tvgId: string;
+  tvgName: string;
+  tvgLogo: string;
+  groupTitle: string;
+  contentType: string;
+  category: string;
+  genre: string;
+  streamHash: string;
+}
+
+export interface GetChannelsResponse {
+  items: Channel[];
+}

@@ -35,6 +35,8 @@ export const CREATE_PLAYLIST = gql`
     createPlaylist(input: $input) {
       deviceId
       name
+      pin
+      id
     }
   }
 `;
