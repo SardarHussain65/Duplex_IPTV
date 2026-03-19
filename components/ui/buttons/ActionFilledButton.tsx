@@ -6,13 +6,13 @@
  * ─────────────────────────────────────────────────────────────
  */
 
-import { Colors, Spacing, scale } from '@/constants';
+import { Colors, scale, Spacing } from '@/constants';
 import React from 'react';
 import { Animated, findNodeHandle, Pressable, StyleProp, StyleSheet, Text, TextStyle, ViewStyle } from 'react-native';
 import { useButtonState } from './useButtonState';
 
 export interface ActionFilledButtonProps {
-    children: string;
+    children: React.ReactNode;
     disabled?: boolean;
     onPress?: () => void;
     onLongPress?: () => void;
@@ -112,7 +112,7 @@ export const ActionFilledButton = React.forwardRef<any, ActionFilledButtonProps>
     const getTextStyle = (): TextStyle => {
         const flattenedStyle = StyleSheet.flatten(style);
         const bg = flattenedStyle?.backgroundColor;
-        
+
         // If background is very dark (like dark[8] or dark[11]), force light text
         const isDarkBg = bg === Colors.dark[8] || bg === Colors.dark[9] || bg === Colors.dark[10] || bg === Colors.dark[11] || bg === Colors.dark[12];
         const isRedBg = bg === Colors.error[500];
@@ -172,7 +172,11 @@ export const ActionFilledButton = React.forwardRef<any, ActionFilledButtonProps>
                 }}
             >
                 {iconPosition === 'left' && icon}
-                <Text style={getTextStyle()}>{children}</Text>
+                {typeof children === 'string' ? (
+                    <Text style={getTextStyle()}>{children}</Text>
+                ) : (
+                    children
+                )}
                 {iconPosition === 'right' && icon}
             </Pressable>
         </Animated.View>

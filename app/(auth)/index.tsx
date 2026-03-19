@@ -1,18 +1,21 @@
 import { ActionFilledButton, ActionOutlineButton } from "@/components/ui/buttons";
 import { Colors, scale as s, width } from "@/constants";
 import { useDeviceInfo } from "@/hooks/useDeviceInfo";
+import { useGenerateDeviceId } from "@/lib/api";
+import { useDeviceStore } from "@/lib/store/useDeviceStore";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     BackHandler,
     StyleSheet,
     Text,
     View
 } from "react-native";
+import QRCode from 'react-native-qrcode-svg';
 
-type ScreenState = 'trial' | 'warning' | 'expired' | 'blocked';
+type ScreenState = 'intro' | 'trial' | 'expired' | 'blocked';
 
 
 // ─── Free Trial Banner (pure code, no image) ─────────────────────────────────
@@ -78,15 +81,43 @@ const bannerStyles = StyleSheet.create({
 
 const ActivationScreen = () => {
     const deviceInfo = useDeviceInfo();
+    const { generateDeviceId, deviceId, deviceKey, loading: deviceIdLoading } = useGenerateDeviceId();
+    const { isTrial, hasUsedTrial, subscription } = useDeviceStore();
     const isLargeScreen = width >= 900;
     const contentWidth = isLargeScreen ? width * 0.5 : width * 0.92;
 
-    // TODO: This state should be managed by a global context or fetched from an API
-    const [screenState, setScreenState] = useState<ScreenState>('warning');
-    const expiryDays = 5;
+    // Derived state from store/API
+    const [screenState, setScreenState] = useState<ScreenState>(isTrial ? 'trial' : 'intro');
+
+    useEffect(() => {
+        if (deviceInfo.macAddress &&
+            deviceInfo.macAddress !== 'LOADING...' &&
+            deviceInfo.macAddress !== 'ERROR') {
+            generateDeviceId(deviceInfo.macAddress);
+        }
+    }, [deviceInfo.macAddress]);
+
+    useEffect(() => {
+        if (isTrial) {
+            setScreenState('trial');
+        } else {
+            setScreenState('intro');
+        }
+    }, [isTrial]);
+
+    const calculateExpiryDays = () => {
+        if (!subscription?.endDate) return 0;
+        const end = new Date(subscription.endDate);
+        const now = new Date();
+        const diffTime = end.getTime() - now.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays > 0 ? diffDays : 0;
+    };
+
+    const expiryDays = calculateExpiryDays();
 
     const handleContinue = () => {
-        if (screenState === 'warning') {
+        if (screenState === 'trial') {
             router.push("/(auth)/playlistSource");
         } else {
             router.push("/(auth)/deviceVerification");
@@ -99,7 +130,7 @@ const ActivationScreen = () => {
 
     const renderHeader = () => {
         switch (screenState) {
-            case 'warning':
+            case 'trial':
                 return `Your subscription will expire in ${expiryDays} days`;
             case 'expired':
                 return "License Expired!";
@@ -152,8 +183,8 @@ const ActivationScreen = () => {
                 {/* Instructions */}
                 {renderInstructions()}
 
-                {/* ✅ Free Trial Banner — shown only in trial state */}
-                {screenState === 'trial' && <FreeTrialBanner s={s} />}
+                {/* ✅ Free Trial Banner — shown only in intro state */}
+                {screenState === 'intro' && <FreeTrialBanner s={s} />}
 
                 {/* Info Grid */}
                 {screenState !== 'blocked' && (
@@ -176,17 +207,28 @@ const ActivationScreen = () => {
                                         Device ID
                                     </Text>
                                 </View>
-                                <Text style={[styles.boxValue, { fontSize: s(20) }]}>{deviceInfo.deviceId}</Text>
+                                <Text style={[styles.boxValue, { fontSize: s(20) }]}>
+                                    {deviceIdLoading ? "LOADING..." : (deviceKey || "N/A")}
+                                </Text>
                             </View>
                         </View>
 
                         <View style={[styles.verticalDivider, { marginHorizontal: s(24) }]} />
 
                         <View style={styles.qrSection}>
-                            <Image
-                                source={require("../../assets/images/qr.png")}
-                                style={{ width: s(120), height: s(120), marginBottom: s(8) }}
-                            />
+                            <View style={{
+                                padding: s(8),
+                                backgroundColor: '#FFFFFF',
+                                borderRadius: s(8),
+                                marginBottom: s(8)
+                            }}>
+                                <QRCode
+                                    value={`https://duplex-iptv-website.vercel.app/?mac=${deviceInfo.macAddress}&deviceid=${deviceKey || ''}`}
+                                    size={s(110)}
+                                    backgroundColor="white"
+                                    color="black"
+                                />
+                            </View>
                             <Text style={[styles.qrText, { fontSize: s(13) }]}>Scan to add playlist</Text>
                         </View>
                     </View>
@@ -194,7 +236,7 @@ const ActivationScreen = () => {
 
                 {/* Warning / Secondary Info */}
                 <View style={[styles.warningContainer, { marginBottom: s(14) }]}>
-                    {screenState === 'trial' ? (
+                    {screenState === 'intro' ? (
                         <>
                             <Ionicons name="information-circle-outline" size={s(18)} color="#FF5252" />
                             <Text style={[styles.warningText, { fontSize: s(12), lineHeight: s(18), marginLeft: s(8) }]}>
@@ -215,7 +257,7 @@ const ActivationScreen = () => {
 
                 {/* Actions */}
                 <View style={[styles.actionsContainer, { marginTop: s(10) }]}>
-                    {screenState === 'trial' ? (
+                    {screenState === 'intro' ? (
                         <>
                             <View style={{ flex: 1, marginRight: s(12) }}>
                                 <ActionOutlineButton

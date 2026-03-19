@@ -11,7 +11,6 @@ export * from './KeyboardButton';
 export * from './LargeActionButton';
 export * from './NavButton';
 export * from './NavIconButton';
-export * from './PlaylistButton';
 export * from './PlaylistRowButton';
 export * from './SettingTabButton';
 export * from './useButtonState';

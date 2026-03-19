@@ -4,6 +4,8 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
+    ActivityIndicator,
+    Alert,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -12,9 +14,14 @@ import {
     TextInput,
     View
 } from "react-native";
+import { useCreatePlaylist } from "@/lib/api/hooks/useCreatePlaylist";
+import { useDeviceStore } from "@/lib/store/useDeviceStore";
 
 const XtremeSetup = () => {
     const router = useRouter();
+    const { createPlaylist, loading } = useCreatePlaylist();
+    const deviceId = useDeviceStore((state) => state.id);
+
     const isLargeScreen = width >= 900;
     const contentWidth = isLargeScreen ? width * 0.5 : width * 0.92;
 
@@ -26,11 +33,27 @@ const XtremeSetup = () => {
     const isFormValid = playlistName.trim() !== "" &&
         serverUrl.trim() !== "" &&
         username.trim() !== "" &&
-        password.trim() !== "";
+        password.trim() !== "" &&
+        !loading;
 
-    const handleConfirm = () => {
-        if (isFormValid) {
-            router.push("/(auth)/deviceVerification");
+    const handleConfirm = async () => {
+        if (isFormValid && deviceId) {
+            try {
+                await createPlaylist({
+                    deviceId,
+                    isPinRequired: false,
+                    name: playlistName,
+                    type: "XC",
+                    url: serverUrl,
+                    username,
+                    password,
+                });
+                router.push("/(auth)/deviceVerification");
+            } catch (error: any) {
+                Alert.alert("Error", error.message || "Failed to add playlist");
+            }
+        } else if (!deviceId) {
+            Alert.alert("Error", "Device ID not found. Please try again.");
         }
     };
 
@@ -76,6 +99,7 @@ const XtremeSetup = () => {
                                 placeholderTextColor={Colors.dark[6]}
                                 value={playlistName}
                                 onChangeText={setPlaylistName}
+                                editable={!loading}
                             />
                         </View>
 
@@ -89,6 +113,7 @@ const XtremeSetup = () => {
                                 onChangeText={setServerUrl}
                                 autoCapitalize="none"
                                 keyboardType="url"
+                                editable={!loading}
                             />
                         </View>
 
@@ -101,6 +126,7 @@ const XtremeSetup = () => {
                                 value={username}
                                 onChangeText={setUsername}
                                 autoCapitalize="none"
+                                editable={!loading}
                             />
                         </View>
 
@@ -113,6 +139,7 @@ const XtremeSetup = () => {
                                 value={password}
                                 onChangeText={setPassword}
                                 secureTextEntry
+                                editable={!loading}
                             />
                         </View>
                     </View>
@@ -122,6 +149,7 @@ const XtremeSetup = () => {
                         <View style={{ flex: 1, marginRight: s(12) }}>
                             <ActionOutlineButton
                                 onPress={handleCancel}
+                                disabled={loading}
                                 style={{
                                     backgroundColor: '#1C1C1E',
                                     borderColor: '#3A3A3C',
@@ -150,7 +178,11 @@ const XtremeSetup = () => {
                                 }}
                                 textColor={isFormValid ? '#000000' : Colors.dark[6]}
                             >
-                                Confirm
+                                {loading ? (
+                                    <ActivityIndicator color={Colors.dark[1]} />
+                                ) : (
+                                    "Confirm"
+                                )}
                             </ActionFilledButton>
                         </View>
                     </View>

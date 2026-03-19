@@ -4,13 +4,22 @@ import { KeyboardButton } from '@/components/ui/buttons/KeyboardButton';
 import { Colors } from '@/constants';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import React, { useState } from 'react';
-import { Modal, StyleSheet, Text, View } from 'react-native';
+import {
+    ActivityIndicator,
+    Animated,
+    findNodeHandle,
+    Modal,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
+} from 'react-native';
 
 interface EnterPinModalProps {
     visible: boolean;
     onClose: () => void;
     onSuccess: () => void;
-    expectedPin: string;
+    onVerify?: (pin: string) => Promise<boolean>;
     title?: string;
     buttonText?: string;
 }
@@ -19,12 +28,13 @@ export const EnterPinModal: React.FC<EnterPinModalProps> = ({
     visible,
     onClose,
     onSuccess,
-    expectedPin,
+    onVerify,
     title = 'Enter PIN to Continue',
     buttonText = 'Continue'
 }) => {
     const [pin, setPin] = useState<string>('');
     const [error, setError] = useState<string | null>(null);
+    const [isVerifying, setIsVerifying] = useState(false);
 
     const handleNumberPress = (num: number) => {
         if (pin.length < 4) {
@@ -33,13 +43,24 @@ export const EnterPinModal: React.FC<EnterPinModalProps> = ({
         }
     };
 
-    const handleContinue = () => {
-        if (pin === expectedPin) {
-            onSuccess();
-            setPin('');
-        } else {
-            setError('Incorrect PIN. Please try again.');
-            setPin('');
+    const handleContinue = async () => {
+        if (!onVerify) return;
+        
+        setIsVerifying(true);
+        setError(null);
+        try {
+            const isValid = await onVerify(pin);
+            if (isValid) {
+                onSuccess();
+                setPin('');
+            } else {
+                setError('Incorrect PIN. Please try again.');
+                setPin('');
+            }
+        } catch (err) {
+            setError('Verification failed. Please try again.');
+        } finally {
+            setIsVerifying(false);
         }
     };
 
@@ -111,10 +132,14 @@ export const EnterPinModal: React.FC<EnterPinModalProps> = ({
                             <ActionFilledButton 
                                 onPress={handleContinue} 
                                 style={[styles.btn, { backgroundColor: Colors.gray[100], borderRadius: scale(10) }]} 
-                                disabled={pin.length < 4}
+                                disabled={pin.length < 4 || isVerifying}
                                 textColor={Colors.dark[11]}
                             >
-                                {buttonText}
+                                {isVerifying ? (
+                                    <ActivityIndicator color={Colors.dark[11]} />
+                                ) : (
+                                    buttonText
+                                )}
                             </ActionFilledButton>
                         </View>
                     </View>

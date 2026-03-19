@@ -76,7 +76,7 @@ const HomeLayoutContent = () => {
                             setParentalUnlocked(true);
                             setParentalModalVisible(false);
                         }}
-                        expectedPin={parentalPin}
+                        onVerify={async (pin: string) => pin === parentalPin}
                     />
                 ) : (
                     <ParentalPinModal />

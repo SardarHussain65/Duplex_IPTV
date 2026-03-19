@@ -1,0 +1,49 @@
+import { useMutation } from '@apollo/client';
+import { useDeviceStore } from '../../store/useDeviceStore';
+import { GENERATE_DEVICE_ID } from '../mutations';
+import { tokenStorage } from '../tokenStorage';
+
+/**
+ * Hook to trigger device ID generation and store trial status.
+ */
+export function useGenerateDeviceId() {
+  const setDeviceData = useDeviceStore((state) => state.setDeviceData);
+
+  const [generateDeviceIdMutation, { data, loading, error }] = useMutation(GENERATE_DEVICE_ID, {
+    onCompleted: (data) => {
+      const result = data?.generateDeviceId;
+      if (result) {
+        // 1. Store auth tokens securely
+        if (result.accessToken && result.refreshToken) {
+          tokenStorage.setTokens(result.accessToken, result.refreshToken);
+        }
+
+        // 2. Update device and subscription state
+        if (result.device) {
+          setDeviceData({
+            id: result.device.id,
+            hasUsedTrial: result.device.hasUsedTrial,
+            isTrial: result.device.isTrial,
+            subscription: result.subscription,
+          });
+        }
+      }
+    },
+  });
+
+  const generateDeviceId = (macAddress: string) => {
+    return generateDeviceIdMutation({
+      variables: {
+        input: { macAddress },
+      },
+    });
+  };
+
+  return {
+    generateDeviceId,
+    deviceId: data?.generateDeviceId?.device?.id,
+    deviceKey: data?.generateDeviceId?.device?.deviceKey,
+    loading,
+    error,
+  };
+}
