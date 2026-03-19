@@ -11,13 +11,13 @@ import { NavButton } from '@/components/ui/buttons/NavButton';
 import { BackdropCard } from '@/components/ui/cards/BackdropCard';
 import { PosterCard } from '@/components/ui/cards/PosterCard';
 import { EnterPinModal, ManageCategoryModal, RenameCategoryModal } from '@/components/ui/modals';
-import { HERO_SERIES_SLIDES, MOCK_RECENTLY_WATCHED_SERIES, SERIES_CATEGORIES } from '@/constants/appData';
+import { HERO_SERIES_SLIDES } from '@/constants/appData';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useCategoryManagement } from '@/context/CategoryManagementContext';
 import { Series } from '@/types';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     FlatList,
     ScrollView,
@@ -31,7 +31,10 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { useTab } from '@/context/TabContext';
 import { useSeries } from '@/hooks/useSeries';
+import { usePlaylistChannels } from '@/lib/api';
+import { useDeviceStore } from '@/lib/store/useDeviceStore';
 import { styles } from '@/styles/series.styles';
+import { ActivityIndicator } from 'react-native';
 
 // ── Screen ─────────────────────────────────────────────────────
 
@@ -43,13 +46,72 @@ export default function SeriesScreen() {
         setSearchQuery,
         heroIndex,
         setHeroIndex,
-        currentHero,
         handleSeriesPress,
-        filteredSeries,
         handleScroll,
     } = useSeries();
     const { setSearchBarNode, settingsTabNode, searchBarNode } = useTab();
     const { isCategoryLocked, lockCategory, unlockCategory, renameCategory, getCategoryLabel } = useCategoryManagement();
+    const activePlaylistId = useDeviceStore((state) => state.activePlaylistId);
+
+    const {
+        data: apiData,
+        isLoading,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage
+    } = usePlaylistChannels({
+        playlistId: activePlaylistId || '',
+        limit: 24,
+        contentType: 'SERIES',
+        enabled: !!activePlaylistId
+    });
+
+    const series: Series[] = useMemo(() => {
+        if (!apiData?.pages) return [];
+        return apiData.pages.flatMap((page) =>
+            page.items.map((item) => ({
+                id: item.streamHash,
+                title: item.name,
+                genre: item.category,
+                year: "2024",
+                season: item.category || "Season 1",
+                image: item.tvgLogo,
+                description: item.name,
+            }))
+        );
+    }, [apiData]);
+
+    const categories = useMemo(() => {
+        const uniqueCats = Array.from(new Set(series.map((s) => s.genre)));
+        return ['All', ...uniqueCats];
+    }, [series]);
+
+    const recentlyWatched = useMemo(() => {
+        return series.slice(0, 5).map((s, idx) => ({
+            ...s,
+            progress: [0.45, 0.2, 0.8, 0.1, 0.65][idx] || 0.5
+        }));
+    }, [series]);
+
+    const filteredSeries = useMemo(() => {
+        let result = series;
+
+        if (activeCategory !== 'All') {
+            result = result.filter(
+                (s) => s.genre.toLowerCase() === activeCategory.toLowerCase()
+            );
+        }
+
+        if (searchQuery.trim()) {
+            result = result.filter((s) =>
+                s.title.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+        }
+
+        return result;
+    }, [activeCategory, searchQuery, series]);
+
+    const currentHero = HERO_SERIES_SLIDES[heroIndex] || HERO_SERIES_SLIDES[0];
 
     const [isManageModalVisible, setManageModalVisible] = useState(false);
     const [isRenameModalVisible, setRenameModalVisible] = useState(false);
@@ -222,7 +284,7 @@ export default function SeriesScreen() {
             </View>
 
             {/* ── Recently Watched ── */}
-            {MOCK_RECENTLY_WATCHED_SERIES.length > 0 && (
+            {recentlyWatched.length > 0 && (
                 <View style={{ marginBottom: xdHeight(32) }}>
                     <Text style={styles.sectionTitle}>Recently Watched</Text>
                     <ScrollView
@@ -231,15 +293,15 @@ export default function SeriesScreen() {
                         style={{ marginHorizontal: -xdWidth(40) }}
                         contentContainerStyle={{ paddingHorizontal: xdWidth(40) }}
                     >
-                        {MOCK_RECENTLY_WATCHED_SERIES.map((series, index) => (
+                        {recentlyWatched.map((seriesItem, index) => (
                             <BackdropCard
-                                key={`recent-${series.id}`}
-                                image={{ uri: series.image }}
-                                progress={series.progress}
+                                key={`recent-${seriesItem.id}`}
+                                image={{ uri: seriesItem.image }}
+                                progress={seriesItem.progress}
                                 width={xdWidth(170)}
                                 height={xdHeight(96)}
                                 style={{ marginRight: xdWidth(12) }}
-                                onPress={() => handleSeriesPress(series)}
+                                onPress={() => handleSeriesPress(seriesItem)}
                             />
                         ))}
                     </ScrollView>
@@ -268,9 +330,9 @@ export default function SeriesScreen() {
                 style={styles.categoryRow}
                 contentContainerStyle={styles.categoryContent}
             >
-                {SERIES_CATEGORIES.map((cat, index) => {
+                {categories.map((cat, index) => {
                     const isFirst = index === 0;
-                    const isLast = index === SERIES_CATEGORIES.length - 1;
+                    const isLast = index === categories.length - 1;
                     return (
                         <CategoryButton
                             key={cat}
@@ -295,6 +357,15 @@ export default function SeriesScreen() {
 
     const isCurrentCategoryLocked = activeCategory !== 'All' && isCategoryLocked(activeCategory);
 
+    if (isLoading) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color="#FFD700" />
+                <Text style={{ color: '#9DA3B4', marginTop: xdHeight(16) }}>Loading Series...</Text>
+            </View>
+        );
+    }
+
     return (
         <View style={styles.container}>
             {/* ── Poster Grid — FlatList nested inside ScrollView ── */}
@@ -310,9 +381,22 @@ export default function SeriesScreen() {
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
                 showsVerticalScrollIndicator={false}
-                initialNumToRender={10}
+                initialNumToRender={12}
                 windowSize={5}
                 removeClippedSubviews={false}
+                onEndReached={() => {
+                    if (hasNextPage && !isFetchingNextPage) {
+                        fetchNextPage();
+                    }
+                }}
+                onEndReachedThreshold={0.5}
+                ListFooterComponent={() =>
+                    isFetchingNextPage ? (
+                        <View style={{ paddingVertical: xdHeight(20), alignItems: 'center' }}>
+                            <ActivityIndicator size="small" color="#FFD700" />
+                        </View>
+                    ) : null
+                }
                 ListEmptyComponent={
                     isCurrentCategoryLocked ? (
                         <CategoryLockedState />
@@ -349,7 +433,7 @@ export default function SeriesScreen() {
                 visible={isPinModalVisible}
                 onClose={() => setPinModalVisible(false)}
                 onSuccess={handlePinSuccess}
-                expectedPin="1234"
+                onVerify={async (pin: string) => pin === "1234"}
                 title={categoryToManage && isCategoryLocked(categoryToManage) ? 'Enter PIN to Unlock' : 'Enter PIN to Lock'}
             />
         </View>

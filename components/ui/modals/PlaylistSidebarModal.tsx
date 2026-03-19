@@ -1,9 +1,11 @@
 import { Colors } from '@/constants';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import React, { useState, useEffect, useRef } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View, Animated, Dimensions, findNodeHandle } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View, Animated, Dimensions, findNodeHandle, ActivityIndicator } from 'react-native';
 import { PlaylistRowButton } from '../buttons/PlaylistRowButton';
 import { ConfirmPlaylistModal } from './ConfirmPlaylistModal';
+import { usePlaylists } from '@/lib/api/hooks/usePlaylists';
+import { useDeviceStore } from '@/lib/store/useDeviceStore';
 
 interface PlaylistSidebarModalProps {
     visible: boolean;
@@ -17,7 +19,12 @@ export const PlaylistSidebarModal: React.FC<PlaylistSidebarModalProps> = ({
     visible,
     onClose,
 }) => {
-    const [selectedPlaylistId, setSelectedPlaylistId] = useState<string>('1');
+    const deviceId = useDeviceStore((state) => state.id);
+    const activePlaylistId = useDeviceStore((state) => state.activePlaylistId);
+    const setActivePlaylistId = useDeviceStore((state) => state.setActivePlaylistId);
+
+    const { playlists, loading, error } = usePlaylists({ deviceId: deviceId || '' });
+
     const [pendingPlaylistId, setPendingPlaylistId] = useState<string | null>(null);
     const [isConfirmVisible, setIsConfirmVisible] = useState(false);
     
@@ -60,19 +67,11 @@ export const PlaylistSidebarModal: React.FC<PlaylistSidebarModalProps> = ({
         });
     };
 
-    // Hardcoded for now based on PlaylistSection.tsx
-    const playlists = [
-        { id: '1', title: 'Playlist 1', sub: 'https://example.com/live/stream.m3u8', type: 'M3U' },
-        { id: '2', title: 'Playlist 2', sub: 'https://example.com/live/stream.m3u8', type: 'M3U' },
-        { id: '3', title: 'Playlist 3', sub: 'https://example.com/live/stream.m3u8', type: 'M3U8' },
-        { id: '4', title: 'Playlist 4', sub: 'https://example.com/live/stream.m3u8', type: 'Xtream Code' },
-    ];
-    
     // Create refs for all items to enable up/down navigation
-    const itemRefs = useRef<(View | null)[]>([]);
+    const itemRefs = useRef<(any | null)[]>([]);
 
     const handlePlaylistSelect = (id: string) => {
-        if (id !== selectedPlaylistId) {
+        if (id !== activePlaylistId) {
             setPendingPlaylistId(id);
             setIsConfirmVisible(true);
         }
@@ -80,7 +79,7 @@ export const PlaylistSidebarModal: React.FC<PlaylistSidebarModalProps> = ({
 
     const confirmPlaylist = () => {
         if (pendingPlaylistId) {
-            setSelectedPlaylistId(pendingPlaylistId);
+            setActivePlaylistId(pendingPlaylistId);
         }
         setIsConfirmVisible(false);
         setPendingPlaylistId(null);
@@ -106,26 +105,36 @@ export const PlaylistSidebarModal: React.FC<PlaylistSidebarModalProps> = ({
                         contentContainerStyle={{ gap: xdHeight(12) }}
                         showsVerticalScrollIndicator={false}
                     >
-                        {playlists.map((p, index) => (
-                            <PlaylistRowButton
-                                key={p.id}
-                                ref={(el: any) => {
-                                    if (index === 0) firstItemRef.current = el;
-                                    itemRefs.current[index] = el;
-                                }}
-                                label={p.title}
-                                url={p.sub}
-                                isSelected={p.id === selectedPlaylistId}
-                                hasTVPreferredFocus={index === 0}
-                                onPress={() => handlePlaylistSelect(p.id)}
-                                // Link up/down focus
-                                nextFocusUp={index > 0 ? findNodeHandle(itemRefs.current[index - 1]) || undefined : undefined}
-                                nextFocusDown={index < playlists.length - 1 ? findNodeHandle(itemRefs.current[index + 1]) || undefined : undefined}
-                                // Disable left/right navigation within the list, route back to topnav or self
-                                nextFocusLeft={"self" as any}
-                                nextFocusRight={"self" as any}
-                            />
-                        ))}
+                        {loading ? (
+                            <View style={styles.loadingContainer}>
+                                <ActivityIndicator size="large" color="#FFFFFF" />
+                                <Text style={styles.loadingText}>Loading Playlists...</Text>
+                            </View>
+                        ) : error ? (
+                            <View style={styles.loadingContainer}>
+                                <Text style={styles.errorText}>Error loading playlists</Text>
+                            </View>
+                        ) : playlists.length === 0 ? (
+                            <View style={styles.loadingContainer}>
+                                <Text style={styles.loadingText}>No playlists found</Text>
+                            </View>
+                        ) : (
+                            playlists.map((p, index) => (
+                                <PlaylistRowButton
+                                    key={p.id}
+                                    ref={(el: any) => {
+                                        if (index === 0) firstItemRef.current = el;
+                                        itemRefs.current[index] = el;
+                                    }}
+                                    label={p.name}
+                                    url={p.url}
+                                    isSelected={p.id === activePlaylistId}
+                                    isPinRequired={p.isPinRequired}
+                                    hasTVPreferredFocus={index === 0}
+                                    onPress={() => handlePlaylistSelect(p.id)}
+                                />
+                            ))
+                        )}
                     </ScrollView>
                 </Animated.View>
             </View>
@@ -182,5 +191,21 @@ const styles = StyleSheet.create({
     },
     playlistContainer: {
         flex: 1,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: xdHeight(40),
+    },
+    loadingText: {
+        color: Colors.gray[400],
+        marginTop: xdHeight(12),
+        fontSize: scale(14),
+    },
+    errorText: {
+        color: '#FF5252',
+        marginTop: xdHeight(12),
+        fontSize: scale(14),
     },
 });

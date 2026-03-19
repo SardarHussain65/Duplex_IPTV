@@ -29,7 +29,7 @@ async function fetchWithTimeout(
 }
 
 let isRefreshing = false;
-let refreshQueue: Array<(token: string) => void> = [];
+let refreshQueue: Array<(token: string | null) => void> = [];
 
 async function refreshAccessToken(): Promise<string | null> {
   if (isRefreshing) {
@@ -40,11 +40,12 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 
   isRefreshing = true;
+  let newToken: string | null = null;
+
   try {
     const refreshToken = await tokenStorage.getRefreshToken();
     if (!refreshToken) return null;
 
-    // NOTE: This path should be configured in your environment or a more robust config
     const response = await fetchWithTimeout(
       `${API_BASE_URL}/api/auth/refresh`,
       {
@@ -54,21 +55,23 @@ async function refreshAccessToken(): Promise<string | null> {
       }
     );
 
-    if (!response.ok) {
+    if (response.ok) {
+      const data: AuthTokens = await response.json();
+      await tokenStorage.setTokens(data.accessToken, data.refreshToken);
+      newToken = data.accessToken;
+    } else {
       await tokenStorage.clearTokens();
-      return null;
     }
-
-    const data: AuthTokens = await response.json();
-    await tokenStorage.setTokens(data.accessToken, data.refreshToken);
-
-    // Drain the queue
-    refreshQueue.forEach((cb) => cb(data.accessToken));
-    return data.accessToken;
+  } catch (err) {
+    console.error('Token refresh failed:', err);
   } finally {
     isRefreshing = false;
+    // Notify all waiters in the queue
+    refreshQueue.forEach((resolve) => resolve(newToken));
     refreshQueue = [];
   }
+
+  return newToken;
 }
 
 // ─── Public API ────────────────────────────────────────────────────────────────
