@@ -53,6 +53,10 @@ export default function MoviesScreen() {
     const { isCategoryLocked, lockCategory, unlockCategory, renameCategory, getCategoryLabel } = useCategoryManagement();
     const activePlaylistId = useDeviceStore((state) => state.activePlaylistId);
 
+    // Debounce the search query so we only hit the API after typing stops
+    const [inputValue, setInputValue] = useState('');
+    const [committedSearch, setCommittedSearch] = useState('');
+
     const {
         data: apiData,
         isLoading,
@@ -61,8 +65,9 @@ export default function MoviesScreen() {
         isFetchingNextPage
     } = usePlaylistChannels({
         playlistId: activePlaylistId || '',
-        limit: 24,
+        limit: 48,
         contentType: 'MOVIE',
+        search: committedSearch,
         enabled: !!activePlaylistId
     });
 
@@ -77,6 +82,7 @@ export default function MoviesScreen() {
                 duration: item.genre || "2h",
                 image: item.tvgLogo,
                 description: item.name,
+                streamHash: item.streamHash,
             }))
         );
     }, [apiData]);
@@ -94,22 +100,13 @@ export default function MoviesScreen() {
     }, [movies]);
 
     const filteredMovies = useMemo(() => {
-        let result = movies;
-
-        if (activeCategory !== 'All') {
-            result = result.filter(
-                (m) => m.genre.toLowerCase() === activeCategory.toLowerCase()
-            );
-        }
-
-        if (searchQuery.trim()) {
-            result = result.filter((m) =>
-                m.title.toLowerCase().includes(searchQuery.toLowerCase())
-            );
-        }
-
-        return result;
-    }, [activeCategory, searchQuery, movies]);
+        // Text search is handled by the backend via the `search` query param.
+        // Only category filtering is done client-side here.
+        if (activeCategory === 'All') return movies;
+        return movies.filter(
+            (m) => m.genre.toLowerCase() === activeCategory.toLowerCase()
+        );
+    }, [activeCategory, movies]);
 
     const currentHero = HERO_MOVIES_SLIDES[heroIndex] || HERO_MOVIES_SLIDES[0];
 
@@ -312,8 +309,9 @@ export default function MoviesScreen() {
             <View style={styles.searchWrapper}>
                 <SearchBar
                     innerRef={searchRef}
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
+                    value={inputValue}
+                    onChangeText={setInputValue}
+                    onSubmit={(text) => setCommittedSearch(text)}
                     placeholder="Search for movies...."
                     nextFocusLeft={settingsTabNode || undefined}
                     nextFocusUp={settingsTabNode || undefined}
@@ -380,15 +378,17 @@ export default function MoviesScreen() {
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
                 showsVerticalScrollIndicator={false}
-                initialNumToRender={12}
-                windowSize={5}
-                removeClippedSubviews={false}
+                initialNumToRender={48}
+                maxToRenderPerBatch={24}
+                updateCellsBatchingPeriod={100}
+                windowSize={21}
+                removeClippedSubviews={true}
                 onEndReached={() => {
                     if (hasNextPage && !isFetchingNextPage) {
                         fetchNextPage();
                     }
                 }}
-                onEndReachedThreshold={0.5}
+                onEndReachedThreshold={2.0}
                 ListFooterComponent={() =>
                     isFetchingNextPage ? (
                         <View style={{ paddingVertical: xdHeight(20), alignItems: 'center' }}>

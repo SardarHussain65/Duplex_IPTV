@@ -45,6 +45,7 @@ export default function MovieDetailScreen() {
         duration: string;
         image: string;
         description: string;
+        streamHash?: string;
     }>();
 
     const [isFavorite, setIsFavorite] = useState(false);
@@ -148,11 +149,12 @@ export default function MovieDetailScreen() {
                                             year,
                                             duration,
                                             image,
+                                            streamHash: params.streamHash,
                                         },
                                     })
                                 }
                             >
-                                Continue Watching
+                                Watch Now
                             </NavButton>
 
                             <NavIconButton

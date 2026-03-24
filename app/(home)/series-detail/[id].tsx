@@ -79,6 +79,7 @@ export default function SeriesDetailScreen() {
         season: string;
         image: string;
         description: string;
+        streamHash?: string;
     }>();
 
     const [isFavorite, setIsFavorite] = useState(false);
@@ -126,6 +127,7 @@ export default function SeriesDetailScreen() {
                         duration: item.duration,
                         image: item.image,
                         isSeries: 'true',
+                        streamHash: params.streamHash, // Assuming episodes share the same hash for now or have their own
                     },
                 })
             }
@@ -207,11 +209,12 @@ export default function SeriesDetailScreen() {
                                         duration: season,
                                         image,
                                         isSeries: 'true',
+                                        streamHash: params.streamHash,
                                     },
                                 })
                             }
                         >
-                            Continue Watching
+                            Watch Now
                         </NavButton>
                         <NavIconButton
                             icon={

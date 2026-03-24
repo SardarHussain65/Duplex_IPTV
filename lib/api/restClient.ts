@@ -153,7 +153,13 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   // 204 No Content
   if (response.status === 204) return undefined as T;
 
-  return response.json() as Promise<T>;
+  const contentType = response.headers.get('Content-Type');
+  if (contentType && contentType.includes('application/json')) {
+    return response.json() as Promise<T>;
+  }
+
+  // Fallback to text for raw URLs or other non-JSON formats
+  return response.text() as unknown as Promise<T>;
 }
 
 // ─── Convenience Methods ───────────────────────────────────────────────────────

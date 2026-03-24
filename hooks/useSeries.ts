@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState } from 'react';
 export function useSeries() {
     const router = useRouter();
     const { setIsScrolled } = useTab();
-    const [activeCategory, setActiveCategory] = useState('Drama');
+    const [activeCategory, setActiveCategory] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
     const [heroIndex, setHeroIndex] = useState(0);
 
@@ -29,6 +29,7 @@ export function useSeries() {
                 season: series.season,
                 image: series.image,
                 description: series.description,
+                streamHash: series.streamHash,
             },
         });
     };

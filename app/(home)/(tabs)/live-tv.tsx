@@ -29,6 +29,11 @@ export default function LiveTVScreen() {
     const { isCategoryLocked, lockCategory, unlockCategory, renameCategory, getCategoryLabel } = useCategoryManagement();
     const activePlaylistId = useDeviceStore((state) => state.activePlaylistId);
 
+    // inputValue  = what the user is currently typing (controlled input)
+    // committedSearch = sent to the API only when the keyboard ✓ button is pressed
+    const [inputValue, setInputValue] = useState('');
+    const [committedSearch, setCommittedSearch] = useState('');
+
     const {
         data: apiData,
         isLoading,
@@ -37,8 +42,9 @@ export default function LiveTVScreen() {
         isFetchingNextPage
     } = usePlaylistChannels({
         playlistId: activePlaylistId || '',
-        limit: 30,
+        limit: 50,
         contentType: 'LIVE',
+        search: committedSearch,
         enabled: !!activePlaylistId
     });
 
@@ -50,6 +56,7 @@ export default function LiveTVScreen() {
                 name: item.name,
                 category: item.category,
                 image: item.tvgLogo,
+                streamHash: item.streamHash,
             }))
         );
     }, [apiData]);
@@ -70,7 +77,6 @@ export default function LiveTVScreen() {
     }, [channels]);
 
     const [activeCategory, setActiveCategory] = useState('All');
-    const [searchQuery, setSearchQuery] = useState('');
     const [categoryAllNode, setCategoryAllNode] = useState<number | undefined>(undefined);
     const [lastCategoryNode, setLastCategoryNode] = useState<number | undefined>(undefined);
     const [firstChannelNode, setFirstChannelNode] = useState<number | undefined>(undefined);
@@ -89,22 +95,13 @@ export default function LiveTVScreen() {
     const channelRefs = useRef<Record<number, any>>({});
 
     const filteredChannels = useMemo(() => {
-        let result = channels;
-
-        if (activeCategory !== 'All') {
-            result = result.filter(
-                (ch: Channel) => ch.category.toLowerCase() === activeCategory.toLowerCase()
-            );
-        }
-
-        if (searchQuery.trim()) {
-            result = result.filter((ch: Channel) =>
-                ch.name.toLowerCase().includes(searchQuery.toLowerCase())
-            );
-        }
-
-        return result;
-    }, [activeCategory, searchQuery, channels]);
+        // Text search is handled by the backend via the `search` query param.
+        // Only category filtering is done client-side here.
+        if (activeCategory === 'All') return channels;
+        return channels.filter(
+            (ch: Channel) => ch.category.toLowerCase() === activeCategory.toLowerCase()
+        );
+    }, [activeCategory, channels]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -153,6 +150,7 @@ export default function LiveTVScreen() {
                 name: channel.name,
                 category: channel.category,
                 image: channel.image,
+                streamHash: channel.streamHash,
             },
         });
     };
@@ -289,8 +287,9 @@ export default function LiveTVScreen() {
             <View style={styles.searchWrapper}>
                 <SearchBar
                     innerRef={searchRef}
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
+                    value={inputValue}
+                    onChangeText={setInputValue}
+                    onSubmit={(text) => setCommittedSearch(text)}
                     nextFocusLeft={settingsTabNode || undefined}
                     nextFocusUp={settingsTabNode || undefined}
                     nextFocusRight={categoryAllNode}
@@ -362,15 +361,17 @@ export default function LiveTVScreen() {
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
                 showsVerticalScrollIndicator={false}
-                initialNumToRender={12} // Render enough to cover typical off-screen start
-                windowSize={5} // Keep more items in memory
-                removeClippedSubviews={false} // Crucial for TV focus to find off-screen items
+                initialNumToRender={40}
+                maxToRenderPerBatch={20}
+                updateCellsBatchingPeriod={100}
+                windowSize={21}
+                removeClippedSubviews={true}
                 onEndReached={() => {
                     if (hasNextPage && !isFetchingNextPage) {
                         fetchNextPage();
                     }
                 }}
-                onEndReachedThreshold={0.5}
+                onEndReachedThreshold={2.0}
                 ListFooterComponent={() =>
                     isFetchingNextPage ? (
                         <View style={{ paddingVertical: xdHeight(20), alignItems: 'center' }}>

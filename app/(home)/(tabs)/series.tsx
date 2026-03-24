@@ -53,6 +53,10 @@ export default function SeriesScreen() {
     const { isCategoryLocked, lockCategory, unlockCategory, renameCategory, getCategoryLabel } = useCategoryManagement();
     const activePlaylistId = useDeviceStore((state) => state.activePlaylistId);
 
+    // only send to API when ✓ is pressed
+    const [inputValue, setInputValue] = useState('');
+    const [committedSearch, setCommittedSearch] = useState('');
+
     const {
         data: apiData,
         isLoading,
@@ -61,8 +65,9 @@ export default function SeriesScreen() {
         isFetchingNextPage
     } = usePlaylistChannels({
         playlistId: activePlaylistId || '',
-        limit: 24,
+        limit: 48,
         contentType: 'SERIES',
+        search: committedSearch,
         enabled: !!activePlaylistId
     });
 
@@ -77,6 +82,7 @@ export default function SeriesScreen() {
                 season: item.category || "Season 1",
                 image: item.tvgLogo,
                 description: item.name,
+                streamHash: item.streamHash,
             }))
         );
     }, [apiData]);
@@ -94,22 +100,13 @@ export default function SeriesScreen() {
     }, [series]);
 
     const filteredSeries = useMemo(() => {
-        let result = series;
-
-        if (activeCategory !== 'All') {
-            result = result.filter(
-                (s) => s.genre.toLowerCase() === activeCategory.toLowerCase()
-            );
-        }
-
-        if (searchQuery.trim()) {
-            result = result.filter((s) =>
-                s.title.toLowerCase().includes(searchQuery.toLowerCase())
-            );
-        }
-
-        return result;
-    }, [activeCategory, searchQuery, series]);
+        // Text search is handled by the backend via the `search` query param.
+        // Only category filtering is done client-side here.
+        if (activeCategory === 'All') return series;
+        return series.filter(
+            (s) => s.genre.toLowerCase() === activeCategory.toLowerCase()
+        );
+    }, [activeCategory, series]);
 
     const currentHero = HERO_SERIES_SLIDES[heroIndex] || HERO_SERIES_SLIDES[0];
 
@@ -312,8 +309,9 @@ export default function SeriesScreen() {
             <View style={styles.searchWrapper}>
                 <SearchBar
                     innerRef={searchRef}
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
+                    value={inputValue}
+                    onChangeText={setInputValue}
+                    onSubmit={(text) => setCommittedSearch(text)}
                     placeholder="Search for series...."
                     nextFocusLeft={settingsTabNode || undefined}
                     nextFocusUp={settingsTabNode || undefined}
@@ -381,15 +379,17 @@ export default function SeriesScreen() {
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
                 showsVerticalScrollIndicator={false}
-                initialNumToRender={12}
-                windowSize={5}
-                removeClippedSubviews={false}
+                initialNumToRender={48}
+                maxToRenderPerBatch={24}
+                updateCellsBatchingPeriod={100}
+                windowSize={21}
+                removeClippedSubviews={true}
                 onEndReached={() => {
                     if (hasNextPage && !isFetchingNextPage) {
                         fetchNextPage();
                     }
                 }}
-                onEndReachedThreshold={0.5}
+                onEndReachedThreshold={2.0}
                 ListFooterComponent={() =>
                     isFetchingNextPage ? (
                         <View style={{ paddingVertical: xdHeight(20), alignItems: 'center' }}>

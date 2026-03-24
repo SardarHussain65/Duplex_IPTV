@@ -18,9 +18,10 @@ interface VideoPreviewCardProps {
 
 
 
-export const VideoPreviewCard: React.FC<VideoPreviewCardProps> = ({
+export const VideoPreviewCard: React.FC<VideoPreviewCardProps & { videoUri?: string }> = ({
     title,
     onExpandPress,
+    videoUri,
 }) => {
     const videoRef = useRef<Video>(null);
 
@@ -31,16 +32,23 @@ export const VideoPreviewCard: React.FC<VideoPreviewCardProps> = ({
             style={cardStyles.card}
         >
             {/* ── Inline Video fills the card ── */}
-            <Video
-                ref={videoRef}
-                source={{ uri: DUMMY_VIDEO_URI }}
-                style={StyleSheet.absoluteFill}
-                resizeMode={ResizeMode.COVER}
-                shouldPlay
-                isLooping
-                isMuted
-                useNativeControls={false}
-            />
+            {videoUri && (
+                <Video
+                    ref={videoRef}
+                    source={{ uri: videoUri }}
+                    style={StyleSheet.absoluteFill}
+                    resizeMode={ResizeMode.COVER}
+                    shouldPlay
+                    isLooping
+                    isMuted
+                    useNativeControls={false}
+                />
+            )}
+            {!videoUri && (
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }]}>
+                     {/* Show nothing or a small indicator while loading */}
+                </View>
+            )}
 
             {/* Dark vignette so text is readable */}
             <View style={cardStyles.vignette} />

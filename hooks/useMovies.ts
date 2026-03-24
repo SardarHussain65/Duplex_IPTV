@@ -46,6 +46,7 @@ export function useMovies() {
                 duration: movie.duration,
                 image: movie.image,
                 description: movie.description,
+                streamHash: movie.streamHash,
             },
         });
     };

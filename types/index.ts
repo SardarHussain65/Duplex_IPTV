@@ -18,6 +18,7 @@ export type Channel = {
     name: string;
     category: string;
     image: string;
+    streamHash: string;
 };
 
 export type Movie = {
@@ -28,6 +29,7 @@ export type Movie = {
     duration: string;
     image: string;
     description: string;
+    streamHash: string;
 };
 
 export type Series = {
@@ -38,6 +40,7 @@ export type Series = {
     season: string;
     image: string;
     description: string;
+    streamHash: string;
 };
 
 export type EPGSlot = {
