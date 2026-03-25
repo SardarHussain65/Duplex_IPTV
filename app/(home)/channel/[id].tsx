@@ -82,6 +82,7 @@ export default function ChannelDetailScreen() {
     };
 
     const { data: streamUrl } = useStreamUrl(params.streamHash || null);
+    console.log(`[ChannelDetailScreen] channelName: ${channelName}, streamHash: ${params.streamHash}, streamUrl: ${streamUrl}`);
 
     const handleExpand = () => {
         router.push({
