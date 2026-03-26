@@ -6,6 +6,7 @@ import { Colors, scale } from '@/constants';
 import { panelStyles } from '@/styles/settings_panel.styles';
 import React, { useState } from 'react';
 import { findNodeHandle, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 interface PlaylistSectionProps {
     startRef: React.RefObject<any>;
@@ -15,6 +16,7 @@ interface PlaylistSectionProps {
 type PlaylistTab = 'M3U' | 'M3U8' | 'Xtream Code';
 
 export const PlaylistSection: React.FC<PlaylistSectionProps> = ({ startRef, sidebarRef }) => {
+    const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState<PlaylistTab>('M3U');
     const [selectedPlaylistId, setSelectedPlaylistId] = useState<string>('1');
     const [pendingPlaylistId, setPendingPlaylistId] = useState<string | null>(null);
@@ -86,7 +88,7 @@ export const PlaylistSection: React.FC<PlaylistSectionProps> = ({ startRef, side
                 {filteredPlaylists.length === 0 && (
                     <View style={{ padding: 40, alignItems: 'center' }}>
                         <Text style={{ color: Colors.gray[400], fontSize: scale(16) }}>
-                            No playlists found for {activeTab}
+                            {t('settings.playlistOptions.noPlaylists', { tab: activeTab })}
                         </Text>
                     </View>
                 )}

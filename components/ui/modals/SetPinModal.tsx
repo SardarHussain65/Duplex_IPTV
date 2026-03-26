@@ -12,6 +12,7 @@ import { Colors } from '@/constants';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import React, { useState } from 'react';
 import { Modal, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 interface SetPinModalProps {
     visible: boolean;
@@ -20,6 +21,7 @@ interface SetPinModalProps {
 }
 
 export const SetPinModal: React.FC<SetPinModalProps> = ({ visible, onClose, onSave }) => {
+    const { t } = useTranslation();
     const [pin, setPin] = useState<string>('');
 
     const handleNumberPress = (num: number) => {
@@ -61,7 +63,7 @@ export const SetPinModal: React.FC<SetPinModalProps> = ({ visible, onClose, onSa
         >
             <View style={styles.overlay}>
                 <View style={styles.modalBox}>
-                    <Text style={styles.title}>Set a New Pin</Text>
+                    <Text style={styles.title}>{t('settings.parentalOptions.setNew')}</Text>
 
                     <View style={styles.pinContainer}>
                         {renderPinDots()}
@@ -87,12 +89,12 @@ export const SetPinModal: React.FC<SetPinModalProps> = ({ visible, onClose, onSa
                     <View style={styles.buttonRow}>
                         <View style={styles.btnWrapper}>
                             <ActionOutlineButton onPress={handleCancel} style={styles.btn}>
-                                Cancel
+                                {t('common.cancel')}
                             </ActionOutlineButton>
                         </View>
                         <View style={styles.btnWrapper}>
                             <ActionFilledButton onPress={handleSave} style={styles.btn} disabled={pin.length < 4}>
-                                Save
+                                {t('common.save')}
                             </ActionFilledButton>
                         </View>
                     </View>

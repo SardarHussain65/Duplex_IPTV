@@ -3,6 +3,7 @@ import { useTab } from '@/context/TabContext';
 import { panelStyles } from '@/styles/settings_panel.styles';
 import React from 'react';
 import { findNodeHandle, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 interface SubscriptionSectionProps {
     startRef: React.RefObject<any>;
@@ -10,19 +11,20 @@ interface SubscriptionSectionProps {
 }
 
 export const SubscriptionSection: React.FC<SubscriptionSectionProps> = ({ startRef, sidebarRef }) => {
+    const { t } = useTranslation();
     const { settingsTabNode } = useTab();
     return (
         <View style={panelStyles.card}>
             <View style={[panelStyles.row, { justifyContent: 'flex-start', alignItems: 'center', gap: 12 }]}>
-                <Text style={panelStyles.cardTitle}>Monthly Plan</Text>
+                <Text style={panelStyles.cardTitle}>{t('settings.subscriptionOptions.monthlyPlan')}</Text>
                 <View style={panelStyles.badge}>
-                    <Text style={panelStyles.badgeText}>Active</Text>
+                    <Text style={panelStyles.badgeText}>{t('settings.subscriptionOptions.active')}</Text>
                 </View>
             </View>
             <View style={panelStyles.divider} />
             {[
-                ['Expires', 'Feb 28, 2026'],
-                ['Days Remaining', '21 Days'],
+                [t('settings.subscriptionOptions.expires'), 'Feb 28, 2026'],
+                [t('settings.subscriptionOptions.daysRemaining'), t('settings.subscriptionOptions.days', { count: 21 })],
             ].map(([label, val], index) => {
                 const rowRef = React.useRef(null);
                 const [handle, setHandle] = React.useState<number | undefined>(undefined);
@@ -53,7 +55,7 @@ export const SubscriptionSection: React.FC<SubscriptionSectionProps> = ({ startR
                         focusable={true}
                     >
                         <Text style={panelStyles.rowLabel}>{label}</Text>
-                        <Text style={[panelStyles.rowValue, label === 'Days Remaining' && { color: Colors.error[500] }]}>{val}</Text>
+                        <Text style={[panelStyles.rowValue, label === t('settings.subscriptionOptions.daysRemaining') && { color: Colors.error[500] }]}>{val}</Text>
                     </View>
                 );
             })}

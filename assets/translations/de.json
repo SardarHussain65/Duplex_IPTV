@@ -1,0 +1,141 @@
+{
+  "common": {
+    "home": "Startseite",
+    "liveTv": "Live-TV",
+    "movies": "Filme",
+    "series": "Serien",
+    "settings": "Einstellungen",
+    "favorites": "Favoriten",
+    "playlists": "Afspeellijsten",
+    "watchNow": "Jetzt ansehen",
+    "learnMore": "Mehr erfahren",
+    "search": "Suchen...",
+    "browseCategories": "Nach Kategorien durchsuchen",
+    "recentlyWatched": "Zuletzt gesehen",
+    "all": "Alle",
+    "ok": "OK",
+    "save": "Speichern",
+    "confirm": "Bestätigen",
+    "comingSoon": "Demnächst verfügbar..."
+  },
+  "settings": {
+    "language": "Sprache",
+    "selectLanguage": "Wählen Sie Ihre bevorzugte Anwendungssprache",
+    "cache": "Cache & Speicher",
+    "cacheSubtitle": "App-Cache und Speicher verwalten",
+    "device": "Geräteinfo",
+    "deviceSubtitle": "Gerätedetails und Kontostatus",
+    "subscription": "Abonnement",
+    "subscriptionSubtitle": "Plan- und Ablaufdetails anzeigen",
+    "playlist": "Playlist-Verwaltung",
+    "playlistSubtitle": "Wählen und verwalten Sie Ihre Playlists",
+    "parental": "Kindersicherung",
+    "parentalSubtitle": "Inhalte einschränken und PIN festlegen",
+    "watchHistory": "Verlauf",
+    "watchHistorySubtitle": "Ihren Streaming-Verlauf anzeigen",
+    "autoplay": "Autoplay-Einstellungen",
+    "autoplaySubtitle": "Wiedergabeverhalten konfigurieren",
+    "cacheOptions": {
+      "storageUsage": "Speichernutzung",
+      "imageCache": "Bild-Cache",
+      "videoCache": "Video-Cache",
+      "epgData": "EPG-Daten",
+      "appData": "App-Daten",
+      "total": "Gesamt",
+      "clearAll": "Gesamten Cache leeren"
+    },
+    "deviceOptions": {
+      "accountDetails": "Kontodetails",
+      "macAddress": "Mac-Adresse",
+      "deviceKey": "Geräteschlüssel",
+      "deviceState": "Gerätestatus",
+      "activate": "Aktivieren"
+    },
+    "subscriptionOptions": {
+      "monthlyPlan": "Monatsplan",
+      "active": "Aktiv",
+      "expires": "Läuft ab am",
+      "daysRemaining": "Verbleibende Tage",
+      "days": "{{count}} Tage"
+    },
+    "playlistOptions": {
+      "noPlaylists": "Keine Playlists für {{tab}} gefunden",
+      "changePlaylist": "Playlist ändern?",
+      "changePlaylistSub": "Beim Wechseln werden alle Inhalte neu geladen. Fortfahren?",
+      "loading": "Playlists werden geladen...",
+      "error": "Fehler beim Laden der Playlists",
+      "empty": "Keine Playlists gefunden"
+    },
+    "parentalOptions": {
+      "enable": "Kindersicherung aktivieren",
+      "enableSub": "PIN zum Zugriff auf eingeschränkte Inhalte anfordern",
+      "pinSetting": "PIN-Einstellung",
+      "currentPin": "Aktuelle PIN",
+      "changePin": "PIN ändern",
+      "setNew": "Neue PIN festlegen"
+    },
+    "historyOptions": {
+      "clearAll": "Verlauf leeren",
+      "noHistory": "Noch kein Verlauf vorhanden",
+      "noHistorySub": "Sie haben noch keine Inhalte angesehen. Beginnen Sie mit dem Ansehen, um Ihre Aktivitäten hier zu sehen."
+    },
+    "autoplayOptions": {
+      "enable": "Autoplay aktivieren",
+      "enableSub": "Nächste Episode nach Ende der aktuellen automatisch abspielen."
+    }
+  },
+  "liveTv": {
+    "whatsLive": "Was läuft",
+    "now": "jetzt!",
+    "heroSubtitle": "Springen Sie in Live-Kanäle und sehen Sie, was gerade in Nachrichten, Sport und Unterhaltung passiert.",
+    "recentlyWatched": "Zuletzt gesehen",
+    "browseCategories": "Nach Kategorien durchsuchen",
+    "channelsFound": "{{count}} Kanal gefunden",
+    "channelsFound_plural": "{{count}} Kanäle gefunden",
+    "noLiveTvFound": "Kein Live-TV gefunden",
+    "noLiveTvSubtitle": "In diesen Kategorien können wir kein Live-TV finden. Versuchen Sie eine andere Kategorie",
+    "loadingChannels": "Kanäle werden geladen..."
+  },
+  "movies": {
+    "searchPlaceholder": "Nach Filmen suchen....",
+    "loading": "Filme laden...",
+    "noMoviesFound": "Keine Filme gefunden",
+    "noMoviesSubtitle": "In diesen Kategorien können wir keinen Film finden. Versuchen Sie eine andere Kategorie"
+  },
+  "series": {
+    "searchPlaceholder": "Nach Serien suchen....",
+    "loading": "Serien laden...",
+    "noSeriesFound": "Keine Serien gefunden",
+    "noSeriesSubtitle": "In diesen Kategorien können wir keine Serien finden. Versuchen Sie eine andere Kategorie"
+  },
+  "favorites": {
+    "title": "Favoriten",
+    "emptyTitle": "Noch keine Favoriten",
+    "emptySubtitle": "Sie haben noch keine Favoriten hinzugefügt."
+  },
+  "parentalControl": {
+    "title": "Kindersicherung",
+    "emptyTitle": "Noch keine Inhalte gesperrt",
+    "emptySubtitle": "Es wurden noch keine Inhalte unter der Kindersicherung eingeschränkt.",
+    "setupTitle": "Kindersicherungs-PIN einrichten",
+    "setupSubtitle": "Um die Kindersicherung zu nutzen, müssen Sie zuerst einen PIN-Code erstellen. Öffnen Sie die Einstellungen und legen Sie Ihre PIN fest, um fortzufahren.",
+    "openSettings": "Einstellungen öffnen"
+  },
+  "enterPin": {
+    "title": "PIN eingeben, um fortzufahren",
+    "button": "Weiter",
+    "incorrect": "Falsche PIN. Bitte versuchen Sie es erneut.",
+    "failed": "Verifizierung fehlgeschlagen. Bitte versuchen Sie es erneut.",
+    "cancel": "Abbrechen"
+  },
+  "detail": {
+    "live": "Live",
+    "left": "übrig",
+    "today": "Heute",
+    "nowStreamingName": "Streamt jetzt: {{name}}",
+    "nowStreamingNameCat": "Streamt jetzt: {{name}} — {{category}}",
+    "cast": "Besetzung:",
+    "season": "Staffel",
+    "episodes": "Episoden ({{count}})"
+  }
+}

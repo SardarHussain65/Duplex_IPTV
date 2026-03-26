@@ -8,6 +8,7 @@ import { panelStyles } from '@/styles/settings_panel.styles';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { findNodeHandle, StyleSheet, Switch, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 interface ParentalControlSectionProps {
     startRef: React.RefObject<any>;
@@ -18,6 +19,7 @@ export const ParentalControlSection: React.FC<ParentalControlSectionProps> = ({
     startRef,
     sidebarRef,
 }) => {
+    const { t } = useTranslation();
     const {
         isParentalControlEnabled,
         setIsParentalControlEnabled,
@@ -64,8 +66,8 @@ export const ParentalControlSection: React.FC<ParentalControlSectionProps> = ({
                 nextFocusRight="self"
                 nextFocusUp={settingsTabNode || undefined}
                 nextFocusDown={!showPinSettings ? findNodeHandle(sidebarRef.current) || undefined : undefined}
-                title="Enable Parental Control"
-                subtitle="Require PIN to access restricted content"
+                title={t('settings.parentalOptions.enable')}
+                subtitle={t('settings.parentalOptions.enableSub')}
                 icon={
                     <View pointerEvents="none">
                         <Switch
@@ -82,8 +84,8 @@ export const ParentalControlSection: React.FC<ParentalControlSectionProps> = ({
 
             {showPinSettings && (
                 <View style={[panelStyles.card, { paddingBottom: 16 }]}>
-                    <Text style={panelStyles.cardTitle}>Pin Setting</Text>
-                    <Text style={panelStyles.rowLabel}>Current Pin</Text>
+                    <Text style={panelStyles.cardTitle}>{t('settings.parentalOptions.pinSetting')}</Text>
+                    <Text style={panelStyles.rowLabel}>{t('settings.parentalOptions.currentPin')}</Text>
                     <View style={styles.pinRow}>
                         <View style={styles.pinDisplay}>
                             <Text style={styles.pinText}>****</Text>
@@ -97,7 +99,7 @@ export const ParentalControlSection: React.FC<ParentalControlSectionProps> = ({
                             nextFocusRight="self"
                             nextFocusDown={findNodeHandle(sidebarRef.current) || undefined}
                         >
-                            Change Pin
+                            {t('settings.parentalOptions.changePin')}
                         </ActionFilledButton>
                     </View>
                 </View>
@@ -125,9 +127,6 @@ export const ParentalControlSection: React.FC<ParentalControlSectionProps> = ({
                     setEnterModalVisible(false);
                     setPendingAction(null);
                 }}
-                expectedPin={parentalPin || '0000'}
-                title="Enter Current Password"
-                buttonText="Next"
                 onSuccess={() => {
                     setEnterModalVisible(false);
                     // Since it's changing pin, show set pin modal next
@@ -135,6 +134,11 @@ export const ParentalControlSection: React.FC<ParentalControlSectionProps> = ({
                         setSetModalVisible(true);
                     }, 300); // slight delay for smooth transition
                 }}
+                onVerify={async (pin: string) => {
+                    return pin === (parentalPin || '0000');
+                }}
+                title={t('settings.parentalOptions.setNew')}
+                buttonText={t('common.next')}
             />
         </View>
     );

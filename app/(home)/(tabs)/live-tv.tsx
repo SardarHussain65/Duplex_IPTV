@@ -21,9 +21,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ActivityIndicator, FlatList, InteractionManager, ScrollView, StyleSheet, Text, View, findNodeHandle } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
+import { useTranslation } from 'react-i18next';
+
 // ── Screen ────────────────────────────────────────────────────
 
 export default function LiveTVScreen() {
+    const { t } = useTranslation();
     const router = useRouter();
     const { setIsScrolled, setSearchBarNode, settingsTabNode, searchBarNode } = useTab();
     const { isCategoryLocked, lockCategory, unlockCategory, renameCategory, getCategoryLabel } = useCategoryManagement();
@@ -221,12 +224,11 @@ export default function LiveTVScreen() {
             <View style={styles.heroContainer}>
                 <View style={styles.heroOverlay}>
                     <Text style={styles.heroTitle}>
-                        What's Live{' '}
-                        <Text style={{ color: Colors.secondary[900] }}>Now!</Text>
+                        {t('liveTv.whatsLive')}{' '}
+                        <Text style={{ color: Colors.secondary[900] }}>{t('liveTv.now')}</Text>
                     </Text>
                     <Text style={styles.heroSubtitle}>
-                        Jump into live channels and see what's happening right now across
-                        news, sports, and entertainment.
+                        {t('liveTv.heroSubtitle')}
                     </Text>
                 </View>
                 <View style={styles.heroImageWrapper}>
@@ -253,7 +255,7 @@ export default function LiveTVScreen() {
             {/* ── Recently Watched ── */}
             {recentlyWatched.length > 0 && (
                 <View style={{ marginBottom: xdHeight(32) }}>
-                    <Text style={styles.sectionTitle}>Recently Watched</Text>
+                    <Text style={styles.sectionTitle}>{t('liveTv.recentlyWatched')}</Text>
                     <ScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
@@ -291,7 +293,7 @@ export default function LiveTVScreen() {
 
 
             {/* Category Filter */}
-            <Text style={styles.sectionTitle}>Browse by Categories</Text>
+            <Text style={styles.sectionTitle}>{t('liveTv.browseCategories')}</Text>
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -322,7 +324,7 @@ export default function LiveTVScreen() {
 
             {/* Channel Count */}
             <Text style={styles.channelCount}>
-                {filteredChannels.length} channel{filteredChannels.length !== 1 ? 's' : ''} found
+                {t('liveTv.channelsFound', { count: filteredChannels.length })}
             </Text>
 
         </View>
@@ -344,7 +346,7 @@ export default function LiveTVScreen() {
         return (
             <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
                 <ActivityIndicator size="large" color={Colors.primary[500]} />
-                <Text style={{ color: Colors.gray[400], marginTop: xdHeight(16) }}>Loading Channels...</Text>
+                <Text style={{ color: Colors.gray[400], marginTop: xdHeight(16) }}>{t('liveTv.loadingChannels')}</Text>
             </View>
         );
     }
@@ -387,8 +389,8 @@ export default function LiveTVScreen() {
                     ) : (
                         <EmptyState
                             icon="television"
-                            title="No Live TV Found"
-                            subtitle="On this categories we can't find any live tv. Try another category"
+                            title={t('liveTv.noLiveTvFound')}
+                            subtitle={t('liveTv.noLiveTvSubtitle')}
                         />
                     )
                 }

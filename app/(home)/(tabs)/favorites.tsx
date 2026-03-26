@@ -8,12 +8,12 @@ import { FavoriteItem, FavoriteType } from '@/types';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { FlatList, StyleSheet, Text, View, findNodeHandle } from 'react-native';
-
-
+import { useTranslation } from 'react-i18next';
 
 // ── Screen ────────────────────────────────────────────────────
 
 export default function FavoritesScreen() {
+    const { t } = useTranslation();
     const router = useRouter();
     const { setIsScrolled } = useTab();
     const [activeTab, setActiveTab] = useState<FavoriteType>('Live TV');
@@ -156,9 +156,14 @@ export default function FavoritesScreen() {
     };
 
     const renderCategoryLabel = (cat: FavoriteType) => {
+        const labelMap: Record<FavoriteType, string> = {
+            'Live TV': t('common.liveTv'),
+            'Movies': t('common.movies'),
+            'Series': t('common.series')
+        };
         return (
             <Text>
-                {cat}
+                {labelMap[cat] || cat}
                 <Text style={{ opacity: 0.6, fontSize: scale(12) }}> {`(${getCount(cat)})`}</Text>
             </Text>
         );
@@ -167,7 +172,7 @@ export default function FavoritesScreen() {
     const renderHeader = () => (
         <View style={styles.headerContainer}>
             {/* Page Title */}
-            <Text style={styles.pageTitle}>Favorites</Text>
+            <Text style={styles.pageTitle}>{t('favorites.title')}</Text>
 
             {/* Category Filter */}
             <View style={styles.categoryRow}>
@@ -215,8 +220,8 @@ export default function FavoritesScreen() {
                 ListEmptyComponent={
                     <EmptyState
                         icon="heart-outline"
-                        title="No Favorites Yet"
-                        subtitle="You haven't added any to your favorites."
+                        title={t('favorites.emptyTitle')}
+                        subtitle={t('favorites.emptySubtitle')}
                         style={styles.emptyState}
                     />
                 }
