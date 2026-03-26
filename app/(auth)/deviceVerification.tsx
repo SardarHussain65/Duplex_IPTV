@@ -20,6 +20,9 @@ const INITIAL_STEPS: SyncStep[] = [
     { id: "prepare", label: "Preparing home screen...", status: "pending" },
 ];
 
+
+//I have make somme changes for just testing purposes
+
 const DeviceVerification = () => {
     const router = useRouter();
     const [steps, setSteps] = useState<SyncStep[]>(INITIAL_STEPS);
