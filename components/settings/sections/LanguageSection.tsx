@@ -55,6 +55,20 @@ export const LanguageSection: React.FC<LanguageSectionProps> = ({
                 onPress={() => onSelect('German')}
                 testID="lang-de"
             />
+            <SettingCard
+                nextFocusLeft={findNodeHandle(sidebarRef.current) || undefined}
+                nextFocusRight="self"
+                nextFocusUp={settingsTabNode || undefined}
+                nextFocusDown={findNodeHandle(sidebarRef.current) || undefined}
+                icon={selected === 'Spanish' ? <MaterialCommunityIcons name="check" size={20} color={Colors.gray[100]} /> : null}
+                iconPosition="right"
+                title="Spanish"
+                subtitle="Spanish"
+                style={panelStyles.languageCard}
+                isActive={selected === 'Spanish'}
+                onPress={() => onSelect('Spanish')}
+                testID="lang-es"
+            />
         </View>
     );
 };
