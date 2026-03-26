@@ -17,9 +17,10 @@ import { useCategoryManagement } from '@/context/CategoryManagementContext';
 import { Movie } from '@/types';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     FlatList,
+    InteractionManager,
     ScrollView,
     StyleSheet,
     Text,
@@ -127,7 +128,7 @@ export default function MoviesScreen() {
     const movieRefs = useRef<Record<number, any>>({});
 
     useEffect(() => {
-        const timer = setTimeout(() => {
+        const task = InteractionManager.runAfterInteractions(() => {
             if (searchRef.current) {
                 const node = findNodeHandle(searchRef.current);
                 if (node) setSearchBarNode(node);
@@ -153,26 +154,26 @@ export default function MoviesScreen() {
             });
             setMovieNodes(newNodes);
             if (firstNode) setFirstMovieNode(firstNode);
-        }, 1200);
-        return () => clearTimeout(timer);
+        });
+        return () => task.cancel();
     }, [activeCategory, filteredMovies]);
 
-    const handleCategoryLongPress = (category: string) => {
+    const handleCategoryLongPress = useCallback((category: string) => {
         setCategoryToManage(category);
         setManageModalVisible(true);
-    };
+    }, []);
 
-    const handleLockToggle = () => {
+    const handleLockToggle = useCallback(() => {
         setManageModalVisible(false);
         setPinModalVisible(true);
-    };
+    }, []);
 
-    const handleRenamePress = () => {
+    const handleRenamePress = useCallback(() => {
         setManageModalVisible(false);
         setRenameModalVisible(true);
-    };
+    }, []);
 
-    const handlePinSuccess = () => {
+    const handlePinSuccess = useCallback(() => {
         if (categoryToManage) {
             if (isCategoryLocked(categoryToManage)) {
                 unlockCategory(categoryToManage);
@@ -181,37 +182,30 @@ export default function MoviesScreen() {
             }
         }
         setPinModalVisible(false);
-    };
+    }, [categoryToManage, isCategoryLocked, lockCategory, unlockCategory]);
 
-    const handleRenameSave = (newName: string) => {
+    const handleRenameSave = useCallback((newName: string) => {
         if (categoryToManage) {
             renameCategory(categoryToManage, newName);
         }
         setRenameModalVisible(false);
-    };
+    }, [categoryToManage, renameCategory]);
 
-    const renderMovieItem = ({ item, index }: { item: Movie; index: number }) => {
-        const isRowEnd = index % 6 === 5;
-
-        return (
-            <PosterCard
-                innerRef={(ref) => { if (ref) movieRefs.current[index] = ref; }}
-                image={item.image}
-                title={item.title}
-                subtitle={item.duration}
-                width={xdWidth(132)}
-                onPress={() => handleMoviePress(item)}
-                style={styles.cardSpacing}
-                // Up navigation: first row goes to categories
-                nextFocusUp={index < 6 ? lastCategoryNode : movieNodes[index - 6]}
-                nextFocusDown={movieNodes[index + 6]}
-                // Left navigation: ONLY index 0 wraps back to category menu
-                nextFocusLeft={index === 0 ? lastCategoryNode : movieNodes[index - 1]}
-                // Right navigation: wrap row-by-row
-                nextFocusRight={index === filteredMovies.length - 1 ? undefined : movieNodes[index + 1]}
-            />
-        );
-    };
+    const renderMovieItem = useCallback(({ item, index }: { item: Movie; index: number }) => (
+        <PosterCard
+            innerRef={(ref) => { if (ref) movieRefs.current[index] = ref; }}
+            image={item.image}
+            title={item.title}
+            subtitle={item.duration}
+            width={xdWidth(132)}
+            onPress={() => handleMoviePress(item)}
+            style={styles.cardSpacing}
+            nextFocusUp={index < 6 ? lastCategoryNode : movieNodes[index - 6]}
+            nextFocusDown={movieNodes[index + 6]}
+            nextFocusLeft={index === 0 ? lastCategoryNode : movieNodes[index - 1]}
+            nextFocusRight={index === filteredMovies.length - 1 ? undefined : movieNodes[index + 1]}
+        />
+    ), [handleMoviePress, lastCategoryNode, movieNodes, filteredMovies.length]);
 
     const renderHeader = () => (
         <View style={styles.headerContainer}>
@@ -353,6 +347,15 @@ export default function MoviesScreen() {
         </View>
     );
 
+    // Memoized header — stable reference prevents full header reconciliation on every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const listHeader = useMemo(() => renderHeader(), [
+        currentHero, heroIndex, recentlyWatched, handleMoviePress, inputValue,
+        settingsTabNode, categoryAllNode, searchBarNode, categories, activeCategory,
+        firstMovieNode, isCategoryLocked, getCategoryLabel, handleCategoryLongPress,
+        filteredMovies.length,
+    ]);
+
     const isCurrentCategoryLocked = activeCategory !== 'All' && isCategoryLocked(activeCategory);
 
     if (isLoading) {
@@ -370,8 +373,8 @@ export default function MoviesScreen() {
                 key="movies-grid"
                 data={isCurrentCategoryLocked ? [] : filteredMovies}
                 keyExtractor={(item) => item.id}
-                ListHeaderComponent={renderHeader()}
-                renderItem={(props) => renderMovieItem({ ...props })}
+                ListHeaderComponent={listHeader}
+                renderItem={renderMovieItem}
                 numColumns={6}
                 contentContainerStyle={[styles.content, styles.gridContainer, { flexGrow: 1 }]}
                 columnWrapperStyle={filteredMovies.length > 1 ? { gap: xdWidth(12) } : undefined}

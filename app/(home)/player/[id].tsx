@@ -12,16 +12,17 @@ import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useTab } from '@/context/TabContext';
 import { useStreamUrl } from '@/lib/api/hooks/useStreamUrl';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Slider from '@react-native-community/slider';
 import { ResizeMode, Video } from 'expo-av';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+    ActivityIndicator,
     Animated,
     FlatList,
-    LayoutChangeEvent,
-    PanResponder,
     StyleSheet,
     Text,
+    useTVEventHandler,
     View
 } from 'react-native';
 
@@ -75,13 +76,54 @@ export default function VideoPlayerScreen() {
     const [isPlaying, setIsPlaying] = useState(true);
     const [isFavorite, setIsFavorite] = useState(false);
     const [isLocked, setIsLocked] = useState(false);
-    const [progress, setProgress] = useState(0.42); // 0-1
+    const [progress, setProgress] = useState(0); // 0-1
     const [viewMode, setViewMode] = useState<ViewMode>('normal');
     const [settingsPanel, setSettingsPanel] = useState<SettingsPanel>('main');
     const [selectedCaption, setSelectedCaption] = useState('Off');
     const [selectedLanguage, setSelectedLanguage] = useState('German');
     const [currentEpisodeIndex, setCurrentEpisodeIndex] = useState(0);
     const episodes = generateEpisodes();
+
+    // ── Controls Visibility logic ──────────────────────────────
+    const [showControls, setShowControls] = useState(true);
+    const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pauseButtonRef = useRef<any>(null);
+
+    const resetControlsTimer = useCallback(() => {
+        setShowControls(true);
+        if (controlsTimeoutRef.current) {
+            clearTimeout(controlsTimeoutRef.current);
+        }
+        controlsTimeoutRef.current = setTimeout(() => {
+            setShowControls(false);
+        }, 3000);
+    }, []);
+
+    // Handle TV interactions
+    useTVEventHandler((evt) => {
+        if (evt && evt.eventType !== 'blur' && evt.eventType !== 'focus') {
+            resetControlsTimer();
+        }
+    });
+
+    useEffect(() => {
+        resetControlsTimer(); // Initial show
+        return () => {
+            if (controlsTimeoutRef.current) {
+                clearTimeout(controlsTimeoutRef.current);
+            }
+        };
+    }, [resetControlsTimer]);
+
+    // Handle focus when controls are shown
+    useEffect(() => {
+        if (showControls && pauseButtonRef.current) {
+            const timer = setTimeout(() => {
+                pauseButtonRef.current?.setNativeProps({ hasTVPreferredFocus: true });
+            }, 100);
+            return () => clearTimeout(timer);
+        }
+    }, [showControls]);
 
     // Shrink animation for video
     const shrinkAnim = useRef(new Animated.Value(0)).current;
@@ -97,49 +139,37 @@ export default function VideoPlayerScreen() {
     const videoRef = useRef<Video>(null);
     const [videoDurationMs, setVideoDurationMs] = useState(0);
     const [currentTimeMs, setCurrentTimeMs] = useState(0);
-    const [isSeeking, setIsSeeking] = useState(false);
-    const [progressBarWidth, setProgressBarWidth] = useState(0);
 
-    const onPlaybackStatusUpdate = (status: any) => {
-        if (!status.isLoaded) return;
+    // Refs so seek callbacks always read current values (avoids stale closure)
+    const videoDurationMsRef = useRef(0);
+    const isSeekingRef = useRef(false);
 
-        if (!isSeeking) {
-            setVideoDurationMs(status.durationMillis || 0);
-            setCurrentTimeMs(status.positionMillis || 0);
-            setProgress(status.positionMillis / (status.durationMillis || 1));
+    // true until first playback status arrives; also true while buffering after seek
+    const [isBuffering, setIsBuffering] = useState(true);
+    // mirrors actual playback state from expo-av (separate from the shouldPlay prop)
+    const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+
+    const onPlaybackStatusUpdate = useCallback((status: any) => {
+        if (!status.isLoaded) {
+            // Still loading the source — keep spinner
+            return;
         }
-    };
+        setIsBuffering(!!status.isBuffering);
+        setIsVideoPlaying(!!status.isPlaying);
+        if (!isSeekingRef.current) {
+            const dur = status.durationMillis || 0;
+            const pos = status.positionMillis || 0;
+            videoDurationMsRef.current = dur;
+            setVideoDurationMs(dur);
+            setCurrentTimeMs(pos);
+            setProgress(pos / (dur || 1));
+        }
+    }, []);
 
     const handleSeek = async (newProgress: number) => {
         if (videoRef.current) {
-            const seekPosition = newProgress * videoDurationMs;
-            await videoRef.current.setPositionAsync(seekPosition);
+            await videoRef.current.setPositionAsync(newProgress * videoDurationMsRef.current);
         }
-    };
-
-    const panResponder = useRef(
-        PanResponder.create({
-            onStartShouldSetPanResponder: () => true,
-            onMoveShouldSetPanResponder: () => true,
-            onPanResponderGrant: () => {
-                setIsSeeking(true);
-            },
-            onPanResponderMove: (_, gestureState) => {
-                // Calculation relative to full screen width if needed, but better to use layout
-                const newProgress = Math.max(0, Math.min(1, gestureState.moveX / progressBarWidth));
-                setProgress(newProgress);
-                setCurrentTimeMs(newProgress * videoDurationMs);
-            },
-            onPanResponderRelease: async (_, gestureState) => {
-                const newProgress = Math.max(0, Math.min(1, gestureState.moveX / progressBarWidth));
-                await handleSeek(newProgress);
-                setIsSeeking(false);
-            },
-        })
-    ).current;
-
-    const onProgressBarLayout = (event: LayoutChangeEvent) => {
-        setProgressBarWidth(event.nativeEvent.layout.width);
     };
 
     // Time formatting
@@ -192,6 +222,14 @@ export default function VideoPlayerScreen() {
         }
     };
 
+    // ── Player cleanup ────────────────────────────────────────
+    // Unload the stream on unmount to stop HLS buffering and free memory.
+    useEffect(() => {
+        return () => {
+            videoRef.current?.unloadAsync().catch(() => null);
+        };
+    }, []);
+
     const { data: streamUrl, isLoading: isStreamLoading } = useStreamUrl(
         params.streamHash || null,
         true
@@ -204,14 +242,14 @@ export default function VideoPlayerScreen() {
             ? null // Wait for fetch
             : { uri: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' };
 
-    const handleSelectEpisode = (episodeIndex: number) => {
+    const handleSelectEpisode = useCallback((episodeIndex: number) => {
         setCurrentEpisodeIndex(episodeIndex);
         setProgress(0);
         setIsPlaying(true);
         setViewMode('normal');
-    };
+    }, []);
 
-    const renderEpisodeItem = ({ item, index }: { item: Episode, index: number }) => (
+    const renderEpisodeItem = useCallback(({ item, index }: { item: Episode, index: number }) => (
         <EpisodeCard
             key={item.id}
             variant="mini"
@@ -224,7 +262,7 @@ export default function VideoPlayerScreen() {
             isPlaying={index === currentEpisodeIndex}
             onPress={() => handleSelectEpisode(index)}
         />
-    );
+    ), [currentEpisodeIndex, handleSelectEpisode]);
 
     const { setParentalModalVisible } = useTab();
 
@@ -261,6 +299,8 @@ export default function VideoPlayerScreen() {
                                 isLooping
                                 useNativeControls={false}
                                 onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+                            // bufferConfig is only supported by react-native-video (not expo-av).
+                            // TODO: add low-latency buffer tuning when migrating to react-native-video.
                             />
                         )}
                         {!videoSource && (
@@ -268,10 +308,24 @@ export default function VideoPlayerScreen() {
                                 <Text style={{ color: '#fff' }}>{isStreamLoading ? 'Loading Stream...' : 'No Stream Available'}</Text>
                             </View>
                         )}
+                        {/* Spinner: only when genuinely stuck (buffering but NOT playing).
+                             HLS streams set isBuffering=true even while playing normally
+                             (continuous look-ahead). We filter that out with !isVideoPlaying. */}
+                        {(isStreamLoading || (isBuffering && !isVideoPlaying)) && (
+                            <View style={styles.loadingOverlay}>
+                                <ActivityIndicator size="large" color="#E0334C" />
+                            </View>
+                        )}
+
                         <View style={styles.vignette} />
 
-                        {/* Controls (only show in normal mode or as mini controls) */}
-                        <View style={styles.overlayControls}>
+                        {/* Controls (only show in normal mode) */}
+                        <View
+                            style={[
+                                styles.overlayControls,
+                                !showControls && { opacity: 0, pointerEvents: 'none' }
+                            ]}
+                        >
                             {/* Top Info */}
                             <View style={styles.topInfo}>
                                 <Text style={styles.videoTitle}>{title}</Text>
@@ -283,14 +337,25 @@ export default function VideoPlayerScreen() {
                             {/* Bottom controls */}
                             <View style={styles.controlsBar}>
                                 <View style={styles.progressRow}>
-                                    <View
-                                        style={styles.progressBg}
-                                        onLayout={onProgressBarLayout}
-                                        {...panResponder.panHandlers}
-                                    >
-                                        <View style={[styles.progressFill, { width: `${progress * 100}%` as any }]} />
-                                        <View style={[styles.progressKnob, { left: `${progress * 100}%` as any }]} />
-                                    </View>
+                                    <Slider
+                                        style={styles.slider}
+                                        value={progress}
+                                        minimumValue={0}
+                                        maximumValue={1}
+                                        step={0.001}
+                                        minimumTrackTintColor="#E0334C"
+                                        maximumTrackTintColor="rgba(255,255,255,0.2)"
+                                        thumbTintColor="#E0334C"
+                                        onSlidingStart={() => { isSeekingRef.current = true; }}
+                                        onValueChange={(val) => {
+                                            setProgress(val);
+                                            setCurrentTimeMs(val * videoDurationMsRef.current);
+                                        }}
+                                        onSlidingComplete={async (val) => {
+                                            await handleSeek(val);
+                                            isSeekingRef.current = false;
+                                        }}
+                                    />
                                     <Text style={styles.timeLabel}>{currentFmt} / {totalFmt}</Text>
                                 </View>
 
@@ -302,9 +367,11 @@ export default function VideoPlayerScreen() {
                                             disabled={isSeries && currentEpisodeIndex === 0}
                                         />
                                         <NavIconButton
+                                            innerRef={pauseButtonRef}
                                             icon={<MaterialCommunityIcons name={isPlaying ? 'pause' : 'play'} size={scale(24)} />}
                                             onPress={() => setIsPlaying(!isPlaying)}
                                             style={styles.playBtn}
+                                            hasTVPreferredFocus={showControls}
                                         />
                                         <NavIconButton
                                             icon={<MaterialCommunityIcons name="skip-next" size={scale(24)} />}
@@ -451,6 +518,13 @@ const styles = StyleSheet.create({
     videoBg: {
         ...StyleSheet.absoluteFillObject,
     },
+    loadingOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10,
+    },
     vignette: {
         ...StyleSheet.absoluteFillObject,
         backgroundColor: 'rgba(0,0,0,0.4)',
@@ -481,26 +555,9 @@ const styles = StyleSheet.create({
         gap: 12,
         marginBottom: 16,
     },
-    progressBg: {
+    slider: {
         flex: 1,
-        height: 6,
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        borderRadius: 3,
-        position: 'relative',
-    },
-    progressFill: {
-        height: '100%',
-        backgroundColor: '#E0334C',
-        borderRadius: 3,
-    },
-    progressKnob: {
-        position: 'absolute',
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-        backgroundColor: '#E0334C',
-        top: -3,
-        marginLeft: -6,
+        height: 40,        // tall enough for comfortable touch/D-pad target
     },
     timeLabel: {
         fontSize: scale(11),

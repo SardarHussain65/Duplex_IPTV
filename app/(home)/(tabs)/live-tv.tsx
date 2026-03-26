@@ -17,8 +17,8 @@ import { useDeviceStore } from '@/lib/store/useDeviceStore';
 import { Channel } from '@/types';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, View, findNodeHandle } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, FlatList, InteractionManager, ScrollView, StyleSheet, Text, View, findNodeHandle } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 // ── Screen ────────────────────────────────────────────────────
@@ -104,7 +104,9 @@ export default function LiveTVScreen() {
     }, [activeCategory, channels]);
 
     useEffect(() => {
-        const timer = setTimeout(() => {
+        // Use InteractionManager to defer node-handle resolution until after
+        // animations and interactions settle — avoids magic setTimeout delays.
+        const task = InteractionManager.runAfterInteractions(() => {
             if (searchRef.current) {
                 const node = findNodeHandle(searchRef.current);
                 if (node) setSearchBarNode(node);
@@ -118,7 +120,7 @@ export default function LiveTVScreen() {
                 if (node) setLastCategoryNode(node);
             }
 
-            // Map the first 24 channel nodes for row wrapping
+            // Map channel nodes for TV remote row-wrapping navigation
             const newNodes: Record<number, number> = {};
             let firstNode: number | undefined = undefined;
 
@@ -134,15 +136,15 @@ export default function LiveTVScreen() {
 
             setChannelNodes(newNodes);
             if (firstNode) setFirstChannelNode(firstNode);
-        }, 1200); // Increased delay for better stability in list rendering
-        return () => clearTimeout(timer);
-    }, [activeCategory, filteredChannels]); // Added filteredChannels to dependency to re-resolve if list changes
+        });
+        return () => task.cancel();
+    }, [activeCategory, filteredChannels]);
 
     useEffect(() => {
         return () => setIsScrolled(false);
     }, [setIsScrolled]);
 
-    const handleChannelPress = (channel: Channel) => {
+    const handleChannelPress = useCallback((channel: Channel) => {
         router.push({
             pathname: '/channel/[id]',
             params: {
@@ -153,29 +155,29 @@ export default function LiveTVScreen() {
                 streamHash: channel.streamHash,
             },
         });
-    };
+    }, [router]);
 
-    const handleScroll = (event: any) => {
+    const handleScroll = useCallback((event: any) => {
         const offsetY = event.nativeEvent.contentOffset.y;
         setIsScrolled(offsetY > xdHeight(60));
-    };
+    }, [setIsScrolled]);
 
-    const handleCategoryLongPress = (category: string) => {
+    const handleCategoryLongPress = useCallback((category: string) => {
         setCategoryToManage(category);
         setManageModalVisible(true);
-    };
+    }, []);
 
-    const handleLockToggle = () => {
+    const handleLockToggle = useCallback(() => {
         setManageModalVisible(false);
         setPinModalVisible(true);
-    };
+    }, []);
 
-    const handleRenamePress = () => {
+    const handleRenamePress = useCallback(() => {
         setManageModalVisible(false);
         setRenameModalVisible(true);
-    };
+    }, []);
 
-    const handlePinSuccess = () => {
+    const handlePinSuccess = useCallback(() => {
         if (categoryToManage) {
             if (isCategoryLocked(categoryToManage)) {
                 unlockCategory(categoryToManage);
@@ -184,44 +186,34 @@ export default function LiveTVScreen() {
             }
         }
         setPinModalVisible(false);
-    };
+    }, [categoryToManage, isCategoryLocked, lockCategory, unlockCategory]);
 
-    const handleRenameSave = (newName: string) => {
+    const handleRenameSave = useCallback((newName: string) => {
         if (categoryToManage) {
             renameCategory(categoryToManage, newName);
         }
         setRenameModalVisible(false);
-    };
+    }, [categoryToManage, renameCategory]);
 
-    const renderChannel = ({ item, index }: { item: Channel; index: number }) => {
-        const isRowStart = index % 4 === 0;
-        const isRowEnd = index % 4 === 3;
-
-        return (
-            <BackdropCard
-                innerRef={(ref) => {
-                    if (ref) channelRefs.current[index] = ref;
-                    else delete channelRefs.current[index];
-                }}
-                title={item.name}
-                subtitle={item.category}
-                image={{ uri: item.image }}
-                width={xdWidth(160)}
-                height={xdHeight(90)}
-                style={styles.cardSpacing}
-                onPress={() => handleChannelPress(item)}
-                // Up navigation: first row goes to categories, others go to previous row item
-                nextFocusUp={index < 5 ? lastCategoryNode : channelNodes[index - 5]}
-                // Down navigation: explicitly point to next row item if available
-                nextFocusDown={channelNodes[index + 5]}
-                // Left navigation: ONLY the very first item wraps back to category menu.
-                // Others go to the previous item, which implicitly handles row wrapping.
-                nextFocusLeft={index === 0 ? lastCategoryNode : channelNodes[index - 1]}
-                // Right navigation: last item of row wraps to first item of next row
-                nextFocusRight={index === filteredChannels.length - 1 ? undefined : channelNodes[index + 1]}
-            />
-        );
-    };
+    const renderChannel = useCallback(({ item, index }: { item: Channel; index: number }) => (
+        <BackdropCard
+            innerRef={(ref) => {
+                if (ref) channelRefs.current[index] = ref;
+                else delete channelRefs.current[index];
+            }}
+            title={item.name}
+            subtitle={item.category}
+            image={{ uri: item.image }}
+            width={xdWidth(160)}
+            height={xdHeight(90)}
+            style={styles.cardSpacing}
+            onPress={() => handleChannelPress(item)}
+            nextFocusUp={index < 5 ? lastCategoryNode : channelNodes[index - 5]}
+            nextFocusDown={channelNodes[index + 5]}
+            nextFocusLeft={index === 0 ? lastCategoryNode : channelNodes[index - 1]}
+            nextFocusRight={index === filteredChannels.length - 1 ? undefined : channelNodes[index + 1]}
+        />
+    ), [handleChannelPress, lastCategoryNode, channelNodes, filteredChannels.length]);
 
     const renderHeader = () => (
         <View style={styles.headerContainer}>
@@ -336,6 +328,16 @@ export default function LiveTVScreen() {
         </View>
     );
 
+    // Memoized header element — prevents the entire header tree from being
+    // recreated on every render. Deps cover everything renderHeader reads.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const listHeader = useMemo(() => renderHeader(), [
+        recentlyWatched, handleChannelPress, inputValue, settingsTabNode,
+        categoryAllNode, searchBarNode, categories, activeCategory,
+        firstChannelNode, isCategoryLocked, getCategoryLabel,
+        handleCategoryLongPress, filteredChannels.length,
+    ]);
+
     const isCurrentCategoryLocked = activeCategory !== 'All' && isCategoryLocked(activeCategory);
 
     if (isLoading) {
@@ -354,8 +356,8 @@ export default function LiveTVScreen() {
                 data={isCurrentCategoryLocked ? [] : filteredChannels}
                 contentContainerStyle={[styles.content, styles.gridContainer, { flexGrow: 1 }]}
                 keyExtractor={(item) => item.id}
-                ListHeaderComponent={renderHeader()}
-                renderItem={(props) => renderChannel({ ...props })}
+                ListHeaderComponent={listHeader}
+                renderItem={renderChannel}
                 numColumns={5}
                 columnWrapperStyle={filteredChannels.length > 1 ? { gap: xdWidth(16) } : null}
                 onScroll={handleScroll}

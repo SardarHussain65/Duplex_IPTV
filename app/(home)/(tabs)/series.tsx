@@ -17,9 +17,10 @@ import { useCategoryManagement } from '@/context/CategoryManagementContext';
 import { Series } from '@/types';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     FlatList,
+    InteractionManager,
     ScrollView,
     StyleSheet,
     Text,
@@ -127,7 +128,7 @@ export default function SeriesScreen() {
     const seriesRefs = useRef<Record<number, any>>({});
 
     useEffect(() => {
-        const timer = setTimeout(() => {
+        const task = InteractionManager.runAfterInteractions(() => {
             if (searchRef.current) {
                 const node = findNodeHandle(searchRef.current);
                 if (node) setSearchBarNode(node);
@@ -153,26 +154,26 @@ export default function SeriesScreen() {
             });
             setSeriesNodes(newNodes);
             if (firstNode) setFirstSeriesNode(firstNode);
-        }, 1200);
-        return () => clearTimeout(timer);
+        });
+        return () => task.cancel();
     }, [activeCategory, filteredSeries]);
 
-    const handleCategoryLongPress = (category: string) => {
+    const handleCategoryLongPress = useCallback((category: string) => {
         setCategoryToManage(category);
         setManageModalVisible(true);
-    };
+    }, []);
 
-    const handleLockToggle = () => {
+    const handleLockToggle = useCallback(() => {
         setManageModalVisible(false);
         setPinModalVisible(true);
-    };
+    }, []);
 
-    const handleRenamePress = () => {
+    const handleRenamePress = useCallback(() => {
         setManageModalVisible(false);
         setRenameModalVisible(true);
-    };
+    }, []);
 
-    const handlePinSuccess = () => {
+    const handlePinSuccess = useCallback(() => {
         if (categoryToManage) {
             if (isCategoryLocked(categoryToManage)) {
                 unlockCategory(categoryToManage);
@@ -181,37 +182,30 @@ export default function SeriesScreen() {
             }
         }
         setPinModalVisible(false);
-    };
+    }, [categoryToManage, isCategoryLocked, lockCategory, unlockCategory]);
 
-    const handleRenameSave = (newName: string) => {
+    const handleRenameSave = useCallback((newName: string) => {
         if (categoryToManage) {
             renameCategory(categoryToManage, newName);
         }
         setRenameModalVisible(false);
-    };
+    }, [categoryToManage, renameCategory]);
 
-    const renderSeriesItem = ({ item, index }: { item: Series; index: number }) => {
-        const isRowEnd = index % 6 === 5;
-
-        return (
-            <PosterCard
-                innerRef={(ref) => { if (ref) seriesRefs.current[index] = ref; }}
-                image={item.image}
-                title={item.title}
-                subtitle={item.season}
-                width={xdWidth(132)}
-                onPress={() => handleSeriesPress(item)}
-                style={styles.cardSpacing}
-                // Up navigation: first row goes to categories
-                nextFocusUp={index < 6 ? lastCategoryNode : seriesNodes[index - 6]}
-                nextFocusDown={seriesNodes[index + 6]}
-                // Left navigation: ONLY index 0 wraps back to category menu
-                nextFocusLeft={index === 0 ? lastCategoryNode : seriesNodes[index - 1]}
-                // Right navigation: wrap row-by-row
-                nextFocusRight={index === filteredSeries.length - 1 ? undefined : seriesNodes[index + 1]}
-            />
-        );
-    };
+    const renderSeriesItem = useCallback(({ item, index }: { item: Series; index: number }) => (
+        <PosterCard
+            innerRef={(ref) => { if (ref) seriesRefs.current[index] = ref; }}
+            image={item.image}
+            title={item.title}
+            subtitle={item.season}
+            width={xdWidth(132)}
+            onPress={() => handleSeriesPress(item)}
+            style={styles.cardSpacing}
+            nextFocusUp={index < 6 ? lastCategoryNode : seriesNodes[index - 6]}
+            nextFocusDown={seriesNodes[index + 6]}
+            nextFocusLeft={index === 0 ? lastCategoryNode : seriesNodes[index - 1]}
+            nextFocusRight={index === filteredSeries.length - 1 ? undefined : seriesNodes[index + 1]}
+        />
+    ), [handleSeriesPress, lastCategoryNode, seriesNodes, filteredSeries.length]);
 
     const renderHeader = () => (
         <View style={styles.headerContainer}>
@@ -353,6 +347,15 @@ export default function SeriesScreen() {
         </View>
     );
 
+    // Memoized header — stable reference prevents full header reconciliation on every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const listHeader = useMemo(() => renderHeader(), [
+        currentHero, heroIndex, recentlyWatched, handleSeriesPress, inputValue,
+        settingsTabNode, categoryAllNode, searchBarNode, categories, activeCategory,
+        firstSeriesNode, isCategoryLocked, getCategoryLabel, handleCategoryLongPress,
+        filteredSeries.length,
+    ]);
+
     const isCurrentCategoryLocked = activeCategory !== 'All' && isCategoryLocked(activeCategory);
 
     if (isLoading) {
@@ -371,8 +374,8 @@ export default function SeriesScreen() {
                 key="series-grid"
                 data={isCurrentCategoryLocked ? [] : filteredSeries}
                 keyExtractor={(item) => item.id}
-                ListHeaderComponent={renderHeader()}
-                renderItem={(props) => renderSeriesItem({ ...props })}
+                ListHeaderComponent={listHeader}
+                renderItem={renderSeriesItem}
                 numColumns={6}
                 contentContainerStyle={[styles.content, styles.gridContainer, { flexGrow: 1 }]}
                 columnWrapperStyle={filteredSeries.length > 1 ? { gap: xdWidth(12) } : undefined}
