@@ -1,10 +1,3 @@
-/**
- * ─────────────────────────────────────────────────────────────
- *  DUPLEX IPTV — Video Player Screen
- *  Full-screen player with controls, progress bar & settings
- * ─────────────────────────────────────────────────────────────
- */
-
 import { NavIconButton } from '@/components/ui';
 import { EpisodeCard } from '@/components/ui/cards/EpisodeCard';
 import { SettingCard } from '@/components/ui/cards/SettingCard';
@@ -13,8 +6,8 @@ import { useTab } from '@/context/TabContext';
 import { useStreamUrl } from '@/lib/api/hooks/useStreamUrl';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
-import { ResizeMode, Video } from 'expo-av';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
@@ -72,8 +65,7 @@ export default function VideoPlayerScreen() {
     const image = params.image ?? '';
     const isSeries = params.isSeries === 'true';
 
-    // ── Player state ──────────────────────────────────────────
-    const [isPlaying, setIsPlaying] = useState(true);
+    // ── UI state ──────────────────────────────────────────
     const [isFavorite, setIsFavorite] = useState(false);
     const [isLocked, setIsLocked] = useState(false);
     const [progress, setProgress] = useState(0); // 0-1
@@ -96,7 +88,7 @@ export default function VideoPlayerScreen() {
         }
         controlsTimeoutRef.current = setTimeout(() => {
             setShowControls(false);
-        }, 3000);
+        }, 5000);
     }, []);
 
     // Handle TV interactions
@@ -136,40 +128,56 @@ export default function VideoPlayerScreen() {
         }).start();
     }, [viewMode]);
 
-    const videoRef = useRef<Video>(null);
-    const [videoDurationMs, setVideoDurationMs] = useState(0);
-    const [currentTimeMs, setCurrentTimeMs] = useState(0);
+    // ── expo-video logic ──────────────────────────────────────
+    const { data: streamUrl, isLoading: isStreamLoading } = useStreamUrl(
+        params.streamHash || null,
+        true
+    );
 
-    // Refs so seek callbacks always read current values (avoids stale closure)
-    const videoDurationMsRef = useRef(0);
+    const videoSource = streamUrl
+        ? streamUrl
+        : params.streamHash
+            ? null // Wait for fetch
+            : 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+
+    const player = useVideoPlayer(videoSource, (player) => {
+        player.loop = true;
+        player.play();
+    });
+
+    // Use player state instead of manual local state mirrors where possible
+    const [isBuffering, setIsBuffering] = useState(false);
+    const [isPlaying, setIsPlaying] = useState(true);
+    const [currentTimeMs, setCurrentTimeMs] = useState(0);
+    const [durationMs, setDurationMs] = useState(0);
+
     const isSeekingRef = useRef(false);
 
-    // true until first playback status arrives; also true while buffering after seek
-    const [isBuffering, setIsBuffering] = useState(true);
-    // mirrors actual playback state from expo-av (separate from the shouldPlay prop)
-    const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+    useEffect(() => {
+        // Periodically update UI state from player properties
+        const interval = setInterval(() => {
+            if (!isSeekingRef.current) {
+                const current = player.currentTime * 1000;
+                const total = player.duration * 1000;
 
-    const onPlaybackStatusUpdate = useCallback((status: any) => {
-        if (!status.isLoaded) {
-            // Still loading the source — keep spinner
-            return;
-        }
-        setIsBuffering(!!status.isBuffering);
-        setIsVideoPlaying(!!status.isPlaying);
-        if (!isSeekingRef.current) {
-            const dur = status.durationMillis || 0;
-            const pos = status.positionMillis || 0;
-            videoDurationMsRef.current = dur;
-            setVideoDurationMs(dur);
-            setCurrentTimeMs(pos);
-            setProgress(pos / (dur || 1));
-        }
-    }, []);
+                setCurrentTimeMs(current);
+                setDurationMs(total);
+                setIsPlaying(player.playing);
+                setIsBuffering(player.status === 'loading');
 
-    const handleSeek = async (newProgress: number) => {
-        if (videoRef.current) {
-            await videoRef.current.setPositionAsync(newProgress * videoDurationMsRef.current);
-        }
+                if (total > 0) {
+                    setProgress(current / total);
+                }
+            }
+        }, 500);
+
+        return () => {
+            clearInterval(interval);
+        };
+    }, [player]);
+
+    const handleSeek = (newProgress: number) => {
+        player.currentTime = newProgress * player.duration;
     };
 
     // Time formatting
@@ -181,7 +189,7 @@ export default function VideoPlayerScreen() {
         if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
         return `${m}:${String(sec).padStart(2, '0')}`;
     };
-    const totalFmt = fmt(videoDurationMs);
+    const totalFmt = fmt(durationMs);
     const currentFmt = fmt(currentTimeMs);
 
     const toggleSettings = () => {
@@ -192,62 +200,34 @@ export default function VideoPlayerScreen() {
         setViewMode(v => v === 'episodes' ? 'normal' : 'episodes');
     };
 
-    const handleSkipPrevious = async () => {
+    const handleSkipPrevious = () => {
         if (isSeries && currentEpisodeIndex > 0) {
             setCurrentEpisodeIndex(currentEpisodeIndex - 1);
-            setProgress(0);
-            setIsPlaying(true);
-        } else if (videoRef.current) {
-            // Skip backward 10s for movies
-            const status = await videoRef.current.getStatusAsync();
-            if (status.isLoaded) {
-                const newPos = Math.max(0, status.positionMillis - 10000);
-                await videoRef.current.setPositionAsync(newPos);
-            }
+            player.currentTime = 0;
+            player.play();
+        } else {
+            // Skip backward 10s
+            player.seekBy(-10);
         }
     };
 
-    const handleSkipNext = async () => {
+    const handleSkipNext = () => {
         if (isSeries && currentEpisodeIndex < episodes.length - 1) {
             setCurrentEpisodeIndex(currentEpisodeIndex + 1);
-            setProgress(0);
-            setIsPlaying(true);
-        } else if (videoRef.current) {
-            // Skip forward 10s for movies
-            const status = await videoRef.current.getStatusAsync();
-            if (status.isLoaded) {
-                const newPos = Math.min(videoDurationMs, status.positionMillis + 10000);
-                await videoRef.current.setPositionAsync(newPos);
-            }
+            player.currentTime = 0;
+            player.play();
+        } else {
+            // Skip forward 10s
+            player.seekBy(10);
         }
     };
-
-    // ── Player cleanup ────────────────────────────────────────
-    // Unload the stream on unmount to stop HLS buffering and free memory.
-    useEffect(() => {
-        return () => {
-            videoRef.current?.unloadAsync().catch(() => null);
-        };
-    }, []);
-
-    const { data: streamUrl, isLoading: isStreamLoading } = useStreamUrl(
-        params.streamHash || null,
-        true
-    );
-
-    // If streamHash is provided, try to use it. Only use dummy as a last resort if it fails or isn't provided.
-    const videoSource = streamUrl
-        ? { uri: streamUrl }
-        : params.streamHash
-            ? null // Wait for fetch
-            : { uri: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' };
 
     const handleSelectEpisode = useCallback((episodeIndex: number) => {
         setCurrentEpisodeIndex(episodeIndex);
-        setProgress(0);
-        setIsPlaying(true);
+        player.currentTime = 0;
+        player.play();
         setViewMode('normal');
-    }, []);
+    }, [player]);
 
     const renderEpisodeItem = useCallback(({ item, index }: { item: Episode, index: number }) => (
         <EpisodeCard
@@ -271,11 +251,6 @@ export default function VideoPlayerScreen() {
         outputRange: ['100%', '68%'],
     });
 
-    const videoTranslateX = shrinkAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: [0, -xdWidth(20)],
-    });
-
     return (
         <View style={styles.screen}>
             {/* ── Split Layout Container ── */}
@@ -290,17 +265,13 @@ export default function VideoPlayerScreen() {
                 ]}>
                     <View style={styles.videoWrapper}>
                         {videoSource && (
-                            <Video
-                                ref={videoRef}
-                                source={videoSource}
+                            <VideoView
+                                player={player}
                                 style={styles.videoBg}
-                                resizeMode={ResizeMode.COVER}
-                                shouldPlay={isPlaying}
-                                isLooping
-                                useNativeControls={false}
-                                onPlaybackStatusUpdate={onPlaybackStatusUpdate}
-                            // bufferConfig is only supported by react-native-video (not expo-av).
-                            // TODO: add low-latency buffer tuning when migrating to react-native-video.
+                                contentFit="cover"
+                                nativeControls={false}
+                                fullscreenOptions={{ enable: false }}
+                                allowsPictureInPicture={false}
                             />
                         )}
                         {!videoSource && (
@@ -308,10 +279,8 @@ export default function VideoPlayerScreen() {
                                 <Text style={{ color: '#fff' }}>{isStreamLoading ? 'Loading Stream...' : 'No Stream Available'}</Text>
                             </View>
                         )}
-                        {/* Spinner: only when genuinely stuck (buffering but NOT playing).
-                             HLS streams set isBuffering=true even while playing normally
-                             (continuous look-ahead). We filter that out with !isVideoPlaying. */}
-                        {(isStreamLoading || (isBuffering && !isVideoPlaying)) && (
+
+                        {(isStreamLoading || isBuffering) && (
                             <View style={styles.loadingOverlay}>
                                 <ActivityIndicator size="large" color="#E0334C" />
                             </View>
@@ -330,7 +299,7 @@ export default function VideoPlayerScreen() {
                             <View style={styles.topInfo}>
                                 <Text style={styles.videoTitle}>{title}</Text>
                                 <Text style={styles.videoMeta}>
-                                    {isSeries ? 'Brooklyn Nine-Nine • S1 • EP 1' : `${genre} • ${year} • ${duration}`}
+                                    {isSeries ? `Brooklyn Nine-Nine • S1 • EP ${currentEpisodeIndex + 1}` : `${genre} • ${year} • ${duration}`}
                                 </Text>
                             </View>
 
@@ -349,10 +318,10 @@ export default function VideoPlayerScreen() {
                                         onSlidingStart={() => { isSeekingRef.current = true; }}
                                         onValueChange={(val) => {
                                             setProgress(val);
-                                            setCurrentTimeMs(val * videoDurationMsRef.current);
+                                            setCurrentTimeMs(val * (player.duration * 1000));
                                         }}
-                                        onSlidingComplete={async (val) => {
-                                            await handleSeek(val);
+                                        onSlidingComplete={(val) => {
+                                            handleSeek(val);
                                             isSeekingRef.current = false;
                                         }}
                                     />
@@ -369,7 +338,7 @@ export default function VideoPlayerScreen() {
                                         <NavIconButton
                                             innerRef={pauseButtonRef}
                                             icon={<MaterialCommunityIcons name={isPlaying ? 'pause' : 'play'} size={scale(24)} />}
-                                            onPress={() => setIsPlaying(!isPlaying)}
+                                            onPress={() => isPlaying ? player.pause() : player.play()}
                                             style={styles.playBtn}
                                             hasTVPreferredFocus={showControls}
                                         />

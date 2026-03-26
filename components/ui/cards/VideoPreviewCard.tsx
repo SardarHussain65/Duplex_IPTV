@@ -1,10 +1,7 @@
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
-import { ResizeMode, Video } from 'expo-av';
-import React, { useRef } from 'react';
+import { useVideoPlayer, VideoView } from 'expo-video';
+import React, { useEffect } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
-const DUMMY_VIDEO_URI =
-    'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
 
 interface VideoPreviewCardProps {
     title: string;
@@ -16,14 +13,24 @@ interface VideoPreviewCardProps {
     onExpandPress: () => void;
 }
 
-
-
 export const VideoPreviewCard: React.FC<VideoPreviewCardProps & { videoUri?: string }> = ({
     title,
     onExpandPress,
     videoUri,
 }) => {
-    const videoRef = useRef<Video>(null);
+    const player = useVideoPlayer(videoUri || null, (player) => {
+        player.loop = true;
+        player.muted = true;
+        player.play();
+    });
+
+    // Handle source changes if the card is reused for a different URI
+    useEffect(() => {
+        if (videoUri) {
+            player.replace(videoUri);
+            player.play();
+        }
+    }, [videoUri, player]);
 
     return (
         <TouchableOpacity
@@ -33,15 +40,13 @@ export const VideoPreviewCard: React.FC<VideoPreviewCardProps & { videoUri?: str
         >
             {/* ── Inline Video fills the card ── */}
             {videoUri && (
-                <Video
-                    ref={videoRef}
-                    source={{ uri: videoUri }}
+                <VideoView
+                    player={player}
                     style={StyleSheet.absoluteFill}
-                    resizeMode={ResizeMode.COVER}
-                    shouldPlay
-                    isLooping
-                    isMuted
-                    useNativeControls={false}
+                    contentFit="cover"
+                    nativeControls={false}
+                    fullscreenOptions={{ enable: false }}
+                    allowsPictureInPicture={false}
                 />
             )}
             {!videoUri && (
@@ -69,8 +74,8 @@ export const VideoPreviewCard: React.FC<VideoPreviewCardProps & { videoUri?: str
 
 const cardStyles = StyleSheet.create({
     card: {
-        width: xdWidth(480), // Increased from 390
-        height: xdHeight(270), // Increased from 220
+        width: xdWidth(480),
+        height: xdHeight(270),
         borderRadius: scale(18),
         overflow: 'hidden',
         position: 'relative',
