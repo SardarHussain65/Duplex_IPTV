@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { usePathname, useRouter } from 'expo-router';
 import React, { ReactNode, useEffect, useRef, useState } from 'react';
 import { Image, StyleSheet, View, findNodeHandle } from 'react-native';
-
+import { useTranslation } from 'react-i18next';
 
 // ── Tab Definitions ───────────────────────────────────────────
 
@@ -28,20 +28,7 @@ type TabId =
     | 'parental-control'
     | 'settings';
 
-const TEXT_TABS: { id: TabId; label: string; icon: ReactNode; route: string }[] = [
-    { id: 'live-tv', label: 'Live TV', icon: <LiveTVIcon />, route: '/live-tv' },
-    { id: 'movies', label: 'Movies', icon: <MoviesIcon />, route: '/movies' },
-    { id: 'series', label: 'Series', icon: <SeriesIcon />, route: '/series' },
-    { id: 'favorites', label: 'Favorite', icon: <FavoritesIcon />, route: '/favorites' },
-];
-
-const ICON_TABS: { id: TabId; icon: ReactNode; route: string }[] = [
-    { id: 'parental-control', icon: <ParentalControlIcon />, route: '/parental-control' },
-    { id: 'settings', icon: <SettingIcon />, route: '/settings' },
-];
-
 // Map route prefixes → which tab appears active.
-// Longer/more specific prefixes must come first.
 const ROUTE_TAB_MAP: { prefix: string; tab: TabId }[] = [
     { prefix: '/channel', tab: 'live-tv' },
     { prefix: '/live-tv', tab: 'live-tv' },
@@ -57,10 +44,23 @@ const ROUTE_TAB_MAP: { prefix: string; tab: TabId }[] = [
 // ── Component ─────────────────────────────────────────────────
 
 export const TopNavBar: React.FC = () => {
+    const { t } = useTranslation();
     const { isScrolled, setIsScrolled, searchBarNode, setSettingsTabNode, settingsSidebarNode } = useTab();
     const router = useRouter();
     const pathname = usePathname();
     const [isPlaylistModalVisible, setIsPlaylistModalVisible] = useState(false);
+
+    const TEXT_TABS: { id: TabId; label: string; icon: ReactNode; route: string }[] = [
+        { id: 'live-tv', label: t('common.liveTv'), icon: <LiveTVIcon />, route: '/live-tv' },
+        { id: 'movies', label: t('common.movies'), icon: <MoviesIcon />, route: '/movies' },
+        { id: 'series', label: t('common.series'), icon: <SeriesIcon />, route: '/series' },
+        { id: 'favorites', label: t('common.favorites'), icon: <FavoritesIcon />, route: '/favorites' },
+    ];
+
+    const ICON_TABS: { id: TabId; icon: ReactNode; route: string }[] = [
+        { id: 'parental-control', icon: <ParentalControlIcon />, route: '/parental-control' },
+        { id: 'settings', icon: <SettingIcon />, route: '/settings' },
+    ];
 
     const getActiveTab = (): TabId => {
         for (const { prefix, tab } of ROUTE_TAB_MAP) {

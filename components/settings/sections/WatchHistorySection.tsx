@@ -8,6 +8,7 @@ import { useTab } from '@/context/TabContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { findNodeHandle, FlatList, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 interface HistoryItem {
     id: string;
@@ -76,8 +77,15 @@ export const WatchHistorySection: React.FC<WatchHistorySectionProps> = ({
     startRef,
     sidebarRef,
 }) => {
+    const { t } = useTranslation();
     const { settingsTabNode, isParentalControlEnabled } = useTab();
     const [activeTab, setActiveTab] = useState<'Live TV' | 'Movies' | 'Series'>('Live TV');
+
+    const labelMap: Record<string, string> = {
+        'Live TV': t('common.liveTv'),
+        'Movies': t('common.movies'),
+        'Series': t('common.series'),
+    };
 
     const filteredHistory = MOCK_HISTORY.filter(item => item.type === activeTab);
 
@@ -100,7 +108,7 @@ export const WatchHistorySection: React.FC<WatchHistorySectionProps> = ({
                     icon={<MaterialCommunityIcons name="delete" size={20} color={Colors.dark[1]} />}
                     gap={xdWidth(10)}
                 >
-                    Clear All History
+                    {t('settings.historyOptions.clearAll')}
                 </ActionFilledButton>
             </View>
 
@@ -111,12 +119,12 @@ export const WatchHistorySection: React.FC<WatchHistorySectionProps> = ({
                         key={cat.label}
                         icon={cat.icon}
                         isActive={activeTab === cat.label}
-                        onPress={() => setActiveTab(cat.label)}
+                        onPress={() => setActiveTab(cat.label as any)}
                         style={{ marginRight: xdWidth(12) }}
                         nextFocusRight={index === FAVORITE_CATEGORIES.length - 1 ? 'self' : undefined}
                         nextFocusUp={settingsTabNode || undefined}
                     >
-                        {cat.label} ({cat.label === 'Live TV' ? 65 : cat.label === 'Movies' ? 34 : 0})
+                        {labelMap[cat.label]} ({cat.label === 'Live TV' ? 65 : cat.label === 'Movies' ? 34 : 0})
                     </CategoryButton>
                 ))}
             </View>
@@ -144,8 +152,8 @@ export const WatchHistorySection: React.FC<WatchHistorySectionProps> = ({
                 ListEmptyComponent={
                     <EmptyState
                         icon="lock-outline"
-                        title="No Watch History Yet"
-                        subtitle="You haven't watched any content yet. Start watching to see your activity here."
+                        title={t('settings.historyOptions.noHistory')}
+                        subtitle={t('settings.historyOptions.noHistorySub')}
                         style={styles.emptyState}
                     />
                 }

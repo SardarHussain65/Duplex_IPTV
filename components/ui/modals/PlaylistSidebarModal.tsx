@@ -2,6 +2,7 @@ import { Colors } from '@/constants';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import React, { useState, useEffect, useRef } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View, Animated, Dimensions, findNodeHandle, ActivityIndicator } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { PlaylistRowButton } from '../buttons/PlaylistRowButton';
 import { ConfirmPlaylistModal } from './ConfirmPlaylistModal';
 import { usePlaylists } from '@/lib/api/hooks/usePlaylists';
@@ -19,6 +20,7 @@ export const PlaylistSidebarModal: React.FC<PlaylistSidebarModalProps> = ({
     visible,
     onClose,
 }) => {
+    const { t } = useTranslation();
     const deviceId = useDeviceStore((state) => state.id);
     const activePlaylistId = useDeviceStore((state) => state.activePlaylistId);
     const setActivePlaylistId = useDeviceStore((state) => state.setActivePlaylistId);
@@ -97,7 +99,7 @@ export const PlaylistSidebarModal: React.FC<PlaylistSidebarModalProps> = ({
                 <Pressable style={styles.backdrop} onPress={handleClose} />
                 
                 <Animated.View style={[styles.sidebar, { transform: [{ translateX: slideAnim }] }]}>
-                    <Text style={styles.title}>Playlists</Text>
+                    <Text style={styles.title}>{t('common.playlists')}</Text>
                     <View style={styles.divider} />
                     
                     <ScrollView 
@@ -108,15 +110,15 @@ export const PlaylistSidebarModal: React.FC<PlaylistSidebarModalProps> = ({
                         {loading ? (
                             <View style={styles.loadingContainer}>
                                 <ActivityIndicator size="large" color="#FFFFFF" />
-                                <Text style={styles.loadingText}>Loading Playlists...</Text>
+                                <Text style={styles.loadingText}>{t('settings.playlistOptions.loading')}</Text>
                             </View>
                         ) : error ? (
                             <View style={styles.loadingContainer}>
-                                <Text style={styles.errorText}>Error loading playlists</Text>
+                                <Text style={styles.errorText}>{t('settings.playlistOptions.error')}</Text>
                             </View>
                         ) : playlists.length === 0 ? (
                             <View style={styles.loadingContainer}>
-                                <Text style={styles.loadingText}>No playlists found</Text>
+                                <Text style={styles.loadingText}>{t('settings.playlistOptions.empty')}</Text>
                             </View>
                         ) : (
                             playlists.map((p, index) => (

@@ -5,6 +5,7 @@ import { Colors } from '@/constants';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import React from 'react';
 import { Modal, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 interface ConfirmPlaylistModalProps {
     visible: boolean;
@@ -17,6 +18,7 @@ export const ConfirmPlaylistModal: React.FC<ConfirmPlaylistModalProps> = ({
     onClose,
     onConfirm,
 }) => {
+    const { t } = useTranslation();
     return (
         <Modal
             visible={visible}
@@ -30,18 +32,18 @@ export const ConfirmPlaylistModal: React.FC<ConfirmPlaylistModalProps> = ({
                         <ChangePlayList width={xdWidth(48)} height={xdHeight(48)} />
                     </View>
 
-                    <Text style={styles.title}>Change Playlist?</Text>
-                    <Text style={styles.subtitle}>Switching will reload all content. Continue?</Text>
+                    <Text style={styles.title}>{t('settings.playlistOptions.changePlaylist')}</Text>
+                    <Text style={styles.subtitle}>{t('settings.playlistOptions.changePlaylistSub')}</Text>
 
                     <View style={styles.buttonRow}>
                         <View style={styles.btnWrapper}>
                             <ActionOutlineButton onPress={onClose} style={styles.btn}>
-                                Cancel
+                                {t('common.cancel')}
                             </ActionOutlineButton>
                         </View>
                         <View style={styles.btnWrapper}>
                             <ActionFilledButton onPress={onConfirm} style={styles.btn}>
-                                Confirm
+                                {t('common.confirm')}
                             </ActionFilledButton>
                         </View>
                     </View>

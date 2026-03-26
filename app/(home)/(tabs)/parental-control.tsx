@@ -8,6 +8,8 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { FlatList, StyleSheet, Text, View, findNodeHandle } from 'react-native';
 
+import { useTranslation } from 'react-i18next';
+
 // ── Types ─────────────────────────────────────────────────────
 
 type ParentalType = 'Live TV' | 'Movies' | 'Series';
@@ -53,6 +55,7 @@ const CATEGORIES: { label: ParentalType; icon: keyof typeof MaterialCommunityIco
 ];
 
 export default function ParentalControlScreen() {
+    const { t } = useTranslation();
     const router = useRouter();
     const { setIsScrolled, isParentalUnlocked, setParentalUnlocked, parentalPin } = useTab();
     const [activeSubTab, setActiveSubTab] = useState<ParentalType>('Live TV');
@@ -175,12 +178,19 @@ export default function ParentalControlScreen() {
         );
     };
 
-    const renderCategoryLabel = (cat: ParentalType) => (
-        <Text>
-            {cat}
-            <Text style={{ opacity: 0.6, fontSize: scale(12) }}> {`(${getCount(cat)})`}</Text>
-        </Text>
-    );
+    const renderCategoryLabel = (cat: ParentalType) => {
+        const labelMap: Record<ParentalType, string> = {
+            'Live TV': t('common.liveTv'),
+            'Movies': t('common.movies'),
+            'Series': t('common.series')
+        };
+        return (
+            <Text>
+                {labelMap[cat] || cat}
+                <Text style={{ opacity: 0.6, fontSize: scale(12) }}> {`(${getCount(cat)})`}</Text>
+            </Text>
+        );
+    };
 
     const handleCancelUnlock = () => {
         // If cancelled, go back to live-tv or previous tab
@@ -189,7 +199,7 @@ export default function ParentalControlScreen() {
 
     const renderHeader = () => (
         <View style={styles.headerContainer}>
-            <Text style={styles.pageTitle}>Parental Control</Text>
+            <Text style={styles.pageTitle}>{t('parentalControl.title')}</Text>
 
             <View style={styles.categoryRow}>
                 {CATEGORIES.map((cat, index) => {
@@ -222,7 +232,7 @@ export default function ParentalControlScreen() {
                 visible={!isParentalUnlocked}
                 onClose={handleCancelUnlock}
                 onSuccess={() => setParentalUnlocked(true)}
-                expectedPin={parentalPin}
+                onVerify={async (pin) => pin === parentalPin}
             />
 
             <FlatList
@@ -242,8 +252,8 @@ export default function ParentalControlScreen() {
                 ListEmptyComponent={
                     <EmptyState
                         icon="lock-outline"
-                        title="No Content Locked Yet"
-                        subtitle="No content has been restricted under parental control."
+                        title={t('parentalControl.emptyTitle')}
+                        subtitle={t('parentalControl.emptySubtitle')}
                         style={styles.emptyState}
                     />
                 }

@@ -22,6 +22,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 // ── Dummy live stream URL (public domain) ─────────────────────
 const DUMMY_VIDEO_URI =
@@ -45,6 +46,7 @@ type EPGSlot = {
 // ── Screen ────────────────────────────────────────────────────
 
 export default function ChannelDetailScreen() {
+    const { t } = useTranslation();
     const router = useRouter();
     const params = useLocalSearchParams<{
         id: string;
@@ -73,11 +75,11 @@ export default function ChannelDetailScreen() {
     const programme = {
         showTitle: channelName,
         description: channelCategory
-            ? `Now streaming: ${channelName} — ${channelCategory}`
-            : `Now streaming: ${channelName}`,
-        date: 'Live',
-        episode: channelCategory || 'Live TV',
-        timeLeft: 'Live',
+            ? t('detail.nowStreamingNameCat', { name: channelName, category: channelCategory })
+            : t('detail.nowStreamingName', { name: channelName }),
+        date: t('detail.live'),
+        episode: channelCategory || t('common.liveTv'),
+        timeLeft: t('detail.live'),
         progress: 0,
     };
 
@@ -137,7 +139,7 @@ export default function ChannelDetailScreen() {
                         <Text style={styles.metaDot}>•</Text>
                         <Text style={styles.metaText}>{programme.episode}</Text>
                         <Text style={styles.metaDot}>•</Text>
-                        <Text style={styles.metaText}>{programme.timeLeft} left</Text>
+                        <Text style={styles.metaText}>{programme.timeLeft} {t('detail.left')}</Text>
                     </View>
 
                     <Text style={styles.showTitle}>{programme.showTitle}</Text>
@@ -166,7 +168,7 @@ export default function ChannelDetailScreen() {
             <View style={styles.epgSection}>
                 <View style={styles.epgHeader}>
                     <TouchableOpacity style={styles.todaySelector}>
-                        <Text style={styles.todayText}>Today</Text>
+                        <Text style={styles.todayText}>{t('detail.today')}</Text>
                         <MaterialCommunityIcons name="chevron-down" size={scale(18)} color={Colors.gray[400]} />
                     </TouchableOpacity>
 
@@ -194,7 +196,7 @@ export default function ChannelDetailScreen() {
                     <TouchableOpacity style={[styles.programCard, styles.programCardActive]}>
                         <View style={styles.cardInfo}>
                             <Text style={styles.cardTitle}>{programme.showTitle}</Text>
-                            <Text style={styles.cardSub}>{programme.timeLeft} left</Text>
+                            <Text style={styles.cardSub}>{programme.timeLeft} {t('detail.left')}</Text>
                         </View>
                         <View style={styles.progressBarBg}>
                             <View style={[styles.progressBarFill, { width: '35%' }]} />

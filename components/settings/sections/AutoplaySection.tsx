@@ -3,6 +3,7 @@ import { Colors } from '@/constants';
 import { useTab } from '@/context/TabContext';
 import React from 'react';
 import { findNodeHandle, StyleSheet, Switch, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 interface AutoplaySectionProps {
     startRef: React.RefObject<any>;
@@ -13,6 +14,7 @@ export const AutoplaySection: React.FC<AutoplaySectionProps> = ({
     startRef,
     sidebarRef,
 }) => {
+    const { t } = useTranslation();
     const { isAutoplayEnabled, setIsAutoplayEnabled, settingsTabNode } = useTab();
 
     return (
@@ -27,8 +29,8 @@ export const AutoplaySection: React.FC<AutoplaySectionProps> = ({
                 nextFocusRight="self"
                 nextFocusUp={settingsTabNode || undefined}
                 nextFocusDown={findNodeHandle(sidebarRef.current) || undefined}
-                title="Enable Autoplay"
-                subtitle="Automatically play the next episode after the current one finishes."
+                title={t('settings.autoplayOptions.enable')}
+                subtitle={t('settings.autoplayOptions.enableSub')}
                 icon={
                     <View pointerEvents="none">
                         <Switch

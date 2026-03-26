@@ -23,6 +23,7 @@ import {
     Text,
     View
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 // ── Types ──────────────────────────────────────────────────────
 type Episode = {
@@ -69,6 +70,7 @@ const generateEpisodes = (season: number): Episode[] =>
 // ── Screen ─────────────────────────────────────────────────────
 
 export default function SeriesDetailScreen() {
+    const { t } = useTranslation();
     const router = useRouter();
     const { setIsScrolled, setParentalModalVisible } = useTab();
     const params = useLocalSearchParams<{
@@ -216,7 +218,7 @@ export default function SeriesDetailScreen() {
                                 })
                             }
                         >
-                            Watch Now
+                            {t('common.watchNow')}
                         </NavButton>
                         <NavIconButton
                             icon={
@@ -245,7 +247,7 @@ export default function SeriesDetailScreen() {
 
                     {/* Cast */}
                     <View style={styles.castRow}>
-                        <Text style={styles.castLabel}>Cast:</Text>
+                        <Text style={styles.castLabel}>{t('detail.cast')}</Text>
                         <Text style={styles.castNames} numberOfLines={2}>
                             {CAST.join('  •  ')}
                         </Text>
@@ -267,14 +269,14 @@ export default function SeriesDetailScreen() {
                         isActive={i === activeSeason}
                         onPress={() => setActiveSeason(i)}
                     >
-                        {s}
+                        {t('detail.season')} {i + 1}
                     </CategoryButton>
                 ))}
             </ScrollView>
 
             {/* ── Episodes List ── */}
             <Text style={styles.episodesHeader}>
-                Episodes ({episodes.length})
+                {t('detail.episodes', { count: episodes.length })}
             </Text>
             <View style={styles.episodesDivider} />
 

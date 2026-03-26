@@ -27,6 +27,7 @@ import {
     TouchableOpacity,
     View,
     findNodeHandle,
+    ActivityIndicator
 } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
@@ -35,11 +36,12 @@ import { useMovies } from '@/hooks/useMovies';
 import { usePlaylistChannels } from '@/lib/api';
 import { useDeviceStore } from '@/lib/store/useDeviceStore';
 import { styles } from '@/styles/movies.styles';
-import { ActivityIndicator } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 // ── Screen ─────────────────────────────────────────────────────
 
 export default function MoviesScreen() {
+    const { t } = useTranslation();
     const {
         activeCategory,
         setActiveCategory,
@@ -251,13 +253,13 @@ export default function MoviesScreen() {
                             icon={<MaterialCommunityIcons name="play" size={scale(18)} />}
                             onPress={() => handleMoviePress(currentHero)}
                         >
-                            Watch now
+                            {t('common.watchNow')}
                         </NavButton>
                         <NavButton
                             icon={<MaterialCommunityIcons name="information-outline" size={scale(18)} />}
                             onPress={() => handleMoviePress(currentHero)}
                         >
-                            Learn More
+                            {t('common.learnMore')}
                         </NavButton>
                     </View>
                 </View>
@@ -277,7 +279,7 @@ export default function MoviesScreen() {
             {/* ── Recently Watched ── */}
             {recentlyWatched.length > 0 && (
                 <View style={{ marginBottom: xdHeight(32) }}>
-                    <Text style={styles.sectionTitle}>Recently Watched</Text>
+                    <Text style={styles.sectionTitle}>{t('common.recentlyWatched')}</Text>
                     <ScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
@@ -306,7 +308,7 @@ export default function MoviesScreen() {
                     value={inputValue}
                     onChangeText={setInputValue}
                     onSubmit={(text) => setCommittedSearch(text)}
-                    placeholder="Search for movies...."
+                    placeholder={t('movies.searchPlaceholder')}
                     nextFocusLeft={settingsTabNode || undefined}
                     nextFocusUp={settingsTabNode || undefined}
                     nextFocusRight={categoryAllNode}
@@ -315,7 +317,7 @@ export default function MoviesScreen() {
             </View>
 
             {/* ── Category Filter ── */}
-            <Text style={styles.sectionTitle}>Browse by Categories</Text>
+            <Text style={styles.sectionTitle}>{t('common.browseCategories')}</Text>
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -362,7 +364,7 @@ export default function MoviesScreen() {
         return (
             <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
                 <ActivityIndicator size="large" color="#FFD700" />
-                <Text style={{ color: '#9DA3B4', marginTop: xdHeight(16) }}>Loading Movies...</Text>
+                <Text style={{ color: '#9DA3B4', marginTop: xdHeight(16) }}>{t('movies.loading')}</Text>
             </View>
         );
     }
@@ -405,8 +407,8 @@ export default function MoviesScreen() {
                     ) : (
                         <EmptyState
                             icon="movie-open"
-                            title="No Movies Found"
-                            subtitle="On this categories we can't find any movie. Try another category"
+                            title={t('movies.noMoviesFound')}
+                            subtitle={t('movies.noMoviesSubtitle')}
                         />
                     )
                 }

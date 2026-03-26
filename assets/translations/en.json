@@ -1,0 +1,141 @@
+{
+  "common": {
+    "home": "Home",
+    "liveTv": "Live TV",
+    "movies": "Movies",
+    "series": "Series",
+    "settings": "Settings",
+    "favorites": "Favorites",
+    "playlists": "Playlists",
+    "watchNow": "Watch Now",
+    "learnMore": "Learn More",
+    "search": "Search...",
+    "browseCategories": "Browse Categories",
+    "recentlyWatched": "Recently Watched",
+    "all": "All",
+    "ok": "OK",
+    "save": "Save",
+    "confirm": "Confirm",
+    "comingSoon": "Coming soon..."
+  },
+  "settings": {
+    "language": "Language",
+    "selectLanguage": "Select your preferred application language",
+    "cache": "Cache & Storage",
+    "cacheSubtitle": "Manage app cache and storage",
+    "device": "Device Info",
+    "deviceSubtitle": "Device details and account status",
+    "subscription": "Subscription",
+    "subscriptionSubtitle": "View your plan and expiry details",
+    "playlist": "Playlist Management",
+    "playlistSubtitle": "Select and manage your playlists",
+    "parental": "Parental Control",
+    "parentalSubtitle": "Restrict content and set PIN",
+    "watchHistory": "Watch History",
+    "watchHistorySubtitle": "View your streaming history",
+    "autoplay": "Autoplay Settings",
+    "autoplaySubtitle": "Configure playback behavior",
+    "cacheOptions": {
+      "storageUsage": "Storage Usage",
+      "imageCache": "Image Cache",
+      "videoCache": "Video Cache",
+      "epgData": "EPG Data",
+      "appData": "App Data",
+      "total": "Total",
+      "clearAll": "Clear All Cache"
+    },
+    "deviceOptions": {
+      "accountDetails": "Account Details",
+      "macAddress": "Mac Address",
+      "deviceKey": "Device Key",
+      "deviceState": "Device State",
+      "activate": "Activate"
+    },
+    "subscriptionOptions": {
+      "monthlyPlan": "Monthly Plan",
+      "active": "Active",
+      "expires": "Expires",
+      "daysRemaining": "Days Remaining",
+      "days": "{{count}} Days"
+    },
+    "playlistOptions": {
+      "noPlaylists": "No playlists found for {{tab}}",
+      "changePlaylist": "Change Playlist?",
+      "changePlaylistSub": "Switching will reload all content. Continue?",
+      "loading": "Loading Playlists...",
+      "error": "Error loading playlists",
+      "empty": "No playlists found"
+    },
+    "parentalOptions": {
+      "enable": "Enable Parental Control",
+      "enableSub": "Require PIN to access restricted content",
+      "pinSetting": "Pin Setting",
+      "currentPin": "Current Pin",
+      "changePin": "Change Pin",
+      "setNew": "Set a New Pin"
+    },
+    "historyOptions": {
+      "clearAll": "Clear All History",
+      "noHistory": "No Watch History Yet",
+      "noHistorySub": "You haven't watched any content yet. Start watching to see your activity here."
+    },
+    "autoplayOptions": {
+      "enable": "Enable Autoplay",
+      "enableSub": "Automatically play the next episode after the current one finishes."
+    }
+  },
+  "liveTv": {
+    "whatsLive": "What's Live",
+    "now": "Now!",
+    "heroSubtitle": "Jump into live channels and see what's happening right now across news, sports, and entertainment.",
+    "recentlyWatched": "Recently Watched",
+    "browseCategories": "Browse by Categories",
+    "channelsFound": "{{count}} channel found",
+    "channelsFound_plural": "{{count}} channels found",
+    "noLiveTvFound": "No Live TV Found",
+    "noLiveTvSubtitle": "On this categories we can't find any live tv. Try another category",
+    "loadingChannels": "Loading Channels..."
+  },
+  "movies": {
+    "searchPlaceholder": "Search for movies....",
+    "loading": "Loading Movies...",
+    "noMoviesFound": "No Movies Found",
+    "noMoviesSubtitle": "On this categories we can't find any movie. Try another category"
+  },
+  "series": {
+    "searchPlaceholder": "Search for series....",
+    "loading": "Loading Series...",
+    "noSeriesFound": "No Series Found",
+    "noSeriesSubtitle": "On this categories we can't find any series. Try another category"
+  },
+  "favorites": {
+    "title": "Favorites",
+    "emptyTitle": "No Favorites Yet",
+    "emptySubtitle": "You haven't added any to your favorites."
+  },
+  "parentalControl": {
+    "title": "Parental Control",
+    "emptyTitle": "No Content Locked Yet",
+    "emptySubtitle": "No content has been restricted under parental control.",
+    "setupTitle": "Set Up Parental PIN",
+    "setupSubtitle": "To use parental lock, you need to create a PIN code first. Open Settings and set your PIN to continue.",
+    "openSettings": "Open Settings"
+  },
+  "enterPin": {
+    "title": "Enter PIN to Continue",
+    "button": "Continue",
+    "incorrect": "Incorrect PIN. Please try again.",
+    "failed": "Verification failed. Please try again.",
+    "cancel": "Cancel"
+  },
+  "detail": {
+    "live": "Live",
+    "left": "left",
+    "today": "Today",
+    "nowStreamingName": "Now streaming: {{name}}",
+    "nowStreamingNameCat": "Now streaming: {{name}} — {{category}}",
+    "cast": "Cast:",
+    "season": "Season",
+    "episodes": "Episodes ({{count}})"
+  }
+}

@@ -2,6 +2,7 @@ import { useTab } from '@/context/TabContext';
 import { panelStyles } from '@/styles/settings_panel.styles';
 import React, { useEffect, useRef, useState } from 'react';
 import { findNodeHandle, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 interface DeviceInfoSectionProps {
     startRef: React.RefObject<any>;
@@ -59,14 +60,15 @@ const DeviceInfoRow: React.FC<DeviceInfoRowProps> = ({
 };
 
 export const DeviceInfoSection: React.FC<DeviceInfoSectionProps> = ({ startRef, sidebarRef }) => {
+    const { t } = useTranslation();
     const { settingsTabNode } = useTab();
     return (
         <View style={panelStyles.card}>
-            <Text style={panelStyles.cardTitle}>Account Details</Text>
+            <Text style={panelStyles.cardTitle}>{t('settings.deviceOptions.accountDetails')}</Text>
             {[
-                ['Mac Address', '31:d8:ea:df:33:45'],
-                ['Device Key', '234831'],
-                ['Device State', 'Activate'],
+                [t('settings.deviceOptions.macAddress'), '31:d8:ea:df:33:45'],
+                [t('settings.deviceOptions.deviceKey'), '234831'],
+                [t('settings.deviceOptions.deviceState'), t('settings.deviceOptions.activate')],
             ].map(([label, val], index) => (
                 <DeviceInfoRow
                     key={label}

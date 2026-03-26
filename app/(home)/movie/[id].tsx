@@ -20,6 +20,7 @@ import {
     Text,
     View
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 // ── Mock cast data ─────────────────────────────────────────────
 const CAST = [
@@ -35,6 +36,7 @@ const CAST = [
 // ── Screen ─────────────────────────────────────────────────────
 
 export default function MovieDetailScreen() {
+    const { t } = useTranslation();
     const router = useRouter();
     const { setIsScrolled } = useTab();
     const params = useLocalSearchParams<{
@@ -154,7 +156,7 @@ export default function MovieDetailScreen() {
                                     })
                                 }
                             >
-                                Watch Now
+                                {t('common.watchNow')}
                             </NavButton>
 
                             <NavIconButton
@@ -184,7 +186,7 @@ export default function MovieDetailScreen() {
 
                         {/* Cast */}
                         <View style={styles.castRow}>
-                            <Text style={styles.castLabel}>Cast:</Text>
+                            <Text style={styles.castLabel}>{t('detail.cast')}</Text>
                             <Text style={styles.castNames} numberOfLines={2}>
                                 {CAST.join('  •  ')}
                             </Text>

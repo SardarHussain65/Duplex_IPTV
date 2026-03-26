@@ -12,6 +12,9 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useRef, useState } from 'react';
 import { findNodeHandle, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { useTranslation } from 'react-i18next';
+import i18n from '@/lib/i18n/i18n';
+
 // Section Components
 import { AutoplaySection } from '@/components/settings/sections/AutoplaySection';
 import { CacheSection } from '@/components/settings/sections/CacheSection';
@@ -40,69 +43,38 @@ interface SettingItem {
     icon: string;
 }
 
-const SETTINGS: SettingItem[] = [
-    {
-        id: 'language',
-        label: 'Language',
-        icon: 'translate',
-    },
-    {
-        id: 'cache',
-        label: 'Cache & Storage',
-        icon: 'database',
-    },
-    {
-        id: 'device',
-        label: 'Device Info',
-        icon: 'monitor',
-    },
-    {
-        id: 'subscription',
-        label: 'Subscription',
-        icon: 'crown-outline',
-    },
-    {
-        id: 'playlist',
-        label: 'Playlist Management',
-        icon: 'playlist-edit',
-    },
-    {
-        id: 'parental',
-        label: 'Parental Control',
-        icon: 'account-circle-outline',
-    },
-    {
-        id: 'watch-history',
-        label: 'Watch History',
-        icon: 'history',
-    },
-    {
-        id: 'autoplay',
-        label: 'Autoplay Settings',
-        icon: 'redo-variant',
-    },
-];
-
-// ── Settings labels setup ─────────────────────────────────────
-const GET_SECTION_INFO = (id: SettingId): { title: string; subtitle: string } => {
-    switch (id) {
-        case 'language': return { title: 'Language', subtitle: 'Select your preferred language' };
-        case 'cache': return { title: 'Cache & Storage', subtitle: 'Manage app cache and storage' };
-        case 'device': return { title: 'Device Info', subtitle: 'Device details and account status' };
-        case 'subscription': return { title: 'Subscription', subtitle: 'View your plan and expiry details' };
-        case 'playlist': return { title: 'Playlist Management', subtitle: 'Select and manage your playlists' };
-        case 'parental': return { title: 'Parental Control', subtitle: 'Restrict content and set PIN' };
-        case 'watch-history': return { title: 'Watch History', subtitle: 'View your streaming history' };
-        case 'autoplay': return { title: 'Autoplay Settings', subtitle: 'Configure playback behavior' };
-        default: return { title: '', subtitle: '' };
-    }
-};
-
 // ── Main component ────────────────────────────────────────────
 export default function SettingsScreen() {
+    const { t } = useTranslation();
     const { setIsScrolled, setSettingsSidebarNode, settingsContentNode, setSettingsContentNode, settingsTabNode } = useTab();
+    
+    const SETTINGS: SettingItem[] = [
+        { id: 'language', label: t('settings.language'), icon: 'translate' },
+        { id: 'cache', label: t('settings.cache'), icon: 'database' },
+        { id: 'device', label: t('settings.device'), icon: 'monitor' },
+        { id: 'subscription', label: t('settings.subscription'), icon: 'crown-outline' },
+        { id: 'playlist', label: t('settings.playlist'), icon: 'playlist-edit' },
+        { id: 'parental', label: t('settings.parental'), icon: 'account-circle-outline' },
+        { id: 'watch-history', label: t('settings.watchHistory'), icon: 'history' },
+        { id: 'autoplay', label: t('settings.autoplay'), icon: 'redo-variant' },
+    ];
+
+    const GET_SECTION_INFO = (id: SettingId): { title: string; subtitle: string } => {
+        switch (id) {
+            case 'language': return { title: t('settings.language'), subtitle: t('settings.selectLanguage') };
+            case 'cache': return { title: t('settings.cache'), subtitle: t('settings.cacheSubtitle') };
+            case 'device': return { title: t('settings.device'), subtitle: t('settings.deviceSubtitle') };
+            case 'subscription': return { title: t('settings.subscription'), subtitle: t('settings.subscriptionSubtitle') };
+            case 'playlist': return { title: t('settings.playlist'), subtitle: t('settings.playlistSubtitle') };
+            case 'parental': return { title: t('settings.parental'), subtitle: t('settings.parentalSubtitle') };
+            case 'watch-history': return { title: t('settings.watchHistory'), subtitle: t('settings.watchHistorySubtitle') };
+            case 'autoplay': return { title: t('settings.autoplay'), subtitle: t('settings.autoplaySubtitle') };
+            default: return { title: '', subtitle: '' };
+        }
+    };
+
     const [activeSection, setActiveSection] = useState<SettingId>('language');
-    const [selectedLanguage, setSelectedLanguage] = useState('English');
+    const [selectedLanguage, setSelectedLanguage] = useState(i18n.language);
     const contentStartRef = useRef(null);
     const activeTabRef = useRef(null);
 

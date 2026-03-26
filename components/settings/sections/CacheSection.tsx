@@ -5,6 +5,7 @@ import { panelStyles } from '@/styles/settings_panel.styles';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
 import { findNodeHandle, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 interface CacheSectionProps {
     startRef: React.RefObject<any>;
@@ -12,17 +13,18 @@ interface CacheSectionProps {
 }
 
 export const CacheSection: React.FC<CacheSectionProps> = ({ startRef, sidebarRef }) => {
+    const { t } = useTranslation();
     const { settingsTabNode } = useTab();
 
     return (
         <View>
             <View style={panelStyles.card}>
-                <Text style={panelStyles.cardTitle}>Storage Usage</Text>
+                <Text style={panelStyles.cardTitle}>{t('settings.cacheOptions.storageUsage')}</Text>
                 {[
-                    ['Image Cache', '156 MB'],
-                    ['Video Cache', '156 MB'],
-                    ['EPF Date', '156 MB'],
-                    ['App Data', '156 MB'],
+                    [t('settings.cacheOptions.imageCache'), '156 MB'],
+                    [t('settings.cacheOptions.videoCache'), '156 MB'],
+                    [t('settings.cacheOptions.epgData'), '156 MB'],
+                    [t('settings.cacheOptions.appData'), '156 MB'],
                 ].map(([label, val]) => (
                     <View key={label} style={panelStyles.row}>
                         <Text style={panelStyles.rowLabel}>{label}</Text>
@@ -31,7 +33,7 @@ export const CacheSection: React.FC<CacheSectionProps> = ({ startRef, sidebarRef
                 ))}
                 <View style={panelStyles.divider} />
                 <View style={panelStyles.row}>
-                    <Text style={[panelStyles.rowLabel, { fontWeight: '700', color: Colors.gray[100] }]}>Total</Text>
+                    <Text style={[panelStyles.rowLabel, { fontWeight: '700', color: Colors.gray[100] }]}>{t('settings.cacheOptions.total')}</Text>
                     <Text style={[panelStyles.rowValue, { color: "#749EED", fontWeight: '700' }]}>1.1 GB</Text>
                 </View>
             </View>
@@ -50,7 +52,7 @@ export const CacheSection: React.FC<CacheSectionProps> = ({ startRef, sidebarRef
                 icon={<MaterialCommunityIcons name="delete" size={20} color={Colors.dark[1]} />}
                 gap={xdWidth(10)}
             >
-                Clear All Cache
+                {t('settings.cacheOptions.clearAll')}
             </ActionFilledButton>
         </View>
     );

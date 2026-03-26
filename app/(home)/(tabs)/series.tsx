@@ -27,6 +27,7 @@ import {
     TouchableOpacity,
     View,
     findNodeHandle,
+    ActivityIndicator
 } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
@@ -35,11 +36,12 @@ import { useSeries } from '@/hooks/useSeries';
 import { usePlaylistChannels } from '@/lib/api';
 import { useDeviceStore } from '@/lib/store/useDeviceStore';
 import { styles } from '@/styles/series.styles';
-import { ActivityIndicator } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 // ── Screen ─────────────────────────────────────────────────────
 
 export default function SeriesScreen() {
+    const { t } = useTranslation();
     const {
         activeCategory,
         setActiveCategory,
@@ -251,13 +253,13 @@ export default function SeriesScreen() {
                             icon={<MaterialCommunityIcons name="play" size={scale(18)} />}
                             onPress={() => handleSeriesPress(currentHero)}
                         >
-                            Watch now
+                            {t('common.watchNow')}
                         </NavButton>
                         <NavButton
                             icon={<MaterialCommunityIcons name="information-outline" size={scale(18)} />}
                             onPress={() => handleSeriesPress(currentHero)}
                         >
-                            Learn More
+                            {t('common.learnMore')}
                         </NavButton>
                     </View>
                 </View>
@@ -277,7 +279,7 @@ export default function SeriesScreen() {
             {/* ── Recently Watched ── */}
             {recentlyWatched.length > 0 && (
                 <View style={{ marginBottom: xdHeight(32) }}>
-                    <Text style={styles.sectionTitle}>Recently Watched</Text>
+                    <Text style={styles.sectionTitle}>{t('common.recentlyWatched')}</Text>
                     <ScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
@@ -306,7 +308,7 @@ export default function SeriesScreen() {
                     value={inputValue}
                     onChangeText={setInputValue}
                     onSubmit={(text) => setCommittedSearch(text)}
-                    placeholder="Search for series...."
+                    placeholder={t('series.searchPlaceholder')}
                     nextFocusLeft={settingsTabNode || undefined}
                     nextFocusUp={settingsTabNode || undefined}
                     nextFocusRight={categoryAllNode}
@@ -315,7 +317,7 @@ export default function SeriesScreen() {
             </View>
 
             {/* ── Category Filter ── */}
-            <Text style={styles.sectionTitle}>Browse by Categories</Text>
+            <Text style={styles.sectionTitle}>{t('common.browseCategories')}</Text>
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -362,7 +364,7 @@ export default function SeriesScreen() {
         return (
             <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
                 <ActivityIndicator size="large" color="#FFD700" />
-                <Text style={{ color: '#9DA3B4', marginTop: xdHeight(16) }}>Loading Series...</Text>
+                <Text style={{ color: '#9DA3B4', marginTop: xdHeight(16) }}>{t('series.loading')}</Text>
             </View>
         );
     }
@@ -406,8 +408,8 @@ export default function SeriesScreen() {
                     ) : (
                         <EmptyState
                             icon="television-play"
-                            title="No Series Found"
-                            subtitle="On this categories we can't find any series. Try another category"
+                            title={t('series.noSeriesFound')}
+                            subtitle={t('series.noSeriesSubtitle')}
                         />
                     )
                 }

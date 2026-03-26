@@ -1,0 +1,141 @@
+{
+  "common": {
+    "home": "Inicio",
+    "liveTv": "TV en vivo",
+    "movies": "Películas",
+    "series": "Series",
+    "settings": "Ajustes",
+    "favorites": "Favoritos",
+    "playlists": "Listas de reproducción",
+    "watchNow": "Ver ahora",
+    "learnMore": "Saber más",
+    "search": "Buscar...",
+    "browseCategories": "Explorar categorías",
+    "recentlyWatched": "Vistos recientemente",
+    "all": "Todo",
+    "ok": "Aceptar",
+    "save": "Guardar",
+    "confirm": "Confirmar",
+    "comingSoon": "Próximamente..."
+  },
+  "settings": {
+    "language": "Idioma",
+    "selectLanguage": "Seleccione su idioma preferido para la aplicación",
+    "cache": "Caché y Almacenamiento",
+    "cacheSubtitle": "Gestionar el caché y el almacenamiento de la aplicación",
+    "device": "Información del Dispositivo",
+    "deviceSubtitle": "Detalles del dispositivo y estado de la cuenta",
+    "subscription": "Suscripción",
+    "subscriptionSubtitle": "Ver los detalles de su plan y vencimiento",
+    "playlist": "Gestión de Listas de Reproducción",
+    "playlistSubtitle": "Seleccione y gestione sus listas de reproducción",
+    "parental": "Control Parental",
+    "parentalSubtitle": "Restringir contenido y establecer PIN",
+    "watchHistory": "Historial de Visualización",
+    "watchHistorySubtitle": "Ver su historial de transmisión",
+    "autoplay": "Ajustes de Autoreproducción",
+    "autoplaySubtitle": "Configurar el comportamiento de reproducción",
+    "cacheOptions": {
+      "storageUsage": "Uso de Almacenamiento",
+      "imageCache": "Caché de Imágenes",
+      "videoCache": "Caché de Video",
+      "epgData": "Datos EPG",
+      "appData": "Datos de la Aplicación",
+      "total": "Total",
+      "clearAll": "Borrar todo el Caché"
+    },
+    "deviceOptions": {
+      "accountDetails": "Detalles de la Cuenta",
+      "macAddress": "Dirección Mac",
+      "deviceKey": "Clave del Dispositivo",
+      "deviceState": "Estado del Dispositivo",
+      "activate": "Activar"
+    },
+    "subscriptionOptions": {
+      "monthlyPlan": "Plan Mensual",
+      "active": "Activo",
+      "expires": "Vence",
+      "daysRemaining": "Días Restantes",
+      "days": "{{count}} Días"
+    },
+    "playlistOptions": {
+      "noPlaylists": "No se encontraron listas de reproducción para {{tab}}",
+      "changePlaylist": "¿Cambiar lista de reproducción?",
+      "changePlaylistSub": "El cambio volverá a cargar todo el contenido. ¿Continuar?",
+      "loading": "Cargando listas de reproducción...",
+      "error": "Error al cargar las listas de reproducción",
+      "empty": "No se encontraron listas de reproducción"
+    },
+    "parentalOptions": {
+      "enable": "Activar Control Parental",
+      "enableSub": "Requerir PIN para acceder a contenido restringido",
+      "pinSetting": "Ajuste de PIN",
+      "currentPin": "PIN Actual",
+      "changePin": "Cambiar PIN",
+      "setNew": "Establecer un nuevo PIN"
+    },
+    "historyOptions": {
+      "clearAll": "Borrar todo el historial",
+      "noHistory": "Aún no hay historial de visualización",
+      "noHistorySub": "Aún no has visto ningún contenido. Comienza a ver para ver tu actividad aquí."
+    },
+    "autoplayOptions": {
+      "enable": "Activar Autoreproducción",
+      "enableSub": "Reproducir automáticamente el próximo episodio después de que termine el actual."
+    }
+  },
+  "liveTv": {
+    "whatsLive": "Qué hay en vivo",
+    "now": "¡Ahora!",
+    "heroSubtitle": "Entra en los canales en vivo y mira lo que está pasando ahora mismo en noticias, deportes y entretenimiento.",
+    "recentlyWatched": "Vistos recientemente",
+    "browseCategories": "Explorar por categorías",
+    "channelsFound": "{{count}} canal encontrado",
+    "channelsFound_plural": "{{count}} canales encontrados",
+    "noLiveTvFound": "No se encontró TV en vivo",
+    "noLiveTvSubtitle": "En estas categorías no podemos encontrar ningún televisor en vivo. Prueba con otra categoría",
+    "loadingChannels": "Cargando canales..."
+  },
+  "movies": {
+    "searchPlaceholder": "Buscar películas....",
+    "loading": "Cargando películas...",
+    "noMoviesFound": "No se encontraron películas",
+    "noMoviesSubtitle": "En estas categorías no podemos encontrar ninguna película. Prueba con otra categoría"
+  },
+  "series": {
+    "searchPlaceholder": "Buscar series....",
+    "loading": "Cargando series...",
+    "noSeriesFound": "No se encontraron series",
+    "noSeriesSubtitle": "En estas categorías no podemos encontrar ninguna serie. Prueba con otra categoría"
+  },
+  "favorites": {
+    "title": "Favoritos",
+    "emptyTitle": "Aún no hay favoritos",
+    "emptySubtitle": "Aún no has añadido nada a tus favoritos."
+  },
+  "parentalControl": {
+    "title": "Control Parental",
+    "emptyTitle": "Aún no hay contenido bloqueado",
+    "emptySubtitle": "No se ha restringido ningún contenido bajo el control parental.",
+    "setupTitle": "Configurar PIN parental",
+    "setupSubtitle": "Para usar el bloqueo parental, primero debe crear un código PIN. Abra Configuración y establezca su PIN para continuar.",
+    "openSettings": "Abrir configuración"
+  },
+  "enterPin": {
+    "title": "Ingrese el PIN para continuar",
+    "button": "Continuar",
+    "incorrect": "PIN incorrecto. Por favor, inténtelo de nuevo.",
+    "failed": "Verificación fallida. Por favor, inténtelo de nuevo.",
+    "cancel": "Cancelar"
+  },
+  "detail": {
+    "live": "En vivo",
+    "left": "restante",
+    "today": "Hoy",
+    "nowStreamingName": "Transmitiendo ahora: {{name}}",
+    "nowStreamingNameCat": "Transmitiendo ahora: {{name}} — {{category}}",
+    "cast": "Reparto:",
+    "season": "Temporada",
+    "episodes": "Episodios ({{count}})"
+  }
+}
