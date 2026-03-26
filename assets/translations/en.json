@@ -42,7 +42,8 @@
       "epgData": "EPG Data",
       "appData": "App Data",
       "total": "Total",
-      "clearAll": "Clear All Cache"
+      "clearAll": "Clear All Cache",
+      "clearConfirm": "This will clear all images, EPG data, and application cache. Are you sure you want to continue?"
     },
     "deviceOptions": {
       "accountDetails": "Account Details",

@@ -42,7 +42,8 @@
       "epgData": "EPG-Daten",
       "appData": "App-Daten",
       "total": "Gesamt",
-      "clearAll": "Gesamten Cache leeren"
+      "clearAll": "Gesamten Cache leeren",
+      "clearConfirm": "Dadurch werden alle Bilder, EPG-Daten und der Anwendungscache gelöscht. Sind Sie sicher, dass Sie fortfahren möchten?"
     },
     "deviceOptions": {
       "accountDetails": "Kontodetails",
