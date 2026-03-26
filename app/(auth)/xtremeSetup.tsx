@@ -1,5 +1,7 @@
 import { ActionFilledButton, ActionOutlineButton } from "@/components/ui/buttons";
 import { Colors, scale as s, width } from "@/constants";
+import { useCreatePlaylist } from "@/lib/api/hooks/useCreatePlaylist";
+import { useDeviceStore } from "@/lib/store/useDeviceStore";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -14,13 +16,12 @@ import {
     TextInput,
     View
 } from "react-native";
-import { useCreatePlaylist } from "@/lib/api/hooks/useCreatePlaylist";
-import { useDeviceStore } from "@/lib/store/useDeviceStore";
 
 const XtremeSetup = () => {
     const router = useRouter();
     const { createPlaylist, loading } = useCreatePlaylist();
     const deviceId = useDeviceStore((state) => state.id);
+    const setActivePlaylistId = useDeviceStore((state) => state.setActivePlaylistId);
 
     const isLargeScreen = width >= 900;
     const contentWidth = isLargeScreen ? width * 0.5 : width * 0.92;
@@ -39,7 +40,7 @@ const XtremeSetup = () => {
     const handleConfirm = async () => {
         if (isFormValid && deviceId) {
             try {
-                await createPlaylist({
+                const newPlaylist = await createPlaylist({
                     deviceId,
                     isPinRequired: false,
                     name: playlistName,
@@ -48,6 +49,9 @@ const XtremeSetup = () => {
                     username,
                     password,
                 });
+                if (newPlaylist?.id) {
+                    setActivePlaylistId(newPlaylist.id);
+                }
                 router.push("/(auth)/deviceVerification");
             } catch (error: any) {
                 Alert.alert("Error", error.message || "Failed to add playlist");

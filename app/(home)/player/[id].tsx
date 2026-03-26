@@ -10,6 +10,7 @@ import { EpisodeCard } from '@/components/ui/cards/EpisodeCard';
 import { SettingCard } from '@/components/ui/cards/SettingCard';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useTab } from '@/context/TabContext';
+import { useStreamUrl } from '@/lib/api/hooks/useStreamUrl';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ResizeMode, Video } from 'expo-av';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -17,6 +18,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
     Animated,
     FlatList,
+    LayoutChangeEvent,
+    PanResponder,
     StyleSheet,
     Text,
     View
@@ -52,13 +55,13 @@ const generateEpisodes = (): Episode[] =>
 export default function VideoPlayerScreen() {
     const router = useRouter();
     const params = useLocalSearchParams<{
-        id?: string;
         title: string;
         genre: string;
         year: string;
         duration: string;
         image: string;
         isSeries?: string;
+        streamHash?: string;
     }>();
 
     const title = params.title ?? 'The World Poker Toure';
@@ -91,33 +94,65 @@ export default function VideoPlayerScreen() {
         }).start();
     }, [viewMode]);
 
-    // Simulate playback progress
-    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-    useEffect(() => {
-        if (isPlaying) {
-            intervalRef.current = setInterval(() => {
-                setProgress((p) => Math.min(p + 0.0005, 1));
-            }, 500);
-        } else {
-            if (intervalRef.current) clearInterval(intervalRef.current);
+    const videoRef = useRef<Video>(null);
+    const [videoDurationMs, setVideoDurationMs] = useState(0);
+    const [currentTimeMs, setCurrentTimeMs] = useState(0);
+    const [isSeeking, setIsSeeking] = useState(false);
+    const [progressBarWidth, setProgressBarWidth] = useState(0);
+
+    const onPlaybackStatusUpdate = (status: any) => {
+        if (!status.isLoaded) return;
+
+        if (!isSeeking) {
+            setVideoDurationMs(status.durationMillis || 0);
+            setCurrentTimeMs(status.positionMillis || 0);
+            setProgress(status.positionMillis / (status.durationMillis || 1));
         }
-        return () => {
-            if (intervalRef.current) clearInterval(intervalRef.current);
-        };
-    }, [isPlaying]);
+    };
+
+    const handleSeek = async (newProgress: number) => {
+        if (videoRef.current) {
+            const seekPosition = newProgress * videoDurationMs;
+            await videoRef.current.setPositionAsync(seekPosition);
+        }
+    };
+
+    const panResponder = useRef(
+        PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+            onMoveShouldSetPanResponder: () => true,
+            onPanResponderGrant: () => {
+                setIsSeeking(true);
+            },
+            onPanResponderMove: (_, gestureState) => {
+                // Calculation relative to full screen width if needed, but better to use layout
+                const newProgress = Math.max(0, Math.min(1, gestureState.moveX / progressBarWidth));
+                setProgress(newProgress);
+                setCurrentTimeMs(newProgress * videoDurationMs);
+            },
+            onPanResponderRelease: async (_, gestureState) => {
+                const newProgress = Math.max(0, Math.min(1, gestureState.moveX / progressBarWidth));
+                await handleSeek(newProgress);
+                setIsSeeking(false);
+            },
+        })
+    ).current;
+
+    const onProgressBarLayout = (event: LayoutChangeEvent) => {
+        setProgressBarWidth(event.nativeEvent.layout.width);
+    };
 
     // Time formatting
-    const totalSecs = 6752;
-    const currentSecs = Math.floor(progress * totalSecs);
-    const fmt = (s: number) => {
+    const fmt = (ms: number) => {
+        const s = Math.floor(ms / 1000);
         const h = Math.floor(s / 3600);
         const m = Math.floor((s % 3600) / 60);
         const sec = s % 60;
         if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
         return `${m}:${String(sec).padStart(2, '0')}`;
     };
-    const totalFmt = '1:52:32';
-    const currentFmt = fmt(currentSecs);
+    const totalFmt = fmt(videoDurationMs);
+    const currentFmt = fmt(currentTimeMs);
 
     const toggleSettings = () => {
         setViewMode(v => v === 'settings' ? 'normal' : 'settings');
@@ -127,21 +162,47 @@ export default function VideoPlayerScreen() {
         setViewMode(v => v === 'episodes' ? 'normal' : 'episodes');
     };
 
-    const handleSkipPrevious = () => {
+    const handleSkipPrevious = async () => {
         if (isSeries && currentEpisodeIndex > 0) {
             setCurrentEpisodeIndex(currentEpisodeIndex - 1);
             setProgress(0);
             setIsPlaying(true);
+        } else if (videoRef.current) {
+            // Skip backward 10s for movies
+            const status = await videoRef.current.getStatusAsync();
+            if (status.isLoaded) {
+                const newPos = Math.max(0, status.positionMillis - 10000);
+                await videoRef.current.setPositionAsync(newPos);
+            }
         }
     };
 
-    const handleSkipNext = () => {
+    const handleSkipNext = async () => {
         if (isSeries && currentEpisodeIndex < episodes.length - 1) {
             setCurrentEpisodeIndex(currentEpisodeIndex + 1);
             setProgress(0);
             setIsPlaying(true);
+        } else if (videoRef.current) {
+            // Skip forward 10s for movies
+            const status = await videoRef.current.getStatusAsync();
+            if (status.isLoaded) {
+                const newPos = Math.min(videoDurationMs, status.positionMillis + 10000);
+                await videoRef.current.setPositionAsync(newPos);
+            }
         }
     };
+
+    const { data: streamUrl, isLoading: isStreamLoading } = useStreamUrl(
+        params.streamHash || null,
+        true
+    );
+
+    // If streamHash is provided, try to use it. Only use dummy as a last resort if it fails or isn't provided.
+    const videoSource = streamUrl
+        ? { uri: streamUrl }
+        : params.streamHash
+            ? null // Wait for fetch
+            : { uri: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' };
 
     const handleSelectEpisode = (episodeIndex: number) => {
         setCurrentEpisodeIndex(episodeIndex);
@@ -190,14 +251,23 @@ export default function VideoPlayerScreen() {
                     }
                 ]}>
                     <View style={styles.videoWrapper}>
-                        <Video
-                            source={{ uri: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' }}
-                            style={styles.videoBg}
-                            resizeMode={ResizeMode.COVER}
-                            shouldPlay={isPlaying}
-                            isLooping
-                            useNativeControls={false}
-                        />
+                        {videoSource && (
+                            <Video
+                                ref={videoRef}
+                                source={videoSource}
+                                style={styles.videoBg}
+                                resizeMode={ResizeMode.COVER}
+                                shouldPlay={isPlaying}
+                                isLooping
+                                useNativeControls={false}
+                                onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+                            />
+                        )}
+                        {!videoSource && (
+                            <View style={[styles.videoBg, { backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }]}>
+                                <Text style={{ color: '#fff' }}>{isStreamLoading ? 'Loading Stream...' : 'No Stream Available'}</Text>
+                            </View>
+                        )}
                         <View style={styles.vignette} />
 
                         {/* Controls (only show in normal mode or as mini controls) */}
@@ -213,7 +283,11 @@ export default function VideoPlayerScreen() {
                             {/* Bottom controls */}
                             <View style={styles.controlsBar}>
                                 <View style={styles.progressRow}>
-                                    <View style={styles.progressBg}>
+                                    <View
+                                        style={styles.progressBg}
+                                        onLayout={onProgressBarLayout}
+                                        {...panResponder.panHandlers}
+                                    >
                                         <View style={[styles.progressFill, { width: `${progress * 100}%` as any }]} />
                                         <View style={[styles.progressKnob, { left: `${progress * 100}%` as any }]} />
                                     </View>
@@ -225,7 +299,7 @@ export default function VideoPlayerScreen() {
                                         <NavIconButton
                                             icon={<MaterialCommunityIcons name="skip-previous" size={scale(24)} />}
                                             onPress={handleSkipPrevious}
-                                            disabled={!isSeries || currentEpisodeIndex === 0}
+                                            disabled={isSeries && currentEpisodeIndex === 0}
                                         />
                                         <NavIconButton
                                             icon={<MaterialCommunityIcons name={isPlaying ? 'pause' : 'play'} size={scale(24)} />}
@@ -235,7 +309,7 @@ export default function VideoPlayerScreen() {
                                         <NavIconButton
                                             icon={<MaterialCommunityIcons name="skip-next" size={scale(24)} />}
                                             onPress={handleSkipNext}
-                                            disabled={!isSeries || currentEpisodeIndex === episodes.length - 1}
+                                            disabled={isSeries && currentEpisodeIndex === episodes.length - 1}
                                         />
                                     </View>
 

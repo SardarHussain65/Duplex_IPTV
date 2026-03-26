@@ -17,5 +17,7 @@ export { tokenStorage } from './tokenStorage';
 // ─── Hooks ─────────────────────────────────────────────────────────────────────
 export { useGenerateDeviceId } from './hooks/useGenerateDeviceId';
 export { useHealthCheck } from './hooks/useHealthCheck';
+export { usePlaylistChannels } from './hooks/usePlaylistChannels';
+export { useStreamUrl } from './hooks/useStreamUrl';
 export * from './types';
 

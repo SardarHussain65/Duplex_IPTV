@@ -13,6 +13,7 @@ import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useTab } from '@/context/TabContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { useStreamUrl } from '@/lib/api/hooks/useStreamUrl';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -50,6 +51,7 @@ export default function ChannelDetailScreen() {
         name: string;
         category: string;
         image: string;
+        streamHash?: string;
     }>();
 
     const [isFavorite, setIsFavorite] = useState(false);
@@ -61,29 +63,38 @@ export default function ChannelDetailScreen() {
         return () => setIsScrolled(false);
     }, []);
 
-    const channelName = params.name ?? 'SalinTV';
+    // Real data from params
+    const channelName = params.name ?? 'Live Channel';
+    const channelCategory = params.category ?? '';
     const channelImage = params.image ?? '';
 
+    // EPG data — channel name is the best "show title" we have without a
+    // dedicated EPG API. Other fields are clearly marked as placeholders.
     const programme = {
-        showTitle: 'The World Poker Toure',
-        description:
-            'A relentless detective is drawn into a dangerous investigation after a series of mysterious killings shake the city. As he follows a trail of cryptic clues, he uncovers a hidden network operating in the shadows. With time running out and.',
-        date: 'Aug 7, 2026',
-        episode: 'E20',
-        timeLeft: '1h 20m',
-        progress: 0.35,
+        showTitle: channelName,
+        description: channelCategory
+            ? `Now streaming: ${channelName} — ${channelCategory}`
+            : `Now streaming: ${channelName}`,
+        date: 'Live',
+        episode: channelCategory || 'Live TV',
+        timeLeft: 'Live',
+        progress: 0,
     };
+
+    const { data: streamUrl } = useStreamUrl(params.streamHash || null);
+    console.log(`[ChannelDetailScreen] channelName: ${channelName}, streamHash: ${params.streamHash}, streamUrl: ${streamUrl}`);
 
     const handleExpand = () => {
         router.push({
             pathname: '/player/[id]',
             params: {
                 id: params.id || 'live',
-                title: programme.showTitle,
-                genre: channelName,
-                year: programme.date,
-                duration: programme.timeLeft,
+                title: channelName,
+                genre: channelCategory,
+                year: 'Live',
+                duration: 'Live',
                 image: channelImage,
+                streamHash: params.streamHash,
             },
         });
     };
@@ -114,6 +125,7 @@ export default function ChannelDetailScreen() {
                     episode={programme.episode}
                     timeLeft={programme.timeLeft}
                     onExpandPress={handleExpand}
+                    videoUri={streamUrl || undefined}
                 />
 
                 {/* Right: Info Panel */}

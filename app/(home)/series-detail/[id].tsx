@@ -79,6 +79,7 @@ export default function SeriesDetailScreen() {
         season: string;
         image: string;
         description: string;
+        streamHash?: string;
     }>();
 
     const [isFavorite, setIsFavorite] = useState(false);
@@ -98,6 +99,8 @@ export default function SeriesDetailScreen() {
     const description =
         params.description ??
         'Set in a modern city, this series follows a group of individuals whose lives secretly intersect through crime, power, and ambition. Each episode uncovers new layers of mystery, personal conflict, and unexpected alliances. As tensions rise across multiple seasons, hidden motives are revealed, relationships are tested, and one wrong move can change everything forever.';
+
+    console.log(`[SeriesDetailScreen] title: ${title}, streamHash: ${params.streamHash}`);
 
     const episodes = generateEpisodes(activeSeason + 1);
 
@@ -126,6 +129,7 @@ export default function SeriesDetailScreen() {
                         duration: item.duration,
                         image: item.image,
                         isSeries: 'true',
+                        streamHash: params.streamHash, // Assuming episodes share the same hash for now or have their own
                     },
                 })
             }
@@ -207,11 +211,12 @@ export default function SeriesDetailScreen() {
                                         duration: season,
                                         image,
                                         isSeries: 'true',
+                                        streamHash: params.streamHash,
                                     },
                                 })
                             }
                         >
-                            Continue Watching
+                            Watch Now
                         </NavButton>
                         <NavIconButton
                             icon={

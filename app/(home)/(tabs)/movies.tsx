@@ -11,13 +11,13 @@ import { NavButton } from '@/components/ui/buttons/NavButton';
 import { BackdropCard } from '@/components/ui/cards/BackdropCard';
 import { PosterCard } from '@/components/ui/cards/PosterCard';
 import { EnterPinModal, ManageCategoryModal, RenameCategoryModal } from '@/components/ui/modals';
-import { HERO_MOVIES_SLIDES, MOCK_RECENTLY_WATCHED_MOVIES, MOVIES_CATEGORIES } from '@/constants/appData';
+import { HERO_MOVIES_SLIDES } from '@/constants/appData';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useCategoryManagement } from '@/context/CategoryManagementContext';
 import { Movie } from '@/types';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     FlatList,
     ScrollView,
@@ -31,7 +31,10 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { useTab } from '@/context/TabContext';
 import { useMovies } from '@/hooks/useMovies';
+import { usePlaylistChannels } from '@/lib/api';
+import { useDeviceStore } from '@/lib/store/useDeviceStore';
 import { styles } from '@/styles/movies.styles';
+import { ActivityIndicator } from 'react-native';
 
 // ── Screen ─────────────────────────────────────────────────────
 
@@ -42,14 +45,70 @@ export default function MoviesScreen() {
         searchQuery,
         setSearchQuery,
         heroIndex,
-        filteredMovies,
-        currentHero,
         handleMoviePress,
         goToHero,
         handleScroll,
     } = useMovies();
     const { setSearchBarNode, settingsTabNode, searchBarNode } = useTab();
     const { isCategoryLocked, lockCategory, unlockCategory, renameCategory, getCategoryLabel } = useCategoryManagement();
+    const activePlaylistId = useDeviceStore((state) => state.activePlaylistId);
+
+    // Debounce the search query so we only hit the API after typing stops
+    const [inputValue, setInputValue] = useState('');
+    const [committedSearch, setCommittedSearch] = useState('');
+
+    const {
+        data: apiData,
+        isLoading,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage
+    } = usePlaylistChannels({
+        playlistId: activePlaylistId || '',
+        limit: 48,
+        contentType: 'MOVIE',
+        search: committedSearch,
+        enabled: !!activePlaylistId
+    });
+
+    const movies: Movie[] = useMemo(() => {
+        if (!apiData?.pages) return [];
+        return apiData.pages.flatMap((page) =>
+            page.items.map((item) => ({
+                id: item.streamHash,
+                title: item.name,
+                genre: item.category,
+                year: "2024",
+                duration: item.genre || "2h",
+                image: item.tvgLogo,
+                description: item.name,
+                streamHash: item.streamHash,
+            }))
+        );
+    }, [apiData]);
+
+    const categories = useMemo(() => {
+        const uniqueCats = Array.from(new Set(movies.map((m) => m.genre)));
+        return ['All', ...uniqueCats];
+    }, [movies]);
+
+    const recentlyWatched = useMemo(() => {
+        return movies.slice(0, 5).map((m, idx) => ({
+            ...m,
+            progress: [0.45, 0.2, 0.8, 0.1, 0.65][idx] || 0.5
+        }));
+    }, [movies]);
+
+    const filteredMovies = useMemo(() => {
+        // Text search is handled by the backend via the `search` query param.
+        // Only category filtering is done client-side here.
+        if (activeCategory === 'All') return movies;
+        return movies.filter(
+            (m) => m.genre.toLowerCase() === activeCategory.toLowerCase()
+        );
+    }, [activeCategory, movies]);
+
+    const currentHero = HERO_MOVIES_SLIDES[heroIndex] || HERO_MOVIES_SLIDES[0];
 
     const [isManageModalVisible, setManageModalVisible] = useState(false);
     const [isRenameModalVisible, setRenameModalVisible] = useState(false);
@@ -222,7 +281,7 @@ export default function MoviesScreen() {
             </View>
 
             {/* ── Recently Watched ── */}
-            {MOCK_RECENTLY_WATCHED_MOVIES.length > 0 && (
+            {recentlyWatched.length > 0 && (
                 <View style={{ marginBottom: xdHeight(32) }}>
                     <Text style={styles.sectionTitle}>Recently Watched</Text>
                     <ScrollView
@@ -231,7 +290,7 @@ export default function MoviesScreen() {
                         style={{ marginHorizontal: -xdWidth(40) }}
                         contentContainerStyle={{ paddingHorizontal: xdWidth(40) }}
                     >
-                        {MOCK_RECENTLY_WATCHED_MOVIES.map((movie, index) => (
+                        {recentlyWatched.map((movie, index) => (
                             <BackdropCard
                                 key={`recent-${movie.id}`}
                                 image={{ uri: movie.image }}
@@ -250,8 +309,9 @@ export default function MoviesScreen() {
             <View style={styles.searchWrapper}>
                 <SearchBar
                     innerRef={searchRef}
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
+                    value={inputValue}
+                    onChangeText={setInputValue}
+                    onSubmit={(text) => setCommittedSearch(text)}
                     placeholder="Search for movies...."
                     nextFocusLeft={settingsTabNode || undefined}
                     nextFocusUp={settingsTabNode || undefined}
@@ -268,9 +328,9 @@ export default function MoviesScreen() {
                 style={styles.categoryRow}
                 contentContainerStyle={styles.categoryContent}
             >
-                {MOVIES_CATEGORIES.map((cat, index) => {
+                {categories.map((cat, index) => {
                     const isFirst = index === 0;
-                    const isLast = index === MOVIES_CATEGORIES.length - 1;
+                    const isLast = index === categories.length - 1;
                     return (
                         <CategoryButton
                             key={cat}
@@ -295,6 +355,15 @@ export default function MoviesScreen() {
 
     const isCurrentCategoryLocked = activeCategory !== 'All' && isCategoryLocked(activeCategory);
 
+    if (isLoading) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color="#FFD700" />
+                <Text style={{ color: '#9DA3B4', marginTop: xdHeight(16) }}>Loading Movies...</Text>
+            </View>
+        );
+    }
+
     return (
         <View style={styles.container}>
             <FlatList
@@ -309,9 +378,24 @@ export default function MoviesScreen() {
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
                 showsVerticalScrollIndicator={false}
-                initialNumToRender={10}
-                windowSize={5}
-                removeClippedSubviews={false}
+                initialNumToRender={48}
+                maxToRenderPerBatch={24}
+                updateCellsBatchingPeriod={100}
+                windowSize={21}
+                removeClippedSubviews={true}
+                onEndReached={() => {
+                    if (hasNextPage && !isFetchingNextPage) {
+                        fetchNextPage();
+                    }
+                }}
+                onEndReachedThreshold={2.0}
+                ListFooterComponent={() =>
+                    isFetchingNextPage ? (
+                        <View style={{ paddingVertical: xdHeight(20), alignItems: 'center' }}>
+                            <ActivityIndicator size="small" color="#FFD700" />
+                        </View>
+                    ) : null
+                }
                 ListEmptyComponent={
                     isCurrentCategoryLocked ? (
                         <CategoryLockedState />
@@ -348,7 +432,7 @@ export default function MoviesScreen() {
                 visible={isPinModalVisible}
                 onClose={() => setPinModalVisible(false)}
                 onSuccess={handlePinSuccess}
-                expectedPin="1234"
+                onVerify={async (pin: string) => pin === "1234"}
                 title={categoryToManage && isCategoryLocked(categoryToManage) ? 'Enter PIN to Unlock' : 'Enter PIN to Lock'}
             />
         </View>

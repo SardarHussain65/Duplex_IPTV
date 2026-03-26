@@ -40,34 +40,25 @@ const DeviceVerification = () => {
 
     useEffect(() => {
         if (status !== "syncing") return;
-
-        const processStep = async (index: number) => {
+        let cancelled = false;
+        const timers: Array<ReturnType<typeof setTimeout>> = [];
+        const processStep = (index: number) => {
             if (index >= steps.length) {
                 setStatus("success");
                 return;
             }
-
             const stepId = steps[index].id;
-
-            // Simulation Delay
             const delay = 1500 + Math.random() * 1000;
-
             const timer = setTimeout(() => {
-                // TEST: Simulated Errors
-                // 20% chance of error for demo
+                if (cancelled) return;
                 const isError = Math.random() < 0.1;
-
                 if (isError) {
                     setSteps(prev => prev.map(s => s.id === stepId ? { ...s, status: "error" } : s));
                     setGlobalError(stepId === "fetch" ? "Invalid playlist URL, please check your link." : "No content was found.");
                     setStatus("error");
                     return;
                 }
-
-                // Success for this step
                 setSteps(prev => prev.map(s => s.id === stepId ? { ...s, status: "success", label: getSuccessLabel(stepId) } : s));
-
-                // Move to next step
                 if (index + 1 < steps.length) {
                     const nextId = steps[index + 1].id;
                     setSteps(prev => prev.map(s => s.id === nextId ? { ...s, status: "loading" } : s));
@@ -76,12 +67,15 @@ const DeviceVerification = () => {
                     setStatus("success");
                 }
             }, delay);
-
-            return () => clearTimeout(timer);
+            timers.push(timer);
         };
-
         processStep(0);
-    }, [status]);
+        return () => {
+            cancelled = true;
+            timers.forEach(clearTimeout);
+        };
+    }, [status, steps.length]);
+
 
     const getSuccessLabel = (id: string) => {
         switch (id) {

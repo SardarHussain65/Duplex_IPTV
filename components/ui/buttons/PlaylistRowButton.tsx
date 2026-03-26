@@ -1,10 +1,11 @@
 import { Colors } from '@/constants';
-import { scale, xdHeight, xdWidth } from '@/constants/scaling';
+import { scale } from '@/constants/scaling';
 import { Ionicons } from '@expo/vector-icons';
 import React, { forwardRef } from 'react';
 import { Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 interface PlaylistRowButtonProps {
+    disabled?: boolean;
     label: string;
     url?: string;
     isSelected?: boolean;
@@ -19,6 +20,7 @@ interface PlaylistRowButtonProps {
 }
 
 export const PlaylistRowButton = forwardRef<View, PlaylistRowButtonProps>(({
+    disabled,
     label,
     url,
     isSelected,
@@ -35,6 +37,7 @@ export const PlaylistRowButton = forwardRef<View, PlaylistRowButtonProps>(({
         <Pressable
             ref={ref}
             onPress={onPress}
+            disabled={disabled}
             hasTVPreferredFocus={hasTVPreferredFocus}
             nextFocusUp={nextFocusUp}
             nextFocusDown={nextFocusDown}
@@ -44,14 +47,15 @@ export const PlaylistRowButton = forwardRef<View, PlaylistRowButtonProps>(({
                 styles.container,
                 focused && styles.focused,
                 isSelected && styles.selected,
+                disabled && styles.disabled,
                 style
             ]}
         >
             <View style={styles.iconBox}>
-                <Ionicons 
-                    name={isPinRequired ? "lock-closed-outline" : "layers-outline"} 
-                    size={scale(20)} 
-                    color={Colors.gray[300]} 
+                <Ionicons
+                    name={isPinRequired ? "lock-closed-outline" : "layers-outline"}
+                    size={scale(20)}
+                    color={Colors.gray[300]}
                 />
             </View>
             <View style={styles.content}>
@@ -85,6 +89,9 @@ const styles = StyleSheet.create({
     },
     selected: {
         backgroundColor: Colors.dark[7],
+    },
+    disabled: {
+        opacity: 0.5,
     },
     iconBox: {
         width: scale(40),

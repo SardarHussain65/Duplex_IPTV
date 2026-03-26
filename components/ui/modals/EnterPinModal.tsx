@@ -6,13 +6,10 @@ import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import React, { useState } from 'react';
 import {
     ActivityIndicator,
-    Animated,
-    findNodeHandle,
     Modal,
-    Pressable,
     StyleSheet,
     Text,
-    View,
+    View
 } from 'react-native';
 
 interface EnterPinModalProps {
@@ -45,7 +42,7 @@ export const EnterPinModal: React.FC<EnterPinModalProps> = ({
 
     const handleContinue = async () => {
         if (!onVerify) return;
-        
+
         setIsVerifying(true);
         setError(null);
         try {
@@ -129,9 +126,9 @@ export const EnterPinModal: React.FC<EnterPinModalProps> = ({
                             </ActionOutlineButton>
                         </View>
                         <View style={styles.btnWrapper}>
-                            <ActionFilledButton 
-                                onPress={handleContinue} 
-                                style={[styles.btn, { backgroundColor: Colors.gray[100], borderRadius: scale(10) }]} 
+                            <ActionFilledButton
+                                onPress={handleContinue}
+                                style={[styles.btn, { backgroundColor: Colors.gray[100], borderRadius: scale(10) }]}
                                 disabled={pin.length < 4 || isVerifying}
                                 textColor={Colors.dark[11]}
                             >

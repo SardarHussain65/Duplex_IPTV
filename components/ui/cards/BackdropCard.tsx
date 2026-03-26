@@ -170,11 +170,13 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '600',
         color: Colors.gray[100],
+        width: '50%',
     },
     subtitle: {
         fontSize: 12,
         color: Colors.gray[400],
         marginTop: 2,
+        width: '45%',
     },
     progressTrack: {
         position: 'absolute',

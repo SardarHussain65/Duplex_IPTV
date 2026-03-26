@@ -82,12 +82,16 @@ const bannerStyles = StyleSheet.create({
 const ActivationScreen = () => {
     const deviceInfo = useDeviceInfo();
     const { generateDeviceId, deviceId, deviceKey, loading: deviceIdLoading } = useGenerateDeviceId();
-    const { isTrial, hasUsedTrial, subscription } = useDeviceStore();
+    const { isTrial, hasUsedTrial, isBlocked, subscription } = useDeviceStore();
     const isLargeScreen = width >= 900;
     const contentWidth = isLargeScreen ? width * 0.5 : width * 0.92;
 
     // Derived state from store/API
-    const [screenState, setScreenState] = useState<ScreenState>(isTrial ? 'trial' : 'intro');
+    const [screenState, setScreenState] = useState<ScreenState>(
+        isBlocked ? 'blocked' :
+            (subscription?.status === 'expired' || subscription?.expired || (hasUsedTrial && !isTrial)) ? 'expired' :
+                isTrial ? 'trial' : 'intro'
+    );
 
     useEffect(() => {
         if (deviceInfo.macAddress &&
@@ -98,12 +102,16 @@ const ActivationScreen = () => {
     }, [deviceInfo.macAddress]);
 
     useEffect(() => {
-        if (isTrial) {
+        if (isBlocked) {
+            setScreenState('blocked');
+        } else if (subscription?.status === 'expired' || subscription?.expired || (hasUsedTrial && !isTrial)) {
+            setScreenState('expired');
+        } else if (isTrial) {
             setScreenState('trial');
         } else {
             setScreenState('intro');
         }
-    }, [isTrial]);
+    }, [isTrial, isBlocked, subscription, hasUsedTrial]);
 
     const calculateExpiryDays = () => {
         if (!subscription?.endDate) return 0;

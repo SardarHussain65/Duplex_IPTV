@@ -9,19 +9,17 @@ import { BackdropCard, CategoryLockedState, EmptyState, SearchBar } from '@/comp
 import { CategoryButton } from '@/components/ui/buttons/CategoryButton';
 import { EnterPinModal, ManageCategoryModal, RenameCategoryModal } from '@/components/ui/modals';
 import { Colors } from '@/constants';
-import { LIVE_TV_CATEGORIES, MOCK_CHANNELS, MOCK_RECENTLY_WATCHED_CHANNELS } from '@/constants/appData';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useCategoryManagement } from '@/context/CategoryManagementContext';
 import { useTab } from '@/context/TabContext';
+import { usePlaylistChannels } from '@/lib/api';
+import { useDeviceStore } from '@/lib/store/useDeviceStore';
 import { Channel } from '@/types';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, ScrollView, StyleSheet, Text, View, findNodeHandle } from 'react-native';
+import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, View, findNodeHandle } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
-
-
-
 
 // ── Screen ────────────────────────────────────────────────────
 
@@ -29,9 +27,56 @@ export default function LiveTVScreen() {
     const router = useRouter();
     const { setIsScrolled, setSearchBarNode, settingsTabNode, searchBarNode } = useTab();
     const { isCategoryLocked, lockCategory, unlockCategory, renameCategory, getCategoryLabel } = useCategoryManagement();
+    const activePlaylistId = useDeviceStore((state) => state.activePlaylistId);
+
+    // inputValue  = what the user is currently typing (controlled input)
+    // committedSearch = sent to the API only when the keyboard ✓ button is pressed
+    const [inputValue, setInputValue] = useState('');
+    const [committedSearch, setCommittedSearch] = useState('');
+
+    const {
+        data: apiData,
+        isLoading,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage
+    } = usePlaylistChannels({
+        playlistId: activePlaylistId || '',
+        limit: 50,
+        contentType: 'LIVE',
+        search: committedSearch,
+        enabled: !!activePlaylistId
+    });
+
+    const channels: Channel[] = useMemo(() => {
+        if (!apiData?.pages) return [];
+        return apiData.pages.flatMap((page) =>
+            page.items.map((item) => ({
+                id: item.streamHash,
+                name: item.name,
+                category: item.category,
+                image: item.tvgLogo,
+                streamHash: item.streamHash,
+            }))
+        );
+    }, [apiData]);
+
+    const categories = useMemo(() => {
+        const uniqueCats = Array.from(new Set(channels.map((ch: Channel) => ch.category)));
+        return ['All', ...uniqueCats];
+    }, [channels]);
+
+    const recentlyWatched = useMemo(() => {
+        // For now, if we have real channels, use the first few as 'recently watched' 
+        // to maintain UI consistency, or we could keep mock data if preferred.
+        // Let's use real channels if available.
+        return channels.slice(0, 5).map((ch, idx) => ({
+            ...ch,
+            progress: [0.45, 0.2, 0.8, 0.1, 0.65][idx] || 0.5
+        }));
+    }, [channels]);
 
     const [activeCategory, setActiveCategory] = useState('All');
-    const [searchQuery, setSearchQuery] = useState('');
     const [categoryAllNode, setCategoryAllNode] = useState<number | undefined>(undefined);
     const [lastCategoryNode, setLastCategoryNode] = useState<number | undefined>(undefined);
     const [firstChannelNode, setFirstChannelNode] = useState<number | undefined>(undefined);
@@ -50,22 +95,13 @@ export default function LiveTVScreen() {
     const channelRefs = useRef<Record<number, any>>({});
 
     const filteredChannels = useMemo(() => {
-        let result = MOCK_CHANNELS;
-
-        if (activeCategory !== 'All') {
-            result = result.filter(
-                (ch) => ch.category.toLowerCase() === activeCategory.toLowerCase()
-            );
-        }
-
-        if (searchQuery.trim()) {
-            result = result.filter((ch) =>
-                ch.name.toLowerCase().includes(searchQuery.toLowerCase())
-            );
-        }
-
-        return result;
-    }, [activeCategory, searchQuery]);
+        // Text search is handled by the backend via the `search` query param.
+        // Only category filtering is done client-side here.
+        if (activeCategory === 'All') return channels;
+        return channels.filter(
+            (ch: Channel) => ch.category.toLowerCase() === activeCategory.toLowerCase()
+        );
+    }, [activeCategory, channels]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -114,6 +150,7 @@ export default function LiveTVScreen() {
                 name: channel.name,
                 category: channel.category,
                 image: channel.image,
+                streamHash: channel.streamHash,
             },
         });
     };
@@ -222,7 +259,7 @@ export default function LiveTVScreen() {
 
             </View>
             {/* ── Recently Watched ── */}
-            {MOCK_RECENTLY_WATCHED_CHANNELS.length > 0 && (
+            {recentlyWatched.length > 0 && (
                 <View style={{ marginBottom: xdHeight(32) }}>
                     <Text style={styles.sectionTitle}>Recently Watched</Text>
                     <ScrollView
@@ -231,7 +268,7 @@ export default function LiveTVScreen() {
                         style={{ marginHorizontal: -xdWidth(40) }}
                         contentContainerStyle={{ paddingHorizontal: xdWidth(40) }}
                     >
-                        {MOCK_RECENTLY_WATCHED_CHANNELS.map((channel, index) => (
+                        {recentlyWatched.map((channel, index) => (
                             <BackdropCard
                                 key={`recent-${channel.id}`}
                                 image={{ uri: channel.image }}
@@ -245,13 +282,14 @@ export default function LiveTVScreen() {
                     </ScrollView>
                 </View>
             )}
-            
+
             {/* Search Bar */}
             <View style={styles.searchWrapper}>
                 <SearchBar
                     innerRef={searchRef}
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
+                    value={inputValue}
+                    onChangeText={setInputValue}
+                    onSubmit={(text) => setCommittedSearch(text)}
                     nextFocusLeft={settingsTabNode || undefined}
                     nextFocusUp={settingsTabNode || undefined}
                     nextFocusRight={categoryAllNode}
@@ -267,9 +305,9 @@ export default function LiveTVScreen() {
                 showsHorizontalScrollIndicator={false}
                 style={styles.categoryRow}
             >
-                {LIVE_TV_CATEGORIES.map((cat, index) => {
+                {categories.map((cat, index) => {
                     const isFirst = index === 0;
-                    const isLast = index === LIVE_TV_CATEGORIES.length - 1;
+                    const isLast = index === categories.length - 1;
                     return (
                         <CategoryButton
                             key={cat}
@@ -300,6 +338,15 @@ export default function LiveTVScreen() {
 
     const isCurrentCategoryLocked = activeCategory !== 'All' && isCategoryLocked(activeCategory);
 
+    if (isLoading) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color={Colors.primary[500]} />
+                <Text style={{ color: Colors.gray[400], marginTop: xdHeight(16) }}>Loading Channels...</Text>
+            </View>
+        );
+    }
+
     return (
         <View style={styles.container}>
             <FlatList
@@ -314,9 +361,24 @@ export default function LiveTVScreen() {
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
                 showsVerticalScrollIndicator={false}
-                initialNumToRender={12} // Render enough to cover typical off-screen start
-                windowSize={5} // Keep more items in memory
-                removeClippedSubviews={false} // Crucial for TV focus to find off-screen items
+                initialNumToRender={40}
+                maxToRenderPerBatch={20}
+                updateCellsBatchingPeriod={100}
+                windowSize={21}
+                removeClippedSubviews={true}
+                onEndReached={() => {
+                    if (hasNextPage && !isFetchingNextPage) {
+                        fetchNextPage();
+                    }
+                }}
+                onEndReachedThreshold={2.0}
+                ListFooterComponent={() =>
+                    isFetchingNextPage ? (
+                        <View style={{ paddingVertical: xdHeight(20), alignItems: 'center' }}>
+                            <ActivityIndicator size="small" color={Colors.primary[500]} />
+                        </View>
+                    ) : null
+                }
                 ListEmptyComponent={
                     isCurrentCategoryLocked ? (
                         <CategoryLockedState />
@@ -353,7 +415,7 @@ export default function LiveTVScreen() {
                 visible={isPinModalVisible}
                 onClose={() => setPinModalVisible(false)}
                 onSuccess={handlePinSuccess}
-                expectedPin="1234" // Default PIN for category management
+                onVerify={async (pin: string) => pin === "1234"} // Default PIN for category management
                 title={categoryToManage && isCategoryLocked(categoryToManage) ? 'Enter PIN to Unlock' : 'Enter PIN to Lock'}
             />
         </View>
