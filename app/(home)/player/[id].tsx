@@ -7,7 +7,7 @@ import { useStreamUrl } from '@/lib/api/hooks/useStreamUrl';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useVideoPlayer, VideoView } from 'expo-video';
+import { AudioTrack, SubtitleTrack, useVideoPlayer, VideoView } from 'expo-video';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
@@ -72,7 +72,12 @@ export default function VideoPlayerScreen() {
     const [viewMode, setViewMode] = useState<ViewMode>('normal');
     const [settingsPanel, setSettingsPanel] = useState<SettingsPanel>('main');
     const [selectedCaption, setSelectedCaption] = useState('Off');
-    const [selectedLanguage, setSelectedLanguage] = useState('German');
+    const [selectedLanguage, setSelectedLanguage] = useState('Default');
+    const [availableAudioTracks, setAvailableAudioTracks] = useState<AudioTrack[]>([]);
+    const [availableSubtitleTracks, setAvailableSubtitleTracks] = useState<SubtitleTrack[]>([]);
+    const [currentAudioTrack, setCurrentAudioTrack] = useState<AudioTrack | null>(null);
+    const [currentSubtitleTrack, setCurrentSubtitleTrack] = useState<SubtitleTrack | null>(null);
+
     const [currentEpisodeIndex, setCurrentEpisodeIndex] = useState(0);
     const episodes = generateEpisodes();
 
@@ -165,11 +170,21 @@ export default function VideoPlayerScreen() {
                 setIsPlaying(player.playing);
                 setIsBuffering(player.status === 'loading');
 
+                // Update tracks
+                setAvailableAudioTracks(player.availableAudioTracks);
+                setAvailableSubtitleTracks(player.availableSubtitleTracks);
+                setCurrentAudioTrack(player.audioTrack);
+                setCurrentSubtitleTrack(player.subtitleTrack);
+
+                // Update labels
+                setSelectedLanguage(player.audioTrack?.label || 'Default');
+                setSelectedCaption(player.subtitleTrack?.label || 'Off');
+
                 if (total > 0) {
                     setProgress(current / total);
                 }
             }
-        }, 500);
+        }, 1000);
 
         return () => {
             clearInterval(interval);
@@ -359,6 +374,19 @@ export default function VideoPlayerScreen() {
                                         )}
                                         <NavIconButton
                                             icon={<MaterialCommunityIcons name="closed-caption-outline" size={scale(20)} />}
+                                            isActive={viewMode === 'settings' && settingsPanel === 'caption'}
+                                            onPress={() => {
+                                                setViewMode('settings');
+                                                setSettingsPanel('caption');
+                                            }}
+                                        />
+                                        <NavIconButton
+                                            icon={<MaterialCommunityIcons name="translate" size={scale(20)} />}
+                                            isActive={viewMode === 'settings' && settingsPanel === 'language'}
+                                            onPress={() => {
+                                                setViewMode('settings');
+                                                setSettingsPanel('language');
+                                            }}
                                         />
                                         <NavIconButton
                                             icon={<MaterialCommunityIcons name={isLocked ? "lock" : "lock-open-outline"} size={scale(20)} />}
@@ -373,7 +401,7 @@ export default function VideoPlayerScreen() {
                                         />
                                         <NavIconButton
                                             icon={<MaterialCommunityIcons name="cog-outline" size={scale(20)} />}
-                                            isActive={viewMode === 'settings'}
+                                            isActive={viewMode === 'settings' && settingsPanel === 'main'}
                                             onPress={toggleSettings}
                                         />
                                     </View>
@@ -402,7 +430,7 @@ export default function VideoPlayerScreen() {
                                         <SettingCard
                                             icon={<MaterialCommunityIcons name="translate" size={scale(22)} color="#ccc" />}
                                             title="Language"
-                                            subtitle="Not Available"
+                                            subtitle={selectedLanguage}
                                             onPress={() => setSettingsPanel('language')}
                                         />
                                     </View>
@@ -410,19 +438,37 @@ export default function VideoPlayerScreen() {
 
                                 {settingsPanel === 'caption' && (
                                     <View style={styles.settingsList}>
-                                        {['Off', 'English', 'Hindi'].map((opt) => (
+                                        <SettingCard
+                                            icon={
+                                                <MaterialCommunityIcons
+                                                    name={currentSubtitleTrack === null ? 'check-circle' : 'circle-outline'}
+                                                    size={scale(22)}
+                                                    color={currentSubtitleTrack === null ? '#fff' : '#666'}
+                                                />
+                                            }
+                                            title="Off"
+                                            subtitle={currentSubtitleTrack === null ? 'Selected' : ''}
+                                            onPress={() => {
+                                                player.subtitleTrack = null;
+                                                setSettingsPanel('main');
+                                            }}
+                                        />
+                                        {availableSubtitleTracks.map((track, idx) => (
                                             <SettingCard
-                                                key={opt}
+                                                key={`${track.language}-${idx}`}
                                                 icon={
                                                     <MaterialCommunityIcons
-                                                        name={selectedCaption === opt ? 'check-circle' : 'circle-outline'}
+                                                        name={currentSubtitleTrack?.label === track.label ? 'check-circle' : 'circle-outline'}
                                                         size={scale(22)}
-                                                        color={selectedCaption === opt ? '#fff' : '#666'}
+                                                        color={currentSubtitleTrack?.label === track.label ? '#fff' : '#666'}
                                                     />
                                                 }
-                                                title={opt}
-                                                subtitle={selectedCaption === opt ? 'Selected' : ''}
-                                                onPress={() => { setSelectedCaption(opt); setSettingsPanel('main'); }}
+                                                title={track.label || track.language || `Track ${idx + 1}`}
+                                                subtitle={currentSubtitleTrack?.label === track.label ? 'Selected' : ''}
+                                                onPress={() => {
+                                                    player.subtitleTrack = track;
+                                                    setSettingsPanel('main');
+                                                }}
                                             />
                                         ))}
                                     </View>
@@ -430,19 +476,22 @@ export default function VideoPlayerScreen() {
 
                                 {settingsPanel === 'language' && (
                                     <View style={styles.settingsList}>
-                                        {['English', 'German', 'Hindi'].map((opt) => (
+                                        {availableAudioTracks.map((track, idx) => (
                                             <SettingCard
-                                                key={opt}
+                                                key={`${track.language}-${idx}`}
                                                 icon={
                                                     <MaterialCommunityIcons
-                                                        name={selectedLanguage === opt ? 'check-circle' : 'circle-outline'}
+                                                        name={currentAudioTrack?.label === track.label ? 'check-circle' : 'circle-outline'}
                                                         size={scale(22)}
-                                                        color={selectedLanguage === opt ? '#fff' : '#666'}
+                                                        color={currentAudioTrack?.label === track.label ? '#fff' : '#666'}
                                                     />
                                                 }
-                                                title={opt}
-                                                subtitle={selectedLanguage === opt ? 'Selected' : ''}
-                                                onPress={() => { setSelectedLanguage(opt); setSettingsPanel('main'); }}
+                                                title={track.label || track.language || `Track ${idx + 1}`}
+                                                subtitle={currentAudioTrack?.label === track.label ? 'Selected' : ''}
+                                                onPress={() => {
+                                                    player.audioTrack = track;
+                                                    setSettingsPanel('main');
+                                                }}
                                             />
                                         ))}
                                     </View>
