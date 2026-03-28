@@ -4,6 +4,8 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 interface DeviceState {
   id: string | null;
+  deviceKey: string | null;
+  deviceStatus: string | null;
   hasUsedTrial: boolean;
   isTrial: boolean;
   isBlocked: boolean;
@@ -17,6 +19,8 @@ interface DeviceState {
   activePlaylistId: string | null;
   setDeviceData: (data: {
     id: string;
+    deviceKey: string;
+    deviceStatus: string;
     hasUsedTrial: boolean;
     isTrial: boolean;
     isBlocked?: boolean;
@@ -29,6 +33,8 @@ export const useDeviceStore = create<DeviceState>()(
   persist(
     (set) => ({
       id: null,
+      deviceKey: null,
+      deviceStatus: null,
       hasUsedTrial: false,
       isTrial: false,
       isBlocked: false,

@@ -7,8 +7,8 @@ import { useTab } from '@/context/TabContext';
 import { panelStyles } from '@/styles/settings_panel.styles';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { findNodeHandle, StyleSheet, Switch, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { findNodeHandle, StyleSheet, Switch, Text, View } from 'react-native';
 
 interface ParentalControlSectionProps {
     startRef: React.RefObject<any>;
@@ -168,6 +168,7 @@ const styles = StyleSheet.create({
     },
     changeBtn: {
         height: 48,
+        width: 150,
         paddingHorizontal: 16,
         backgroundColor: Colors.gray[100],
     },

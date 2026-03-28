@@ -12,3 +12,17 @@ export const GET_PLAYLISTS_BY_DEVICE = gql`
     }
   }
 `;
+
+export const GET_DEVICE_SUBSCRIPTION = gql`
+  query GeDeviceSubscription {
+    getDeviceSubscription {
+      endDate
+      startDate
+      id
+      plan {
+        name
+      }
+      status
+    }
+  }
+`;

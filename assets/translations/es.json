@@ -15,7 +15,9 @@
     "all": "Todo",
     "ok": "Aceptar",
     "save": "Guardar",
+    "next": "Siguiente",
     "confirm": "Confirmar",
+    "cancel": "Cancelar",
     "comingSoon": "Próximamente..."
   },
   "settings": {
@@ -48,8 +50,10 @@
     "deviceOptions": {
       "accountDetails": "Detalles de la Cuenta",
       "macAddress": "Dirección Mac",
-      "deviceKey": "Clave del Dispositivo",
-      "deviceState": "Estado del Dispositivo",
+      "deviceKey": "ID del dispositivo",
+      "deviceStatus": "Estado del dispositivo",
+      "model": "Modelo",
+      "systemVersion": "Versión del sistema",
       "activate": "Activar"
     },
     "subscriptionOptions": {
