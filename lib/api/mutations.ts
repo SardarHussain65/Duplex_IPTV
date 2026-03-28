@@ -8,6 +8,7 @@ export const GENERATE_DEVICE_ID = gql`
         hasUsedTrial
         isTrial
         deviceKey
+        status
       }
       subscription {
         id
