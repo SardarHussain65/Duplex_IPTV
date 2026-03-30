@@ -19,15 +19,14 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+    ActivityIndicator,
     FlatList,
-    InteractionManager,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
-    findNodeHandle,
-    ActivityIndicator
+    findNodeHandle
 } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
@@ -130,7 +129,7 @@ export default function SeriesScreen() {
     const seriesRefs = useRef<Record<number, any>>({});
 
     useEffect(() => {
-        const task = InteractionManager.runAfterInteractions(() => {
+        const handle = requestIdleCallback(() => {
             if (searchRef.current) {
                 const node = findNodeHandle(searchRef.current);
                 if (node) setSearchBarNode(node);
@@ -157,7 +156,7 @@ export default function SeriesScreen() {
             setSeriesNodes(newNodes);
             if (firstNode) setFirstSeriesNode(firstNode);
         });
-        return () => task.cancel();
+        return () => cancelIdleCallback(handle);
     }, [activeCategory, filteredSeries]);
 
     const handleCategoryLongPress = useCallback((category: string) => {
@@ -199,7 +198,7 @@ export default function SeriesScreen() {
             image={item.image}
             title={item.title}
             subtitle={item.season}
-            width={xdWidth(132)}
+            width={xdWidth(136)}
             onPress={() => handleSeriesPress(item)}
             style={styles.cardSpacing}
             nextFocusUp={index < 6 ? lastCategoryNode : seriesNodes[index - 6]}
@@ -380,7 +379,7 @@ export default function SeriesScreen() {
                 renderItem={renderSeriesItem}
                 numColumns={6}
                 contentContainerStyle={[styles.content, styles.gridContainer, { flexGrow: 1 }]}
-                columnWrapperStyle={filteredSeries.length > 1 ? { gap: xdWidth(12) } : undefined}
+                columnWrapperStyle={filteredSeries.length > 1 ? styles.columnWrapper : undefined}
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
                 showsVerticalScrollIndicator={false}

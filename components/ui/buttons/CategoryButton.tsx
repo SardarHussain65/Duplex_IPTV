@@ -189,11 +189,11 @@ export const CategoryButton = React.forwardRef<any, CategoryButtonProps>(({
                 )}
                 <Text style={getTextStyle()}>{children}</Text>
                 {isLocked && (
-                    <MaterialCommunityIcons 
-                        name="lock-outline" 
-                        size={14} 
-                        color={getIconColor()} 
-                        style={{ marginLeft: 6 }} 
+                    <MaterialCommunityIcons
+                        name="lock-outline"
+                        size={14}
+                        color={getIconColor()}
+                        style={{ marginLeft: 6 }}
                     />
                 )}
             </Pressable>

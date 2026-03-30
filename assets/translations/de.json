@@ -18,7 +18,13 @@
     "next": "Weiter",
     "confirm": "Bestätigen",
     "cancel": "Abbrechen",
-    "comingSoon": "Demnächst verfügbar..."
+    "comingSoon": "Demnächst verfügbar...",
+    "loading": "Laden..."
+  },
+  "languages": {
+    "en": "English",
+    "de": "German",
+    "es": "Spanish"
   },
   "settings": {
     "language": "Sprache",

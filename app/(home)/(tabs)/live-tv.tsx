@@ -18,7 +18,7 @@ import { Channel } from '@/types';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, InteractionManager, ScrollView, StyleSheet, Text, View, findNodeHandle } from 'react-native';
+import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, View, findNodeHandle } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { useTranslation } from 'react-i18next';
@@ -107,9 +107,9 @@ export default function LiveTVScreen() {
     }, [activeCategory, channels]);
 
     useEffect(() => {
-        // Use InteractionManager to defer node-handle resolution until after
+        // Use requestIdleCallback to defer node-handle resolution until after
         // animations and interactions settle — avoids magic setTimeout delays.
-        const task = InteractionManager.runAfterInteractions(() => {
+        const handle = requestIdleCallback(() => {
             if (searchRef.current) {
                 const node = findNodeHandle(searchRef.current);
                 if (node) setSearchBarNode(node);
@@ -140,7 +140,7 @@ export default function LiveTVScreen() {
             setChannelNodes(newNodes);
             if (firstNode) setFirstChannelNode(firstNode);
         });
-        return () => task.cancel();
+        return () => cancelIdleCallback(handle);
     }, [activeCategory, filteredChannels]);
 
     useEffect(() => {
