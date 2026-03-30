@@ -27,7 +27,7 @@ export const VideoPreviewCard: React.FC<VideoPreviewCardProps & { videoUri?: str
     // Handle source changes if the card is reused for a different URI
     useEffect(() => {
         if (videoUri) {
-            player.replace(videoUri);
+            player.replaceAsync(videoUri);
             player.play();
         }
     }, [videoUri, player]);

@@ -1,13 +1,13 @@
 import { SettingCard } from '@/components/ui/cards/SettingCard';
 import { Colors } from '@/constants';
 import { useTab } from '@/context/TabContext';
+import i18n from '@/lib/i18n/i18n';
 import { panelStyles } from '@/styles/settings_panel.styles';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import React from 'react';
-import { findNodeHandle, View } from 'react-native';
-import i18n from '@/lib/i18n/i18n';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { findNodeHandle, View } from 'react-native';
 
 interface LanguageSectionProps {
     selected: string;

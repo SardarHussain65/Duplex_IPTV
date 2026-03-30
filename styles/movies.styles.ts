@@ -101,7 +101,7 @@ export const styles = StyleSheet.create({
         paddingHorizontal: xdWidth(40),
     },
     columnWrapper: {
-        gap: xdWidth(20),
+        gap: xdWidth(12.8),
     },
     cardSpacing: {
         marginBottom: xdHeight(16),

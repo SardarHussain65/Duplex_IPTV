@@ -20,7 +20,6 @@ import { Image } from 'expo-image';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     FlatList,
-    InteractionManager,
     ScrollView,
     StyleSheet,
     Text,
@@ -130,7 +129,7 @@ export default function MoviesScreen() {
     const movieRefs = useRef<Record<number, any>>({});
 
     useEffect(() => {
-        const task = InteractionManager.runAfterInteractions(() => {
+        const handle = requestIdleCallback(() => {
             if (searchRef.current) {
                 const node = findNodeHandle(searchRef.current);
                 if (node) setSearchBarNode(node);
@@ -157,7 +156,7 @@ export default function MoviesScreen() {
             setMovieNodes(newNodes);
             if (firstNode) setFirstMovieNode(firstNode);
         });
-        return () => task.cancel();
+        return () => cancelIdleCallback(handle);
     }, [activeCategory, filteredMovies]);
 
     const handleCategoryLongPress = useCallback((category: string) => {
@@ -199,7 +198,7 @@ export default function MoviesScreen() {
             image={item.image}
             title={item.title}
             subtitle={item.duration}
-            width={xdWidth(132)}
+            width={xdWidth(136)}
             onPress={() => handleMoviePress(item)}
             style={styles.cardSpacing}
             nextFocusUp={index < 6 ? lastCategoryNode : movieNodes[index - 6]}
@@ -379,7 +378,7 @@ export default function MoviesScreen() {
                 renderItem={renderMovieItem}
                 numColumns={6}
                 contentContainerStyle={[styles.content, styles.gridContainer, { flexGrow: 1 }]}
-                columnWrapperStyle={filteredMovies.length > 1 ? { gap: xdWidth(12) } : undefined}
+                columnWrapperStyle={filteredMovies.length > 1 ? styles.columnWrapper : undefined}
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
                 showsVerticalScrollIndicator={false}
