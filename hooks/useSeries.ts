@@ -23,13 +23,16 @@ export function useSeries() {
             pathname: '/series-detail/[id]',
             params: {
                 id: series.id,
-                title: series.title,
-                genre: series.genre,
+                name: series.name,
+                category: series.category,
                 year: series.year,
                 season: series.season,
-                image: series.image,
+                logo: series.logo,
                 description: series.description,
                 streamHash: series.streamHash,
+                tvgId: series.tvgId,
+                contentType: series.contentType,
+                seriesTitle: series.seriesTitle,
             },
         });
     };
@@ -37,8 +40,8 @@ export function useSeries() {
     const filteredSeries = useMemo(() => {
         let result = MOCK_SERIES;
         if (searchQuery.trim()) {
-            result = result.filter((s) =>
-                s.title.toLowerCase().includes(searchQuery.toLowerCase())
+            result = result.filter((s: any) =>
+                ((s.name || s.title) || '').toLowerCase().includes(searchQuery.toLowerCase())
             );
         }
         return result;

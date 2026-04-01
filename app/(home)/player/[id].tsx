@@ -49,20 +49,23 @@ const generateEpisodes = (): Episode[] =>
 export default function VideoPlayerScreen() {
     const router = useRouter();
     const params = useLocalSearchParams<{
-        title: string;
-        genre: string;
+        id: string;
+        name: string;
+        category: string;
         year: string;
         duration: string;
-        image: string;
+        logo: string;
         isSeries?: string;
         streamHash?: string;
     }>();
 
-    const title = params.title ?? 'The World Poker Toure';
-    const genre = params.genre ?? 'Action / Thriller';
+    const streamHash = params.streamHash || params.id;
+
+    const name = params.name ?? 'The World Poker Toure';
+    const category = params.category ?? 'Action / Thriller';
     const year = params.year ?? '2021';
     const duration = params.duration ?? '1h 48m';
-    const image = params.image ?? '';
+    const logo = params.logo ?? '';
     const isSeries = params.isSeries === 'true';
 
     // ── UI state ──────────────────────────────────────────
@@ -135,13 +138,13 @@ export default function VideoPlayerScreen() {
 
     // ── expo-video logic ──────────────────────────────────────
     const { data: streamUrl, isLoading: isStreamLoading } = useStreamUrl(
-        params.streamHash || null,
+        streamHash || null,
         true
     );
 
     const videoSource = streamUrl
         ? streamUrl
-        : params.streamHash
+        : streamHash
             ? null // Wait for fetch
             : 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
 
@@ -312,9 +315,9 @@ export default function VideoPlayerScreen() {
                         >
                             {/* Top Info */}
                             <View style={styles.topInfo}>
-                                <Text style={styles.videoTitle}>{title}</Text>
+                                <Text style={styles.videoTitle}>{name}</Text>
                                 <Text style={styles.videoMeta}>
-                                    {isSeries ? `Brooklyn Nine-Nine • S1 • EP ${currentEpisodeIndex + 1}` : `${genre} • ${year} • ${duration}`}
+                                    {isSeries ? `${name} • S1 • EP ${currentEpisodeIndex + 1}` : `${category} • ${year} • ${duration}`}
                                 </Text>
                             </View>
 

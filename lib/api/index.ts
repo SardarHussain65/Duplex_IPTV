@@ -19,5 +19,6 @@ export { useGenerateDeviceId } from './hooks/useGenerateDeviceId';
 export { useHealthCheck } from './hooks/useHealthCheck';
 export { usePlaylistChannels } from './hooks/usePlaylistChannels';
 export { useStreamUrl } from './hooks/useStreamUrl';
+export { useFavorites } from './hooks/useFavorites';
 export * from './types';
 

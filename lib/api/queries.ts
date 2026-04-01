@@ -26,3 +26,18 @@ export const GET_DEVICE_SUBSCRIPTION = gql`
     }
   }
 `;
+
+export const GET_FAVORITES = gql`
+  query GetFavorites($filters: QueryFavoriteInput!) {
+    getFavorites(filters: $filters) {
+      items {
+        metadata
+        id
+      }
+      total
+      totalLive
+      totalMovies
+      totalSeries
+    }
+  }
+`;

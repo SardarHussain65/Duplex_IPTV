@@ -25,6 +25,8 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
+import { useFavorites } from '@/lib/api';
+
 // ── Types ──────────────────────────────────────────────────────
 type Episode = {
     id: string;
@@ -75,16 +77,26 @@ export default function SeriesDetailScreen() {
     const { setIsScrolled, setParentalModalVisible } = useTab();
     const params = useLocalSearchParams<{
         id: string;
-        title: string;
-        genre: string;
+        name: string;
+        category: string;
         year: string;
         season: string;
-        image: string;
+        logo: string;
         description: string;
         streamHash?: string;
+        tvgId?: string;
+        contentType?: string;
+        seriesTitle?: string;
     }>();
 
-    const [isFavorite, setIsFavorite] = useState(false);
+    const { useGetFavorites, addFavorite, removeFavorite, isAdding, isRemoving } = useFavorites();
+    const { data: favData } = useGetFavorites({ type: 'SERIES' });
+
+    // Check if this series is in favorites
+    const favoriteItem = favData?.getFavorites?.items?.find(item => 
+        item?.metadata?.streamHash === params.streamHash || item.id === params.id
+    );
+    const isFavorite = !!favoriteItem;
     const [isLocked, setIsLocked] = useState(false);
     const [activeSeason, setActiveSeason] = useState(0);
 
@@ -93,22 +105,50 @@ export default function SeriesDetailScreen() {
         return () => setIsScrolled(false);
     }, []);
 
-    const title = params.title ?? 'Brooklyn Nine-Nine';
-    const genre = params.genre ?? 'Action / Thriller';
+    const name = params.name ?? 'Brooklyn Nine-Nine';
+    const category = params.category ?? 'Action / Thriller';
     const year = params.year ?? '2021';
     const season = params.season ?? 'S4';
-    const image = params.image ?? '';
+    const logo = params.logo ?? '';
     const description =
         params.description ??
         'Set in a modern city, this series follows a group of individuals whose lives secretly intersect through crime, power, and ambition. Each episode uncovers new layers of mystery, personal conflict, and unexpected alliances. As tensions rise across multiple seasons, hidden motives are revealed, relationships are tested, and one wrong move can change everything forever.';
 
-    console.log(`[SeriesDetailScreen] title: ${title}, streamHash: ${params.streamHash}`);
+    console.log(`[SeriesDetailScreen] name: ${name}, streamHash: ${params.streamHash}`);
 
     const episodes = generateEpisodes(activeSeason + 1);
 
     const handleScroll = (event: any) => {
         const offsetY = event.nativeEvent.contentOffset.y;
         setIsScrolled(offsetY > xdHeight(60));
+    };
+
+    const handleFavoritePress = async () => {
+        try {
+            if (isFavorite && favoriteItem) {
+                await removeFavorite(favoriteItem.id);
+            } else {
+                await addFavorite({
+                    name: name,
+                    type: 'SERIES',
+                    metadata: {
+                        name: name,
+                        tvgId: params.tvgId || '',
+                        tvgName: name,
+                        tvgLogo: logo,
+                        groupTitle: category,
+                        contentType: params.contentType || 'SERIES',
+                        category: category,
+                        genre: category,
+                        seriesTitle: params.seriesTitle || name,
+                        releaseYear: year,
+                        streamHash: params.streamHash || params.id || '',
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Failed to toggle favorite:', error);
+        }
     };
 
     const renderEpisodeItem = ({ item }: { item: Episode }) => (
@@ -125,11 +165,11 @@ export default function SeriesDetailScreen() {
                     pathname: '/player/[id]',
                     params: {
                         id: item.id,
-                        title: item.title,
-                        genre,
+                        name: item.title,
+                        category,
                         year,
                         duration: item.duration,
-                        image: item.image,
+                        logo: item.image,
                         isSeries: 'true',
                         streamHash: params.streamHash, // Assuming episodes share the same hash for now or have their own
                     },
@@ -147,9 +187,9 @@ export default function SeriesDetailScreen() {
             scrollEventThrottle={16}
         >
             {/* ── Full-screen blurred background ── */}
-            {image ? (
+            {logo ? (
                 <Image
-                    source={{ uri: image }}
+                    source={{ uri: logo }}
                     style={styles.bgImage}
                     contentFit="cover"
                     blurRadius={55}
@@ -161,10 +201,10 @@ export default function SeriesDetailScreen() {
             <View style={styles.mainRow}>
                 {/* Left: Poster */}
                 <View style={styles.posterWrapper}>
-                    {image ? (
+                    {logo ? (
                         <View>
                             <Image
-                                source={{ uri: image }}
+                                source={{ uri: logo }}
                                 style={styles.poster}
                                 contentFit="cover"
                             />
@@ -181,9 +221,9 @@ export default function SeriesDetailScreen() {
                 {/* Right: Info */}
                 <View style={styles.infoPanel}>
                     <Text style={styles.metaText}>
-                        {genre}{'  •  '}{year}{'  •  '}{season}
+                        {category}{'  •  '}{year}{'  •  '}{season}
                     </Text>
-                    <Text style={styles.title}>{title}</Text>
+                    <Text style={styles.title}>{name}</Text>
 
                     {/* Rating + Age */}
                     <View style={styles.ratingRow}>
@@ -207,13 +247,13 @@ export default function SeriesDetailScreen() {
                                     pathname: '/player/[id]',
                                     params: {
                                         id: params.id || 'series',
-                                        title,
-                                        genre,
+                                        name: name,
+                                        category,
                                         year,
                                         duration: season,
-                                        image,
+                                        logo: logo,
                                         isSeries: 'true',
-                                        streamHash: params.streamHash,
+                                        streamHash: params.streamHash || params.id,
                                     },
                                 })
                             }
@@ -230,7 +270,8 @@ export default function SeriesDetailScreen() {
                             }
                             isActive={isFavorite}
                             activeBackgroundColor="#E0334C"
-                            onPress={() => setIsFavorite((v) => !v)}
+                            onPress={handleFavoritePress}
+                            disabled={isAdding}
                         />
                         <NavIconButton
                             icon={

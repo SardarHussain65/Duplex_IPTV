@@ -25,6 +25,9 @@ import {
 import { useTranslation } from 'react-i18next';
 
 // ── Dummy live stream URL (public domain) ─────────────────────
+import { useFavorites } from '@/lib/api';
+
+// ── Dummy live stream URL (public domain) ─────────────────────
 const DUMMY_VIDEO_URI =
     'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
 
@@ -52,11 +55,20 @@ export default function ChannelDetailScreen() {
         id: string;
         name: string;
         category: string;
-        image: string;
+        logo: string;
         streamHash?: string;
+        tvgId?: string;
+        contentType?: string;
     }>();
 
-    const [isFavorite, setIsFavorite] = useState(false);
+    const { useGetFavorites, addFavorite, removeFavorite, isAdding, isRemoving } = useFavorites();
+    const { data: favData } = useGetFavorites({ type: 'LIVE' });
+
+    // Check if this channel is in favorites
+    const favoriteItem = favData?.getFavorites?.items?.find(item => 
+        item?.metadata?.streamHash === params.streamHash || item.id === params.id
+    );
+    const isFavorite = !!favoriteItem;
     const [isLocked, setIsLocked] = useState(false);
     const { setIsScrolled, setParentalModalVisible } = useTab();
 
@@ -68,7 +80,7 @@ export default function ChannelDetailScreen() {
     // Real data from params
     const channelName = params.name ?? 'Live Channel';
     const channelCategory = params.category ?? '';
-    const channelImage = params.image ?? '';
+    const channelLogo = params.logo ?? '';
 
     // EPG data — channel name is the best "show title" we have without a
     // dedicated EPG API. Other fields are clearly marked as placeholders.
@@ -83,22 +95,49 @@ export default function ChannelDetailScreen() {
         progress: 0,
     };
 
-    const { data: streamUrl } = useStreamUrl(params.streamHash || null);
-    console.log(`[ChannelDetailScreen] channelName: ${channelName}, streamHash: ${params.streamHash}, streamUrl: ${streamUrl}`);
+    const streamHash = params.streamHash || params.id;
+    const { data: streamUrl } = useStreamUrl(streamHash || null);
+    console.log(`[ChannelDetailScreen] channelName: ${channelName}, streamHash: ${streamHash}, streamUrl: ${streamUrl}`);
 
     const handleExpand = () => {
         router.push({
             pathname: '/player/[id]',
             params: {
                 id: params.id || 'live',
-                title: channelName,
-                genre: channelCategory,
+                name: channelName,
+                category: channelCategory,
                 year: 'Live',
                 duration: 'Live',
-                image: channelImage,
+                logo: channelLogo,
                 streamHash: params.streamHash,
             },
         });
+    };
+
+    const handleFavoritePress = async () => {
+        try {
+            if (isFavorite && favoriteItem) {
+                await removeFavorite(favoriteItem.id);
+            } else {
+                await addFavorite({
+                    name: channelName,
+                    type: 'LIVE',
+                    metadata: {
+                        name: channelName,
+                        tvgId: params.tvgId || '',
+                        tvgName: channelName,
+                        tvgLogo: channelLogo,
+                        groupTitle: channelCategory,
+                        contentType: params.contentType || 'LIVE',
+                        category: channelCategory,
+                        genre: channelCategory,
+                        streamHash: params.streamHash || params.id || '',
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Failed to toggle favorite:', error);
+        }
     };
 
 
@@ -108,9 +147,9 @@ export default function ChannelDetailScreen() {
             <View style={styles.topSection}>
 
                 {/* Full-width blurred background image */}
-                {channelImage ? (
+                {channelLogo ? (
                     <Image
-                        source={{ uri: channelImage }}
+                        source={{ uri: channelLogo }}
                         style={styles.topBgImage}
                         contentFit="cover"
                     />
@@ -122,7 +161,7 @@ export default function ChannelDetailScreen() {
                 <VideoPreviewCard
                     title={programme.showTitle}
                     channelName={channelName}
-                    channelImage={channelImage}
+                    channelImage={channelLogo}
                     date={programme.date}
                     episode={programme.episode}
                     timeLeft={programme.timeLeft}
@@ -153,7 +192,8 @@ export default function ChannelDetailScreen() {
                             icon={<MaterialCommunityIcons name={isFavorite ? 'heart' : 'heart-outline'} size={scale(20)} color={isFavorite ? '#E0334C' : Colors.gray[300]} />}
                             isActive={isFavorite}
                             activeBackgroundColor="#E0334C"
-                            onPress={() => setIsFavorite(v => !v)}
+                            onPress={handleFavoritePress}
+                            disabled={isAdding}
                         />
                         <NavIconButton
                             icon={<MaterialCommunityIcons name={isLocked ? 'lock' : 'lock-open-outline'} size={scale(20)} color={Colors.gray[300]} />}
@@ -186,7 +226,7 @@ export default function ChannelDetailScreen() {
                     {/* Channel logo */}
                     <View style={styles.epgLogoCell}>
                         <Image
-                            source={{ uri: channelImage }}
+                            source={{ uri: channelLogo }}
                             style={styles.epgLogo}
                             contentFit="contain"
                         />

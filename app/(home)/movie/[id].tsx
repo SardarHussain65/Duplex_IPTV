@@ -14,13 +14,15 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     ScrollView,
     StyleSheet,
     Text,
     View
 } from 'react-native';
-import { useTranslation } from 'react-i18next';
+
+import { useFavorites } from '@/lib/api';
 
 // ── Mock cast data ─────────────────────────────────────────────
 const CAST = [
@@ -41,16 +43,25 @@ export default function MovieDetailScreen() {
     const { setIsScrolled } = useTab();
     const params = useLocalSearchParams<{
         id: string;
-        title: string;
-        genre: string;
-        year: string;
-        duration: string;
-        image: string;
-        description: string;
+        name?: string;
+        category?: string;
+        year?: string;
+        duration?: string;
+        logo?: string;
+        description?: string;
         streamHash?: string;
+        tvgId?: string;
+        contentType?: string;
     }>();
 
-    const [isFavorite, setIsFavorite] = useState(false);
+    const { useGetFavorites, addFavorite, removeFavorite, isAdding, isRemoving } = useFavorites();
+    const { data: favData } = useGetFavorites({ type: 'MOVIE' });
+    
+    // Check if this movie is in favorites
+    const favoriteItem = favData?.getFavorites?.items?.find(item => 
+        item?.metadata?.streamHash === params.streamHash || item.id === params.id
+    );
+    const isFavorite = !!favoriteItem;
     const [isLocked, setIsLocked] = useState(false);
     const { setParentalModalVisible } = useTab();
 
@@ -59,11 +70,11 @@ export default function MovieDetailScreen() {
         return () => setIsScrolled(false);
     }, []);
 
-    const title = params.title ?? '96 Minutes';
-    const genre = params.genre ?? 'Action / Thriller';
+    const name = params.name ?? '96 Minutes';
+    const category = params.category ?? 'Action / Thriller';
     const year = params.year ?? '2021';
     const duration = params.duration ?? '1h 48m';
-    const image = params.image ?? '';
+    const logo = params.logo ?? '';
     const description =
         params.description ??
         'A skilled investigator is pulled into a high-risk case after a series of unexplained crimes disturb the city. As the pressure mounts, hidden connections begin to surface, revealing a powerful network working behind the scenes. With limited time and rising danger, every decision pushes him closer to the truth, forcing him to choose between justice, sacrifice, and survival before everything falls apart.';
@@ -73,12 +84,39 @@ export default function MovieDetailScreen() {
         setIsScrolled(offsetY > xdHeight(60));
     };
 
+    const handleFavoritePress = async () => {
+        try {
+            if (isFavorite && favoriteItem) {
+                await removeFavorite(favoriteItem.id);
+            } else {
+                await addFavorite({
+                    name: name,
+                    type: 'MOVIE',
+                    metadata: {
+                        name: name,
+                        tvgId: params.tvgId || '',
+                        tvgName: name,
+                        tvgLogo: logo,
+                        groupTitle: category,
+                        contentType: params.contentType || 'MOVIE',
+                        category: category,
+                        genre: category,
+                        releaseYear: year,
+                        streamHash: params.streamHash || params.id || '',
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Failed to toggle favorite:', error);
+        }
+    };
+
     return (
         <View style={styles.screen}>
             {/* ── Full-screen blurred background ── */}
-            {image ? (
+            {logo ? (
                 <Image
-                    source={{ uri: image }}
+                    source={{ uri: logo }}
                     style={styles.bgImage}
                     contentFit="cover"
                     blurRadius={60}
@@ -96,10 +134,10 @@ export default function MovieDetailScreen() {
                 <View style={styles.mainRow}>
                     {/* Left: Poster */}
                     <View style={styles.posterWrapper}>
-                        {image ? (
+                        {logo ? (
                             <View>
                                 <Image
-                                    source={{ uri: image }}
+                                    source={{ uri: logo }}
                                     style={styles.poster}
                                     contentFit="cover"
                                 />
@@ -117,11 +155,11 @@ export default function MovieDetailScreen() {
                     <View style={styles.infoPanel}>
                         {/* Meta */}
                         <Text style={styles.metaText}>
-                            {genre}{'  •  '}{year}{'  •  '}{duration}
+                            {category}{'  •  '}{year}{'  •  '}{duration}
                         </Text>
 
                         {/* Title */}
-                        <Text style={styles.title}>{title}</Text>
+                        <Text style={styles.title}>{name}</Text>
 
                         {/* Rating + Age badge */}
                         <View style={styles.ratingRow}>
@@ -146,12 +184,12 @@ export default function MovieDetailScreen() {
                                         pathname: '/player/[id]',
                                         params: {
                                             id: params.id || 'movie',
-                                            title,
-                                            genre,
+                                            name,
+                                            category,
                                             year,
                                             duration,
-                                            image,
-                                            streamHash: params.streamHash,
+                                            logo,
+                                            streamHash: params.streamHash || params.id,
                                         },
                                     })
                                 }
@@ -169,7 +207,8 @@ export default function MovieDetailScreen() {
                                 }
                                 isActive={isFavorite}
                                 activeBackgroundColor="#E0334C"
-                                onPress={() => setIsFavorite((v) => !v)}
+                                onPress={handleFavoritePress}
+                                disabled={isAdding}
                             />
                             <NavIconButton
                                 icon={

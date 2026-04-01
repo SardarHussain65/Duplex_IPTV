@@ -78,19 +78,21 @@ export default function MoviesScreen() {
         return apiData.pages.flatMap((page) =>
             page.items.map((item) => ({
                 id: item.streamHash,
-                title: item.name,
-                genre: item.category,
+                name: item.name,
+                category: item.category,
                 year: "2024",
                 duration: item.genre || "2h",
-                image: item.tvgLogo,
+                logo: item.tvgLogo,
                 description: item.name,
                 streamHash: item.streamHash,
+                tvgId: item.tvgId,
+                contentType: item.contentType,
             }))
         );
     }, [apiData]);
 
     const categories = useMemo(() => {
-        const uniqueCats = Array.from(new Set(movies.map((m) => m.genre)));
+        const uniqueCats = Array.from(new Set(movies.map((m) => m.category)));
         return ['All', ...uniqueCats];
     }, [movies]);
 
@@ -106,7 +108,7 @@ export default function MoviesScreen() {
         // Only category filtering is done client-side here.
         if (activeCategory === 'All') return movies;
         return movies.filter(
-            (m) => m.genre.toLowerCase() === activeCategory.toLowerCase()
+            (m) => m.category.toLowerCase() === activeCategory.toLowerCase()
         );
     }, [activeCategory, movies]);
 
@@ -195,8 +197,8 @@ export default function MoviesScreen() {
     const renderMovieItem = useCallback(({ item, index }: { item: Movie; index: number }) => (
         <PosterCard
             innerRef={(ref) => { if (ref) movieRefs.current[index] = ref; }}
-            image={item.image}
-            title={item.title}
+            image={item.logo}
+            title={item.name}
             subtitle={item.duration}
             width={xdWidth(136)}
             onPress={() => handleMoviePress(item)}
@@ -214,7 +216,7 @@ export default function MoviesScreen() {
             <View style={styles.heroContainer}>
                 {/* Background image */}
                 <Image
-                    source={{ uri: currentHero.image }}
+                    source={{ uri: currentHero.logo }}
                     style={styles.heroBg}
                     contentFit="cover"
                 />
@@ -239,9 +241,9 @@ export default function MoviesScreen() {
                 {/* Text content */}
                 <View style={styles.heroContent}>
                     <Text style={styles.heroMeta}>
-                        {currentHero.genre}{'  •  '}{currentHero.year}{'  •  '}{currentHero.duration}
+                        {currentHero.category}{'  •  '}{currentHero.year}{'  •  '}{currentHero.duration}
                     </Text>
-                    <Text style={styles.heroTitle}>{currentHero.title}</Text>
+                    <Text style={styles.heroTitle}>{currentHero.name}</Text>
                     <Text style={styles.heroDesc} numberOfLines={2}>
                         {currentHero.description}
                     </Text>
@@ -288,8 +290,8 @@ export default function MoviesScreen() {
                         {recentlyWatched.map((movie, index) => (
                             <BackdropCard
                                 key={`recent-${movie.id}`}
-                                image={{ uri: movie.image }}
-                                progress={movie.progress}
+                                image={{ uri: movie.logo }}
+                                progress={(movie as any).progress}
                                 width={xdWidth(170)}
                                 height={xdHeight(96)}
                                 style={{ marginRight: xdWidth(12) }}

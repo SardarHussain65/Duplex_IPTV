@@ -47,3 +47,20 @@ export const VERIFY_PLAYLIST_PIN = gql`
     verifyPlaylistPin(input: $input)
   }
 `;
+
+export const ADD_FAVORITE = gql`
+  mutation AddFavorite($input: CreateFavoriteInput!) {
+    addFavorite(input: $input) {
+      deviceId
+      id
+      name
+      type
+    }
+  }
+`;
+
+export const REMOVE_FAVORITE = gql`
+  mutation RemoveFavorite($removeFavoriteId: ID!) {
+    removeFavorite(id: $removeFavoriteId)
+  }
+`;

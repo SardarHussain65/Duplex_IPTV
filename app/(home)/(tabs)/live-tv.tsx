@@ -58,8 +58,10 @@ export default function LiveTVScreen() {
                 id: item.streamHash,
                 name: item.name,
                 category: item.category,
-                image: item.tvgLogo,
+                logo: item.tvgLogo || '',
                 streamHash: item.streamHash,
+                tvgId: item.tvgId,
+                contentType: item.contentType,
             }))
         );
     }, [apiData]);
@@ -154,8 +156,10 @@ export default function LiveTVScreen() {
                 id: channel.id,
                 name: channel.name,
                 category: channel.category,
-                image: channel.image,
+                logo: channel.logo,
                 streamHash: channel.streamHash,
+                tvgId: channel.tvgId,
+                contentType: channel.contentType,
             },
         });
     }, [router]);
@@ -206,7 +210,7 @@ export default function LiveTVScreen() {
             }}
             title={item.name}
             subtitle={item.category}
-            image={{ uri: item.image }}
+            image={{ uri: item.logo }}
             width={xdWidth(160)}
             height={xdHeight(90)}
             style={styles.cardSpacing}
@@ -265,7 +269,7 @@ export default function LiveTVScreen() {
                         {recentlyWatched.map((channel, index) => (
                             <BackdropCard
                                 key={`recent-${channel.id}`}
-                                image={{ uri: channel.image }}
+                                image={{ uri: channel.logo }}
                                 progress={channel.progress}
                                 width={xdWidth(170)}
                                 height={xdHeight(96)}

@@ -78,19 +78,22 @@ export default function SeriesScreen() {
         return apiData.pages.flatMap((page) =>
             page.items.map((item) => ({
                 id: item.streamHash,
-                title: item.name,
-                genre: item.category,
+                name: item.name,
+                category: item.category,
                 year: "2024",
                 season: item.category || "Season 1",
-                image: item.tvgLogo,
+                logo: item.tvgLogo,
                 description: item.name,
                 streamHash: item.streamHash,
+                tvgId: item.tvgId,
+                contentType: item.contentType,
+                seriesTitle: item.name,
             }))
         );
     }, [apiData]);
 
     const categories = useMemo(() => {
-        const uniqueCats = Array.from(new Set(series.map((s) => s.genre)));
+        const uniqueCats = Array.from(new Set(series.map((s) => s.category)));
         return ['All', ...uniqueCats];
     }, [series]);
 
@@ -106,7 +109,7 @@ export default function SeriesScreen() {
         // Only category filtering is done client-side here.
         if (activeCategory === 'All') return series;
         return series.filter(
-            (s) => s.genre.toLowerCase() === activeCategory.toLowerCase()
+            (s) => s.category.toLowerCase() === activeCategory.toLowerCase()
         );
     }, [activeCategory, series]);
 
@@ -195,8 +198,8 @@ export default function SeriesScreen() {
     const renderSeriesItem = useCallback(({ item, index }: { item: Series; index: number }) => (
         <PosterCard
             innerRef={(ref) => { if (ref) seriesRefs.current[index] = ref; }}
-            image={item.image}
-            title={item.title}
+            image={item.logo}
+            title={item.name}
             subtitle={item.season}
             width={xdWidth(136)}
             onPress={() => handleSeriesPress(item)}
@@ -214,7 +217,7 @@ export default function SeriesScreen() {
             <View style={styles.heroContainer}>
                 {/* Background image */}
                 <Image
-                    source={{ uri: currentHero.image }}
+                    source={{ uri: currentHero.logo }}
                     style={styles.heroBg}
                     contentFit="cover"
                 />
@@ -239,9 +242,9 @@ export default function SeriesScreen() {
                 {/* Text content */}
                 <View style={styles.heroContent}>
                     <Text style={styles.heroMeta}>
-                        {currentHero.genre}{'  •  '}{currentHero.year}{'  •  '}{currentHero.season}
+                        {currentHero.category}{'  •  '}{currentHero.year}{'  •  '}{currentHero.season}
                     </Text>
-                    <Text style={styles.heroTitle}>{currentHero.title}</Text>
+                    <Text style={styles.heroTitle}>{currentHero.name}</Text>
                     <Text style={styles.heroDesc} numberOfLines={2}>
                         {currentHero.description}
                     </Text>
@@ -288,8 +291,8 @@ export default function SeriesScreen() {
                         {recentlyWatched.map((seriesItem, index) => (
                             <BackdropCard
                                 key={`recent-${seriesItem.id}`}
-                                image={{ uri: seriesItem.image }}
-                                progress={seriesItem.progress}
+                                image={{ uri: seriesItem.logo }}
+                                progress={(seriesItem as any).progress}
                                 width={xdWidth(170)}
                                 height={xdHeight(96)}
                                 style={{ marginRight: xdWidth(12) }}
