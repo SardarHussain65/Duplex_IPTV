@@ -14,6 +14,7 @@ export interface FavoriteItem {
     streamHash?: string;
 }
 
+
 export type Channel = {
     id: string;
     name: string;
