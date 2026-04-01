@@ -54,11 +54,12 @@ export default function MovieDetailScreen() {
         contentType?: string;
     }>();
 
+
     const { useGetFavorites, addFavorite, removeFavorite, isAdding, isRemoving } = useFavorites();
     const { data: favData } = useGetFavorites({ type: 'MOVIE' });
-    
+
     // Check if this movie is in favorites
-    const favoriteItem = favData?.getFavorites?.items?.find(item => 
+    const favoriteItem = favData?.getFavorites?.items?.find(item =>
         item?.metadata?.streamHash === params.streamHash || item.id === params.id
     );
     const isFavorite = !!favoriteItem;
