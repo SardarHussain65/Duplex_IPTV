@@ -25,7 +25,7 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-import { useFavorites } from '@/lib/api';
+import { useFavorites, useWatchHistory } from '@/lib/api';
 
 // ── Types ──────────────────────────────────────────────────────
 type Episode = {
@@ -87,16 +87,30 @@ export default function SeriesDetailScreen() {
         tvgId?: string;
         contentType?: string;
         seriesTitle?: string;
+        startTime?: string;
     }>();
 
     const { useGetFavorites, addFavorite, removeFavorite, isAdding, isRemoving } = useFavorites();
     const { data: favData } = useGetFavorites({ type: 'SERIES' });
 
-    // Check if this series is in favorites
     const favoriteItem = favData?.getFavorites?.items?.find(item => 
         item?.metadata?.streamHash === params.streamHash || item.id === params.id
     );
     const isFavorite = !!favoriteItem;
+
+    // ── Watch History ─────────────────────────────────────────
+    const { useGetWatchHistory } = useWatchHistory();
+    const { data: historyData } = useGetWatchHistory({ type: 'SERIES' });
+
+    // Find this series in history
+    const historyItem = historyData?.getWatchHistory?.items?.find(item =>
+        item.externalId === params.streamHash || item.id === params.id
+    );
+
+    // Use startTime from params (higher priority) or from history
+    const resumeTime = params.startTime ? Number(params.startTime) : (historyItem?.currentTime ?? 0);
+    const watchedPercent = historyItem?.watchedPercent ?? 0;
+
     const [isLocked, setIsLocked] = useState(false);
     const [activeSeason, setActiveSeason] = useState(0);
 
@@ -209,9 +223,11 @@ export default function SeriesDetailScreen() {
                                 contentFit="cover"
                             />
                             {/* Progress Bar on Poster */}
-                            <View style={styles.posterProgressTrack}>
-                                <View style={[styles.posterProgressBar, { width: '45%' }]} />
-                            </View>
+                            {watchedPercent > 0 && (
+                                <View style={styles.posterProgressTrack}>
+                                    <View style={[styles.posterProgressBar, { width: `${watchedPercent}%` }]} />
+                                </View>
+                            )}
                         </View>
                     ) : (
                         <View style={[styles.poster, styles.posterPlaceholder]} />
@@ -254,6 +270,7 @@ export default function SeriesDetailScreen() {
                                         logo: logo,
                                         isSeries: 'true',
                                         streamHash: params.streamHash || params.id,
+                                        startTime: String(resumeTime),
                                     },
                                 })
                             }

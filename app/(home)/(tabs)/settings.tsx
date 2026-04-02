@@ -12,8 +12,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useRef, useState } from 'react';
 import { findNodeHandle, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { useTranslation } from 'react-i18next';
 import i18n from '@/lib/i18n/i18n';
+import { useTranslation } from 'react-i18next';
 
 // Section Components
 import { AutoplaySection } from '@/components/settings/sections/AutoplaySection';
@@ -47,7 +47,7 @@ interface SettingItem {
 export default function SettingsScreen() {
     const { t } = useTranslation();
     const { setIsScrolled, setSettingsSidebarNode, settingsContentNode, setSettingsContentNode, settingsTabNode } = useTab();
-    
+
     const SETTINGS: SettingItem[] = [
         { id: 'language', label: t('settings.language'), icon: 'translate' },
         { id: 'cache', label: t('settings.cache'), icon: 'database' },

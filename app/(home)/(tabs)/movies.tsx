@@ -9,6 +9,7 @@ import { CategoryLockedState, EmptyState, SearchBar } from '@/components/ui';
 import { CategoryButton } from '@/components/ui/buttons/CategoryButton';
 import { NavButton } from '@/components/ui/buttons/NavButton';
 import { BackdropCard } from '@/components/ui/cards/BackdropCard';
+import { RecentlyWatchedRow } from '@/components/shared/RecentlyWatchedRow';
 import { PosterCard } from '@/components/ui/cards/PosterCard';
 import { EnterPinModal, ManageCategoryModal, RenameCategoryModal } from '@/components/ui/modals';
 import { HERO_MOVIES_SLIDES } from '@/constants/appData';
@@ -96,12 +97,6 @@ export default function MoviesScreen() {
         return ['All', ...uniqueCats];
     }, [movies]);
 
-    const recentlyWatched = useMemo(() => {
-        return movies.slice(0, 5).map((m, idx) => ({
-            ...m,
-            progress: [0.45, 0.2, 0.8, 0.1, 0.65][idx] || 0.5
-        }));
-    }, [movies]);
 
     const filteredMovies = useMemo(() => {
         // Text search is handled by the backend via the `search` query param.
@@ -278,29 +273,7 @@ export default function MoviesScreen() {
             </View>
 
             {/* ── Recently Watched ── */}
-            {recentlyWatched.length > 0 && (
-                <View style={{ marginBottom: xdHeight(32) }}>
-                    <Text style={styles.sectionTitle}>{t('common.recentlyWatched')}</Text>
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        style={{ marginHorizontal: -xdWidth(40) }}
-                        contentContainerStyle={{ paddingHorizontal: xdWidth(40) }}
-                    >
-                        {recentlyWatched.map((movie, index) => (
-                            <BackdropCard
-                                key={`recent-${movie.id}`}
-                                image={{ uri: movie.logo }}
-                                progress={(movie as any).progress}
-                                width={xdWidth(170)}
-                                height={xdHeight(96)}
-                                style={{ marginRight: xdWidth(12) }}
-                                onPress={() => handleMoviePress(movie)}
-                            />
-                        ))}
-                    </ScrollView>
-                </View>
-            )}
+            <RecentlyWatchedRow type="MOVIE" />
 
             {/* ── Search Bar ── */}
             <View style={styles.searchWrapper}>
@@ -352,8 +325,10 @@ export default function MoviesScreen() {
 
     // Memoized header — stable reference prevents full header reconciliation on every render
     // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Memoized header — stable reference prevents full header reconciliation on every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const listHeader = useMemo(() => renderHeader(), [
-        currentHero, heroIndex, recentlyWatched, handleMoviePress, inputValue,
+        currentHero, heroIndex, handleMoviePress, inputValue,
         settingsTabNode, categoryAllNode, searchBarNode, categories, activeCategory,
         firstMovieNode, isCategoryLocked, getCategoryLabel, handleCategoryLongPress,
         filteredMovies.length,

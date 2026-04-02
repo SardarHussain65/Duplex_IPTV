@@ -128,3 +128,72 @@ export interface GetFavoritesResponse {
     totalSeries: number;
   };
 }
+
+// ─── Watch History ────────────────────────────────────────────────────────────
+
+export interface WatchHistoryMetadata {
+  name: string;
+  tvgId?: string;
+  tvgName?: string;
+  tvgLogo?: string | null;
+  groupTitle?: string;
+  contentType?: string;
+  category?: string;
+  genre?: string;
+  releaseYear?: number | null;
+  streamHash?: string | null;
+}
+
+/** Input for the saveWatchHistory mutation */
+export interface CreateWatchHistoryInput {
+  playlistId: string;
+  name: string;
+  externalId: string;
+  type: 'LIVE' | 'MOVIE' | 'SERIES';
+  metadata: WatchHistoryMetadata;
+  /** 0 for LIVE channels — backend expects Int! */
+  duration: number;
+  /** 0 for LIVE channels — backend expects Int! */
+  currentTime: number;
+}
+
+/** Filters for the getWatchHistory query */
+export interface QueryWatchHistoryInput {
+  playlistId: string;
+  page?: number;
+  limit?: number;
+  type?: 'LIVE' | 'MOVIE' | 'SERIES';
+}
+
+/** Single item returned by getWatchHistory */
+export interface WatchHistoryItem {
+  id: string;
+  name: string;
+  metadata: WatchHistoryMetadata;
+  /** Total duration in seconds — null for LIVE */
+  duration: number | null;
+  /** Last saved playback position in seconds — null for LIVE */
+  currentTime: number | null;
+  /** 0–100, server-computed — null for LIVE */
+  watchedPercent: number | null;
+  type: 'LIVE' | 'MOVIE' | 'SERIES';
+  isCompleted: boolean;
+  externalId: string;
+  lastWatchedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GetWatchHistoryResponse {
+  getWatchHistory: {
+    items: WatchHistoryItem[];
+    total: number;
+    totalLive: number;
+    totalMovies: number;
+    totalSeries: number;
+  };
+}
+
+export interface ClearWatchHistoryResponse {
+  clearWatchHistory: boolean;
+}

@@ -7,6 +7,7 @@
 
 import { BackdropCard, CategoryLockedState, EmptyState, SearchBar } from '@/components/ui';
 import { CategoryButton } from '@/components/ui/buttons/CategoryButton';
+import { RecentlyWatchedRow } from '@/components/shared/RecentlyWatchedRow';
 import { EnterPinModal, ManageCategoryModal, RenameCategoryModal } from '@/components/ui/modals';
 import { Colors } from '@/constants';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
@@ -71,15 +72,6 @@ export default function LiveTVScreen() {
         return ['All', ...uniqueCats];
     }, [channels]);
 
-    const recentlyWatched = useMemo(() => {
-        // For now, if we have real channels, use the first few as 'recently watched' 
-        // to maintain UI consistency, or we could keep mock data if preferred.
-        // Let's use real channels if available.
-        return channels.slice(0, 5).map((ch, idx) => ({
-            ...ch,
-            progress: [0.45, 0.2, 0.8, 0.1, 0.65][idx] || 0.5
-        }));
-    }, [channels]);
 
     const [activeCategory, setActiveCategory] = useState('All');
     const [categoryAllNode, setCategoryAllNode] = useState<number | undefined>(undefined);
@@ -257,29 +249,7 @@ export default function LiveTVScreen() {
 
             </View>
             {/* ── Recently Watched ── */}
-            {recentlyWatched.length > 0 && (
-                <View style={{ marginBottom: xdHeight(32) }}>
-                    <Text style={styles.sectionTitle}>{t('liveTv.recentlyWatched')}</Text>
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        style={{ marginHorizontal: -xdWidth(40) }}
-                        contentContainerStyle={{ paddingHorizontal: xdWidth(40) }}
-                    >
-                        {recentlyWatched.map((channel, index) => (
-                            <BackdropCard
-                                key={`recent-${channel.id}`}
-                                image={{ uri: channel.logo }}
-                                progress={channel.progress}
-                                width={xdWidth(170)}
-                                height={xdHeight(96)}
-                                style={{ marginRight: xdWidth(12) }}
-                                onPress={() => handleChannelPress(channel)}
-                            />
-                        ))}
-                    </ScrollView>
-                </View>
-            )}
+            <RecentlyWatchedRow type="LIVE" />
 
             {/* Search Bar */}
             <View style={styles.searchWrapper}>
@@ -337,8 +307,11 @@ export default function LiveTVScreen() {
     // Memoized header element — prevents the entire header tree from being
     // recreated on every render. Deps cover everything renderHeader reads.
     // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Memoized header element — prevents the entire header tree from being
+    // recreated on every render. Deps cover everything renderHeader reads.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const listHeader = useMemo(() => renderHeader(), [
-        recentlyWatched, handleChannelPress, inputValue, settingsTabNode,
+        handleChannelPress, inputValue, settingsTabNode,
         categoryAllNode, searchBarNode, categories, activeCategory,
         firstChannelNode, isCategoryLocked, getCategoryLabel,
         handleCategoryLongPress, filteredChannels.length,

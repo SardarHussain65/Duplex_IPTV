@@ -4,6 +4,8 @@ import { SettingCard } from '@/components/ui/cards/SettingCard';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useTab } from '@/context/TabContext';
 import { useStreamUrl } from '@/lib/api/hooks/useStreamUrl';
+import { useWatchHistory } from '@/lib/api';
+import type { WatchableItem, VideoPlayerRef } from '@/lib/api';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -57,6 +59,8 @@ export default function VideoPlayerScreen() {
         logo: string;
         isSeries?: string;
         streamHash?: string;
+        contentType?: string;
+        startTime?: string;
     }>();
 
     const streamHash = params.streamHash || params.id;
@@ -67,6 +71,19 @@ export default function VideoPlayerScreen() {
     const duration = params.duration ?? '1h 48m';
     const logo = params.logo ?? '';
     const isSeries = params.isSeries === 'true';
+
+    // Detect LIVE: channel screens pass contentType='LIVE' or duration='Live'
+    const isLive = params.contentType === 'LIVE' || params.duration === 'Live';
+    const contentType: 'LIVE' | 'MOVIE' | 'SERIES' = isLive
+        ? 'LIVE'
+        : isSeries
+            ? 'SERIES'
+            : 'MOVIE';
+
+    // ── Watch History ─────────────────────────────────────────
+    const { saveHistory, startProgressTracking, stopProgressTracking } = useWatchHistory();
+    // A stable ref the interval can read currentTime from without re-renders
+    const historyPlayerRef = useRef<VideoPlayerRef | null>(null);
 
     // ── UI state ──────────────────────────────────────────
     const [isFavorite, setIsFavorite] = useState(false);
@@ -150,6 +167,12 @@ export default function VideoPlayerScreen() {
 
     const player = useVideoPlayer(videoSource, (player) => {
         player.loop = true;
+        
+        // Resume from saved position if provided
+        if (params.startTime && Number(params.startTime) > 0) {
+            player.currentTime = Number(params.startTime);
+        }
+        
         player.play();
     });
 
@@ -186,6 +209,13 @@ export default function VideoPlayerScreen() {
                 if (total > 0) {
                     setProgress(current / total);
                 }
+
+                // Keep historyPlayerRef in sync so the 2-min interval
+                // can read currentTime without accessing player directly
+                historyPlayerRef.current = {
+                    currentTime: player.currentTime,
+                    duration: player.duration,
+                };
             }
         }, 1000);
 
@@ -197,6 +227,33 @@ export default function VideoPlayerScreen() {
     const handleSeek = (newProgress: number) => {
         player.currentTime = newProgress * player.duration;
     };
+
+    // ── Watch History effect ───────────────────────────────────
+    // Runs once when a new channel/content is loaded (streamHash changes).
+    useEffect(() => {
+        if (!streamHash) return;
+
+        const item: WatchableItem = {
+            streamHash: streamHash,
+            name,
+            type: contentType,
+            tvgLogo: logo || undefined,
+            groupTitle: category,
+            contentType,
+            category,
+        };
+
+        // 1. Save immediately on play start (position = 0)
+        saveHistory(item, 0);
+
+        // 2. Start 2-min interval for VOD/SERIES (no-op for LIVE)
+        startProgressTracking(item, historyPlayerRef);
+
+        // 3. Cleanup on unmount or when content changes
+        return () => {
+            stopProgressTracking();
+        };
+    }, [streamHash]);
 
     // Time formatting
     const fmt = (ms: number) => {

@@ -41,3 +41,28 @@ export const GET_FAVORITES = gql`
     }
   }
 `;
+
+export const GET_WATCH_HISTORY = gql`
+  query GetWatchHistory($filters: QueryWatchHistoryInput!) {
+    getWatchHistory(filters: $filters) {
+      items {
+        id
+        name
+        metadata
+        duration
+        currentTime
+        watchedPercent
+        type
+        isCompleted
+        lastWatchedAt
+        externalId
+        createdAt
+        updatedAt
+      }
+      total
+      totalLive
+      totalMovies
+      totalSeries
+    }
+  }
+`;

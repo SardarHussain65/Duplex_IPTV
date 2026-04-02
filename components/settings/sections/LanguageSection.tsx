@@ -56,14 +56,14 @@ export const LanguageSection: React.FC<LanguageSectionProps> = ({
                 nextFocusRight="self"
                 nextFocusUp={settingsTabNode || undefined}
                 nextFocusDown={findNodeHandle(sidebarRef.current) || undefined}
-                icon={selected === 'de' ? <MaterialCommunityIcons name="check" size={20} color={Colors.gray[100]} /> : null}
+                icon={selected === 'pt' ? <MaterialCommunityIcons name="check" size={20} color={Colors.gray[100]} /> : null}
                 iconPosition="right"
-                title="Deutsch"
-                subtitle={t('languages.de')}
+                title="Português (Brasil)"
+                subtitle={t('languages.pt')}
                 style={panelStyles.languageCard}
-                isActive={selected === 'de'}
-                onPress={() => handleLanguageChange('de')}
-                testID="lang-de"
+                isActive={selected === 'pt'}
+                onPress={() => handleLanguageChange('pt')}
+                testID="lang-pt"
             />
             <SettingCard
                 nextFocusLeft={findNodeHandle(sidebarRef.current) || undefined}
@@ -79,6 +79,21 @@ export const LanguageSection: React.FC<LanguageSectionProps> = ({
                 onPress={() => handleLanguageChange('es')}
                 testID="lang-es"
             />
+            <SettingCard
+                nextFocusLeft={findNodeHandle(sidebarRef.current) || undefined}
+                nextFocusRight="self"
+                nextFocusUp={settingsTabNode || undefined}
+                nextFocusDown={findNodeHandle(sidebarRef.current) || undefined}
+                icon={selected === 'de' ? <MaterialCommunityIcons name="check" size={20} color={Colors.gray[100]} /> : null}
+                iconPosition="right"
+                title="Deutsch"
+                subtitle={t('languages.de')}
+                style={panelStyles.languageCard}
+                isActive={selected === 'de'}
+                onPress={() => handleLanguageChange('de')}
+                testID="lang-de"
+            />
+
         </View>
     );
 };

@@ -9,6 +9,7 @@ import { CategoryLockedState, EmptyState, SearchBar } from '@/components/ui';
 import { CategoryButton } from '@/components/ui/buttons/CategoryButton';
 import { NavButton } from '@/components/ui/buttons/NavButton';
 import { BackdropCard } from '@/components/ui/cards/BackdropCard';
+import { RecentlyWatchedRow } from '@/components/shared/RecentlyWatchedRow';
 import { PosterCard } from '@/components/ui/cards/PosterCard';
 import { EnterPinModal, ManageCategoryModal, RenameCategoryModal } from '@/components/ui/modals';
 import { HERO_SERIES_SLIDES } from '@/constants/appData';
@@ -97,12 +98,6 @@ export default function SeriesScreen() {
         return ['All', ...uniqueCats];
     }, [series]);
 
-    const recentlyWatched = useMemo(() => {
-        return series.slice(0, 5).map((s, idx) => ({
-            ...s,
-            progress: [0.45, 0.2, 0.8, 0.1, 0.65][idx] || 0.5
-        }));
-    }, [series]);
 
     const filteredSeries = useMemo(() => {
         // Text search is handled by the backend via the `search` query param.
@@ -279,29 +274,7 @@ export default function SeriesScreen() {
             </View>
 
             {/* ── Recently Watched ── */}
-            {recentlyWatched.length > 0 && (
-                <View style={{ marginBottom: xdHeight(32) }}>
-                    <Text style={styles.sectionTitle}>{t('common.recentlyWatched')}</Text>
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        style={{ marginHorizontal: -xdWidth(40) }}
-                        contentContainerStyle={{ paddingHorizontal: xdWidth(40) }}
-                    >
-                        {recentlyWatched.map((seriesItem, index) => (
-                            <BackdropCard
-                                key={`recent-${seriesItem.id}`}
-                                image={{ uri: seriesItem.logo }}
-                                progress={(seriesItem as any).progress}
-                                width={xdWidth(170)}
-                                height={xdHeight(96)}
-                                style={{ marginRight: xdWidth(12) }}
-                                onPress={() => handleSeriesPress(seriesItem)}
-                            />
-                        ))}
-                    </ScrollView>
-                </View>
-            )}
+            <RecentlyWatchedRow type="SERIES" />
 
             {/* ── Search Bar ── */}
             <View style={styles.searchWrapper}>
@@ -353,8 +326,10 @@ export default function SeriesScreen() {
 
     // Memoized header — stable reference prevents full header reconciliation on every render
     // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Memoized header — stable reference prevents full header reconciliation on every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const listHeader = useMemo(() => renderHeader(), [
-        currentHero, heroIndex, recentlyWatched, handleSeriesPress, inputValue,
+        currentHero, heroIndex, handleSeriesPress, inputValue,
         settingsTabNode, categoryAllNode, searchBarNode, categories, activeCategory,
         firstSeriesNode, isCategoryLocked, getCategoryLabel, handleCategoryLongPress,
         filteredSeries.length,

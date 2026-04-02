@@ -22,7 +22,7 @@ import {
     View
 } from 'react-native';
 
-import { useFavorites } from '@/lib/api';
+import { useFavorites, useWatchHistory } from '@/lib/api';
 
 // ── Mock cast data ─────────────────────────────────────────────
 const CAST = [
@@ -52,17 +52,31 @@ export default function MovieDetailScreen() {
         streamHash?: string;
         tvgId?: string;
         contentType?: string;
+        startTime?: string;
     }>();
 
 
     const { useGetFavorites, addFavorite, removeFavorite, isAdding, isRemoving } = useFavorites();
     const { data: favData } = useGetFavorites({ type: 'MOVIE' });
 
-    // Check if this movie is in favorites
     const favoriteItem = favData?.getFavorites?.items?.find(item =>
         item?.metadata?.streamHash === params.streamHash || item.id === params.id
     );
     const isFavorite = !!favoriteItem;
+
+    // ── Watch History ─────────────────────────────────────────
+    const { useGetWatchHistory } = useWatchHistory();
+    const { data: historyData } = useGetWatchHistory({ type: 'MOVIE' });
+
+    // Find this movie in history to get current progress
+    const historyItem = historyData?.getWatchHistory?.items?.find(item =>
+        item.externalId === params.streamHash || item.id === params.id
+    );
+
+    // Use startTime from params (higher priority) or from history
+    const resumeTime = params.startTime ? Number(params.startTime) : (historyItem?.currentTime ?? 0);
+    const watchedPercent = historyItem?.watchedPercent ?? 0;
+
     const [isLocked, setIsLocked] = useState(false);
     const { setParentalModalVisible } = useTab();
 
@@ -143,9 +157,11 @@ export default function MovieDetailScreen() {
                                     contentFit="cover"
                                 />
                                 {/* Progress Bar on Poster */}
-                                <View style={styles.posterProgressTrack}>
-                                    <View style={[styles.posterProgressBar, { width: '65%' }]} />
-                                </View>
+                                {watchedPercent > 0 && (
+                                    <View style={styles.posterProgressTrack}>
+                                        <View style={[styles.posterProgressBar, { width: `${watchedPercent}%` }]} />
+                                    </View>
+                                )}
                             </View>
                         ) : (
                             <View style={[styles.poster, styles.posterPlaceholder]} />
@@ -191,6 +207,7 @@ export default function MovieDetailScreen() {
                                             duration,
                                             logo,
                                             streamHash: params.streamHash || params.id,
+                                            startTime: String(resumeTime),
                                         },
                                     })
                                 }

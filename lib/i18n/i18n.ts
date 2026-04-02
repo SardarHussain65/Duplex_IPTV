@@ -4,13 +4,15 @@ import * as Localization from 'expo-localization';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import en from '../../assets/translations/en.json';
-import de from '../../assets/translations/de.json';
+import pt from '../../assets/translations/pt.json';
 import es from '../../assets/translations/es.json';
+import de from '../../assets/translations/de.json';
 
 const resources: Record<string, { translation: any }> = {
   en: { translation: en },
-  de: { translation: de },
+  pt: { translation: pt },
   es: { translation: es },
+  de: { translation: de },
 };
 
 const LANGUAGE_KEY = 'app_language';

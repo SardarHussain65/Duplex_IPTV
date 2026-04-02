@@ -110,6 +110,7 @@ export default function ChannelDetailScreen() {
                 duration: 'Live',
                 logo: channelLogo,
                 streamHash: params.streamHash,
+                contentType: params.contentType || 'LIVE',
             },
         });
     };

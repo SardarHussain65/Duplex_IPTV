@@ -1,5 +1,6 @@
 import { gql } from '@apollo/client';
 
+
 export const GENERATE_DEVICE_ID = gql`
   mutation GenerateDeviceId($input: GenerateDeviceIdInput!) {
     generateDeviceId(input: $input) {
@@ -62,5 +63,21 @@ export const ADD_FAVORITE = gql`
 export const REMOVE_FAVORITE = gql`
   mutation RemoveFavorite($removeFavoriteId: ID!) {
     removeFavorite(id: $removeFavoriteId)
+  }
+`;
+
+export const SAVE_WATCH_HISTORY = gql`
+  mutation SaveWatchHistory($input: CreateWatchHistoryInput!) {
+    saveWatchHistory(input: $input) {
+      id
+      name
+      metadata
+    }
+  }
+`;
+
+export const CLEAR_WATCH_HISTORY = gql`
+  mutation ClearWatchHistory($playlistId: ID!, $type: ContentType) {
+    clearWatchHistory(playlistId: $playlistId, type: $type)
   }
 `;
