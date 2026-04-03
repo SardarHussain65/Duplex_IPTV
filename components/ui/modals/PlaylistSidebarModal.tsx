@@ -1,12 +1,12 @@
 import { Colors } from '@/constants';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
-import React, { useState, useEffect, useRef } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View, Animated, Dimensions, findNodeHandle, ActivityIndicator } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import { PlaylistRowButton } from '../buttons/PlaylistRowButton';
-import { ConfirmPlaylistModal } from './ConfirmPlaylistModal';
 import { usePlaylists } from '@/lib/api/hooks/usePlaylists';
 import { useDeviceStore } from '@/lib/store/useDeviceStore';
+import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { ActivityIndicator, Animated, Dimensions, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { PlaylistRowButton } from '../buttons/PlaylistRowButton';
+import { ConfirmPlaylistModal } from './ConfirmPlaylistModal';
 
 interface PlaylistSidebarModalProps {
     visible: boolean;
@@ -29,7 +29,7 @@ export const PlaylistSidebarModal: React.FC<PlaylistSidebarModalProps> = ({
 
     const [pendingPlaylistId, setPendingPlaylistId] = useState<string | null>(null);
     const [isConfirmVisible, setIsConfirmVisible] = useState(false);
-    
+
     const slideAnim = useRef(new Animated.Value(SIDEBAR_WIDTH)).current;
 
     // Ref for the first playlist item to auto-focus
@@ -42,7 +42,7 @@ export const PlaylistSidebarModal: React.FC<PlaylistSidebarModalProps> = ({
                 duration: 250,
                 useNativeDriver: true,
             }).start();
-            
+
             // Auto-focus first item after animation completes
             setTimeout(() => {
                 if (firstItemRef.current) {
@@ -97,12 +97,12 @@ export const PlaylistSidebarModal: React.FC<PlaylistSidebarModalProps> = ({
         >
             <View style={styles.overlay}>
                 <Pressable style={styles.backdrop} onPress={handleClose} />
-                
+
                 <Animated.View style={[styles.sidebar, { transform: [{ translateX: slideAnim }] }]}>
                     <Text style={styles.title}>{t('common.playlists')}</Text>
                     <View style={styles.divider} />
-                    
-                    <ScrollView 
+
+                    <ScrollView
                         style={styles.playlistContainer}
                         contentContainerStyle={{ gap: xdHeight(12) }}
                         showsVerticalScrollIndicator={false}
@@ -193,6 +193,7 @@ const styles = StyleSheet.create({
     },
     playlistContainer: {
         flex: 1,
+        paddingHorizontal: xdWidth(8)
     },
     loadingContainer: {
         flex: 1,

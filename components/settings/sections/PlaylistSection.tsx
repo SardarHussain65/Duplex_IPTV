@@ -5,8 +5,8 @@ import { ConfirmPlaylistModal } from '@/components/ui/modals/ConfirmPlaylistModa
 import { Colors, scale } from '@/constants';
 import { panelStyles } from '@/styles/settings_panel.styles';
 import React, { useState } from 'react';
-import { findNodeHandle, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { findNodeHandle, Text, View } from 'react-native';
 
 interface PlaylistSectionProps {
     startRef: React.RefObject<any>;
