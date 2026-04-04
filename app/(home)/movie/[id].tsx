@@ -22,7 +22,7 @@ import {
     View
 } from 'react-native';
 
-import { useFavorites, useWatchHistory } from '@/lib/api';
+import { useFavorites, useParentalControls, useWatchHistory } from '@/lib/api';
 
 // ── Mock cast data ─────────────────────────────────────────────
 const CAST = [
@@ -64,6 +64,14 @@ export default function MovieDetailScreen() {
     );
     const isFavorite = !!favoriteItem;
 
+    const { useGetParentalControls, addParentalControl, removeParentalControl, isAdding: isAddingParental } = useParentalControls();
+    const { data: parentalData } = useGetParentalControls({ type: 'MOVIE' });
+
+    const parentalItem = parentalData?.getParentalControls?.items?.find(item =>
+        item?.metadata?.streamHash === params.streamHash || item.id === params.id
+    );
+    const isLocked = !!parentalItem;
+
     // ── Watch History ─────────────────────────────────────────
     const { useGetWatchHistory } = useWatchHistory();
     const { data: historyData } = useGetWatchHistory({ type: 'MOVIE' });
@@ -77,7 +85,6 @@ export default function MovieDetailScreen() {
     const resumeTime = params.startTime ? Number(params.startTime) : (historyItem?.currentTime ?? 0);
     const watchedPercent = historyItem?.watchedPercent ?? 0;
 
-    const [isLocked, setIsLocked] = useState(false);
     const { setParentalModalVisible } = useTab();
 
     useEffect(() => {
@@ -123,6 +130,33 @@ export default function MovieDetailScreen() {
             }
         } catch (error) {
             console.error('Failed to toggle favorite:', error);
+        }
+    };
+
+    const handleParentalLockPress = async () => {
+        try {
+            if (isLocked && parentalItem) {
+                await removeParentalControl(parentalItem.id);
+            } else {
+                await addParentalControl({
+                    name: name,
+                    type: 'MOVIE',
+                    metadata: {
+                        name: name,
+                        tvgId: params.tvgId || '',
+                        tvgName: name,
+                        tvgLogo: logo,
+                        groupTitle: category,
+                        contentType: params.contentType || 'MOVIE',
+                        category: category,
+                        genre: category,
+                        releaseYear: year,
+                        streamHash: params.streamHash || params.id || '',
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Failed to toggle parental control:', error);
         }
     };
 
@@ -233,11 +267,13 @@ export default function MovieDetailScreen() {
                                     <MaterialCommunityIcons
                                         name={isLocked ? 'lock' : 'lock-open-outline'}
                                         size={scale(20)}
-                                        color={Colors.gray[300]}
+                                        color={isLocked ? '#E0334C' : Colors.gray[300]}
                                     />
                                 }
                                 isActive={isLocked}
-                                onPress={() => setParentalModalVisible(true)}
+                                activeBackgroundColor="#E0334C"
+                                onPress={handleParentalLockPress}
+                                disabled={isAddingParental}
                             />
                         </View>
 

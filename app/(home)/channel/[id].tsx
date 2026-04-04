@@ -25,7 +25,7 @@ import {
 import { useTranslation } from 'react-i18next';
 
 // ── Dummy live stream URL (public domain) ─────────────────────
-import { useFavorites } from '@/lib/api';
+import { useFavorites, useParentalControls } from '@/lib/api';
 
 // ── Dummy live stream URL (public domain) ─────────────────────
 const DUMMY_VIDEO_URI =
@@ -69,7 +69,14 @@ export default function ChannelDetailScreen() {
         item?.metadata?.streamHash === params.streamHash || item.id === params.id
     );
     const isFavorite = !!favoriteItem;
-    const [isLocked, setIsLocked] = useState(false);
+
+    const { useGetParentalControls, addParentalControl, removeParentalControl, isAdding: isAddingParental } = useParentalControls();
+    const { data: parentalData } = useGetParentalControls({ type: 'LIVE' });
+    const parentalItem = parentalData?.getParentalControls?.items?.find(item =>
+        item?.metadata?.streamHash === params.streamHash || item.id === params.id
+    );
+    const isLocked = !!parentalItem;
+
     const { setIsScrolled, setParentalModalVisible } = useTab();
 
     useEffect(() => {
@@ -141,6 +148,31 @@ export default function ChannelDetailScreen() {
         }
     };
 
+    const handleParentalLockPress = async () => {
+        try {
+            if (isLocked && parentalItem) {
+                await removeParentalControl(parentalItem.id);
+            } else {
+                await addParentalControl({
+                    name: channelName,
+                    type: 'LIVE',
+                    metadata: {
+                        name: channelName,
+                        tvgId: params.tvgId || '',
+                        tvgName: channelName,
+                        tvgLogo: channelLogo,
+                        groupTitle: channelCategory,
+                        contentType: params.contentType || 'LIVE',
+                        category: channelCategory,
+                        genre: channelCategory,
+                        streamHash: params.streamHash || params.id || '',
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Failed to toggle parental control:', error);
+        }
+    };
 
     return (
         <View style={styles.screen}>
@@ -197,9 +229,11 @@ export default function ChannelDetailScreen() {
                             disabled={isAdding}
                         />
                         <NavIconButton
-                            icon={<MaterialCommunityIcons name={isLocked ? 'lock' : 'lock-open-outline'} size={scale(20)} color={Colors.gray[300]} />}
+                            icon={<MaterialCommunityIcons name={isLocked ? 'lock' : 'lock-open-outline'} size={scale(20)} color={isLocked ? '#E0334C' : Colors.gray[300]} />}
                             isActive={isLocked}
-                            onPress={() => setParentalModalVisible(true)}
+                            activeBackgroundColor="#E0334C"
+                            onPress={handleParentalLockPress}
+                            disabled={isAddingParental}
                         />
                     </View>
                 </View>

@@ -197,3 +197,52 @@ export interface GetWatchHistoryResponse {
 export interface ClearWatchHistoryResponse {
   clearWatchHistory: boolean;
 }
+
+// ─── Parental Controls ────────────────────────────────────────────────────────
+
+export interface ParentalControlMetadata {
+  name: string;
+  tvgId?: string;
+  tvgName?: string;
+  tvgLogo?: string;
+  groupTitle?: string;
+  contentType?: string;
+  category?: string;
+  genre?: string;
+  seriesTitle?: string;
+  releaseYear?: number | string;
+  streamHash: string;
+}
+
+export interface ParentalControl {
+  id: string;
+  metadata: ParentalControlMetadata;
+  playlistId?: string;
+  name?: string;
+  type?: string;
+  deviceId?: string;
+}
+
+export interface CreateParentalControlInput {
+  playlistId: string;
+  name: string;
+  type: string;
+  metadata: ParentalControlMetadata;
+}
+
+export interface QueryParentalControlInput {
+  playlistId: string;
+  page?: number;
+  limit?: number;
+  type?: string;
+}
+
+export interface GetParentalControlsResponse {
+  getParentalControls: {
+    items: ParentalControl[];
+    total: number;
+    totalLive: number;
+    totalMovies: number;
+    totalSeries: number;
+  };
+}

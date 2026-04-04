@@ -25,7 +25,7 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-import { useFavorites, useWatchHistory } from '@/lib/api';
+import { useFavorites, useParentalControls, useWatchHistory } from '@/lib/api';
 
 // ── Types ──────────────────────────────────────────────────────
 type Episode = {
@@ -98,6 +98,13 @@ export default function SeriesDetailScreen() {
     );
     const isFavorite = !!favoriteItem;
 
+    const { useGetParentalControls, addParentalControl, removeParentalControl, isAdding: isAddingParental } = useParentalControls();
+    const { data: parentalData } = useGetParentalControls({ type: 'SERIES' });
+    const parentalItem = parentalData?.getParentalControls?.items?.find(item =>
+        item?.metadata?.streamHash === params.streamHash || item.id === params.id
+    );
+    const isLocked = !!parentalItem;
+
     // ── Watch History ─────────────────────────────────────────
     const { useGetWatchHistory } = useWatchHistory();
     const { data: historyData } = useGetWatchHistory({ type: 'SERIES' });
@@ -111,7 +118,6 @@ export default function SeriesDetailScreen() {
     const resumeTime = params.startTime ? Number(params.startTime) : (historyItem?.currentTime ?? 0);
     const watchedPercent = historyItem?.watchedPercent ?? 0;
 
-    const [isLocked, setIsLocked] = useState(false);
     const [activeSeason, setActiveSeason] = useState(0);
 
     useEffect(() => {
@@ -162,6 +168,34 @@ export default function SeriesDetailScreen() {
             }
         } catch (error) {
             console.error('Failed to toggle favorite:', error);
+        }
+    };
+
+    const handleParentalLockPress = async () => {
+        try {
+            if (isLocked && parentalItem) {
+                await removeParentalControl(parentalItem.id);
+            } else {
+                await addParentalControl({
+                    name: name,
+                    type: 'SERIES',
+                    metadata: {
+                        name: name,
+                        tvgId: params.tvgId || '',
+                        tvgName: name,
+                        tvgLogo: logo,
+                        groupTitle: category,
+                        contentType: params.contentType || 'SERIES',
+                        category: category,
+                        genre: category,
+                        seriesTitle: params.seriesTitle || name,
+                        releaseYear: year,
+                        streamHash: params.streamHash || params.id || '',
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Failed to toggle parental control:', error);
         }
     };
 
@@ -295,11 +329,13 @@ export default function SeriesDetailScreen() {
                                 <MaterialCommunityIcons
                                     name={isLocked ? 'lock' : 'lock-open-outline'}
                                     size={scale(20)}
-                                    color={Colors.gray[300]}
+                                    color={isLocked ? '#E0334C' : Colors.gray[300]}
                                 />
                             }
                             isActive={isLocked}
-                            onPress={() => setParentalModalVisible(true)}
+                            activeBackgroundColor="#E0334C"
+                            onPress={handleParentalLockPress}
+                            disabled={isAddingParental}
                         />
                     </View>
 

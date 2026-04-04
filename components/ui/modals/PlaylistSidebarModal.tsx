@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     },
     playlistContainer: {
         flex: 1,
-        paddingHorizontal: xdWidth(8)
+        padding: xdWidth(8)
     },
     loadingContainer: {
         flex: 1,

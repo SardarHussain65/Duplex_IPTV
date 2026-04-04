@@ -66,3 +66,20 @@ export const GET_WATCH_HISTORY = gql`
     }
   }
 `;
+
+export const GET_PARENTAL_CONTROLS = gql`
+  query GetParentalControls($filters: QueryParentalControlInput!) {
+    getParentalControls(filters: $filters) {
+       items {
+        metadata
+        id
+        type
+        playlistId
+      }
+      total
+      totalLive
+      totalMovies
+      totalSeries
+    }
+  }
+`;

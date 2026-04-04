@@ -81,3 +81,20 @@ export const CLEAR_WATCH_HISTORY = gql`
     clearWatchHistory(playlistId: $playlistId, type: $type)
   }
 `;
+
+export const ADD_PARENTAL_CONTROL = gql`
+  mutation AddParentalControl($input: CreateParentalControlInput!) {
+    addParentalControl(input: $input) {
+      deviceId
+      id
+      name
+      type
+    }
+  }
+`;
+
+export const REMOVE_PARENTAL_CONTROL = gql`
+  mutation RemoveParentalControl($removeParentalControlId: ID!) {
+    removeParentalControl(id: $removeParentalControlId)
+  }
+`;

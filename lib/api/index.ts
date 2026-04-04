@@ -20,6 +20,7 @@ export { useHealthCheck } from './hooks/useHealthCheck';
 export { usePlaylistChannels } from './hooks/usePlaylistChannels';
 export { useStreamUrl } from './hooks/useStreamUrl';
 export { useFavorites } from './hooks/useFavorites';
+export { useParentalControls } from './hooks/useParentalControls';
 export { useWatchHistory } from './hooks/useWatchHistory';
 export type { WatchableItem, VideoPlayerRef } from './hooks/useWatchHistory';
 export * from './types';
