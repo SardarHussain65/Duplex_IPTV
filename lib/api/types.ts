@@ -246,3 +246,51 @@ export interface GetParentalControlsResponse {
     totalSeries: number;
   };
 }
+
+export interface UpsertParentalControlPinInput {
+  pin: string;
+  playlistId: string;
+}
+
+export interface SetParentalControlPinResponse {
+  setParentalControlPin: boolean;
+}
+
+export interface VerifyParentalControlPinInput {
+  pin: string;
+  playlistId: string;
+}
+
+export interface VerifyParentalControlPinResponse {
+  verifyParentalControlPin: boolean;
+}
+
+export interface ToggleParentalControlStatus {
+  id: string;
+  isRestricted: boolean;
+  pin?: string | null;
+}
+
+export interface GetToggleParentalControlResponse {
+  getToggleParentalControl: ToggleParentalControlStatus;
+}
+
+export interface ToggleParentalControlResponse {
+  toggleParentalControl: ToggleParentalControlStatus;
+}
+
+// ─── Autoplay ────────────────────────────────────────────────────────────────
+
+export interface Autoplay {
+  autoplay: boolean;
+  playlistId: string;
+  createdAt?: string;
+}
+
+export interface ToggleAutoplayResponse {
+  autoplayToggle: Autoplay;
+}
+
+export interface GetAutoplayResponse {
+  getAutoplayByPlaylistId: Autoplay;
+}

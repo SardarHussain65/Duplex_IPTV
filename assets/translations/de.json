@@ -19,7 +19,8 @@
     "confirm": "Bestätigen",
     "cancel": "Abbrechen",
     "comingSoon": "Demnächst verfügbar...",
-    "loading": "Laden..."
+    "loading": "Laden...",
+    "error": "Fehler"
   },
   "languages": {
     "en": "English",
@@ -84,7 +85,8 @@
       "pinSetting": "PIN-Einstellung",
       "currentPin": "Aktuelle PIN",
       "changePin": "PIN ändern",
-      "setNew": "Neue PIN festlegen"
+      "setNew": "Neue PIN festlegen",
+      "enterCurrentPin": "Aktuelle PIN eingeben"
     },
     "historyOptions": {
       "clearAll": "Verlauf leeren",

@@ -19,7 +19,8 @@
     "confirm": "Confirmar",
     "cancel": "Cancelar",
     "comingSoon": "Em breve...",
-    "loading": "Carregando..."
+    "loading": "Carregando...",
+    "error": "Erro"
   },
   "languages": {
     "en": "English",
@@ -84,7 +85,8 @@
       "pinSetting": "Configuração de PIN",
       "currentPin": "PIN Atual",
       "changePin": "Alterar PIN",
-      "setNew": "Definir Novo PIN"
+      "setNew": "Definir Novo PIN",
+      "enterCurrentPin": "Digite o PIN atual"
     },
     "historyOptions": {
       "clearAll": "Limpar Todo o Histórico",

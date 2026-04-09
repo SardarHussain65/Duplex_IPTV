@@ -4,6 +4,7 @@ import { EnterPinModal } from '@/components/ui/modals/EnterPinModal';
 import { SetPinModal } from '@/components/ui/modals/SetPinModal';
 import { Colors } from '@/constants';
 import { useTab } from '@/context/TabContext';
+import { useParentalControlPin } from '@/lib/api';
 import { panelStyles } from '@/styles/settings_panel.styles';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useState } from 'react';
@@ -23,26 +24,28 @@ export const ParentalControlSection: React.FC<ParentalControlSectionProps> = ({
     const {
         isParentalControlEnabled,
         setIsParentalControlEnabled,
-        parentalPin,
-        setParentalPin,
         settingsTabNode,
     } = useTab();
+
+    const { setPin, verifyPin, isRestricted, hasPinEverBeenSet, toggleLoading, toggleParentalControl, isToggling } = useParentalControlPin();
 
     const [isSetModalVisible, setSetModalVisible] = useState(false);
     const [isEnterModalVisible, setEnterModalVisible] = useState(false);
     const [pendingAction, setPendingAction] = useState<'enable' | 'change' | null>(null);
 
-    const handleSwitchChange = (val: boolean) => {
+    const handleSwitchChange = async (val: boolean) => {
         if (val) {
-            // Treat empty OR '0000' as "PIN not set"
-            if (!parentalPin || parentalPin === '0000') {
+            // Show SetPinModal ONLY if no PIN has ever been set (API returned null)
+            if (!hasPinEverBeenSet) {
                 setPendingAction('enable');
                 setSetModalVisible(true);
             } else {
-                setIsParentalControlEnabled(true);
+                // PIN exists — call toggle directly
+                await toggleParentalControl();
             }
         } else {
-            setIsParentalControlEnabled(false);
+            // Turning OFF: call the API toggle
+            await toggleParentalControl();
         }
     };
 
@@ -51,8 +54,8 @@ export const ParentalControlSection: React.FC<ParentalControlSectionProps> = ({
         setEnterModalVisible(true);
     };
 
-    // Only show PIN settings if enabled AND a PIN actually exists
-    const showPinSettings = isParentalControlEnabled && parentalPin && parentalPin !== '0000';
+    // Show PIN settings card when a PIN has been set on the backend
+    const showPinSettings = isRestricted;
 
     return (
         <View style={{ gap: 20 }}>
@@ -71,7 +74,7 @@ export const ParentalControlSection: React.FC<ParentalControlSectionProps> = ({
                 icon={
                     <View pointerEvents="none">
                         <Switch
-                            value={isParentalControlEnabled}
+                            value={isRestricted}
                             onValueChange={() => { }}
                             trackColor={{ false: Colors.dark[8], true: '#E91E63' }}
                             thumbColor={Colors.gray[100]}
@@ -79,7 +82,7 @@ export const ParentalControlSection: React.FC<ParentalControlSectionProps> = ({
                     </View>
                 }
                 iconPosition="right"
-                onPress={() => handleSwitchChange(!isParentalControlEnabled)}
+                onPress={() => handleSwitchChange(!isRestricted)}
             />
 
             {showPinSettings && (
@@ -111,13 +114,18 @@ export const ParentalControlSection: React.FC<ParentalControlSectionProps> = ({
                     setSetModalVisible(false);
                     setPendingAction(null);
                 }}
-                onSave={(newPin) => {
-                    setParentalPin(newPin);
-                    setSetModalVisible(false);
-                    if (pendingAction === 'enable') {
-                        setIsParentalControlEnabled(true);
+                onSave={async (newPin) => {
+                    try {
+                        await setPin(newPin);
+                        // isRestricted auto-updates via refetchToggle in the hook
+                        setSetModalVisible(false);
+                        if (pendingAction === 'enable') {
+                            setIsParentalControlEnabled(true);
+                        }
+                        setPendingAction(null);
+                    } catch {
+                        // error handled in hook
                     }
-                    setPendingAction(null);
                 }}
             />
 
@@ -135,9 +143,9 @@ export const ParentalControlSection: React.FC<ParentalControlSectionProps> = ({
                     }, 300); // slight delay for smooth transition
                 }}
                 onVerify={async (pin: string) => {
-                    return pin === (parentalPin || '0000');
+                    return verifyPin(pin);
                 }}
-                title={t('settings.parentalOptions.setNew')}
+                title={t('settings.parentalOptions.enterCurrentPin')}
                 buttonText={t('common.next')}
             />
         </View>

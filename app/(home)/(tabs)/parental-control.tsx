@@ -3,7 +3,9 @@ import { CategoryButton } from '@/components/ui/buttons/CategoryButton';
 import { Colors } from '@/constants';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useTab } from '@/context/TabContext';
+import { useParentalControlPin } from '@/lib/api';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useIsFocused } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, View, findNodeHandle } from 'react-native';
@@ -39,7 +41,9 @@ const CATEGORIES: { label: ParentalType; icon: keyof typeof MaterialCommunityIco
 export default function ParentalControlScreen() {
     const { t } = useTranslation();
     const router = useRouter();
-    const { setIsScrolled, isParentalUnlocked, setParentalUnlocked, parentalPin } = useTab();
+    const isFocused = useIsFocused();
+    const { setIsScrolled, isParentalUnlocked, setParentalUnlocked } = useTab();
+    const { verifyPin, isRestricted, toggleLoading } = useParentalControlPin();
     const [activeSubTab, setActiveSubTab] = useState<ParentalType>('Live TV');
 
     const { useGetParentalControls } = useParentalControls();
@@ -265,10 +269,10 @@ export default function ParentalControlScreen() {
     return (
         <View style={styles.container}>
             <EnterPinModal
-                visible={!isParentalUnlocked}
+                visible={isFocused && isRestricted && !isParentalUnlocked}
                 onClose={handleCancelUnlock}
                 onSuccess={() => setParentalUnlocked(true)}
-                onVerify={async (pin) => pin === parentalPin}
+                onVerify={async (pin) => verifyPin(pin)}
             />
 
             {loading && !data ? (

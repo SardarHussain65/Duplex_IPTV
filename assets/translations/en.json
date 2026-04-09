@@ -19,7 +19,8 @@
     "confirm": "Confirm",
     "cancel": "Cancel",
     "comingSoon": "Coming soon...",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "error": "Error"
   },
   "languages": {
     "en": "English",
@@ -84,7 +85,8 @@
       "pinSetting": "Pin Setting",
       "currentPin": "Current Pin",
       "changePin": "Change Pin",
-      "setNew": "Set a New Pin"
+      "setNew": "Set a New Pin",
+      "enterCurrentPin": "Enter Current PIN"
     },
     "historyOptions": {
       "clearAll": "Clear All History",

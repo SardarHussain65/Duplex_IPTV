@@ -98,3 +98,34 @@ export const REMOVE_PARENTAL_CONTROL = gql`
     removeParentalControl(id: $removeParentalControlId)
   }
 `;
+
+export const AUTOPLAY_TOGGLE = gql`
+  mutation AutoplayToggle($autoplay: Boolean!, $playlistId: String!) {
+    autoplayToggle(autoplay: $autoplay, playlistId: $playlistId) {
+      autoplay
+      playlistId
+      createdAt
+    }
+  }
+`;
+
+export const SET_PARENTAL_CONTROL_PIN = gql`
+  mutation SetParentalControlPin($input: VerifyPlaylistPinInput!) {
+    setParentalControlPin(input: $input)
+  }
+`;
+
+export const VERIFY_PARENTAL_CONTROL_PIN = gql`
+  mutation VerifyParentalControlPin($input: VerifyPlaylistPinInput!) {
+    verifyParentalControlPin(input: $input)
+  }
+`;
+
+export const TOGGLE_PARENTAL_CONTROL = gql`
+  mutation ToggleParentalControl($playlistId: ID!) {
+    toggleParentalControl(playlistId: $playlistId) {
+      id
+      isRestricted
+    }
+  }
+`;

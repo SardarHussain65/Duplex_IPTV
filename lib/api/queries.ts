@@ -83,3 +83,22 @@ export const GET_PARENTAL_CONTROLS = gql`
     }
   }
 `;
+
+export const GET_AUTOPLAY_BY_PLAYLIST_ID = gql`
+  query GetAutoplayByPlaylistId($playlistId: String!) {
+    getAutoplayByPlaylistId(playlistId: $playlistId) {
+      autoplay
+      playlistId
+    }
+  }
+`;
+
+export const GET_TOGGLE_PARENTAL_CONTROL = gql`
+  query GetToggleParentalControl($playlistId: ID!) {
+    getToggleParentalControl(playlistId: $playlistId) {
+      id
+      isRestricted
+      pin
+    }
+  }
+`;
