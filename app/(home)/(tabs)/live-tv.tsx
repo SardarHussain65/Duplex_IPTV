@@ -14,7 +14,9 @@ import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useCategoryManagement } from '@/context/CategoryManagementContext';
 import { useTab } from '@/context/TabContext';
 import { usePlaylistChannels } from '@/lib/api';
+import { useCategories } from '@/lib/api/hooks/useCategories';
 import { useDeviceStore } from '@/lib/store/useDeviceStore';
+
 import { Channel } from '@/types';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -38,6 +40,8 @@ export default function LiveTVScreen() {
     const [inputValue, setInputValue] = useState('');
     const [committedSearch, setCommittedSearch] = useState('');
 
+    const [activeCategory, setActiveCategory] = useState('All');
+
     const {
         data: apiData,
         isLoading,
@@ -48,9 +52,17 @@ export default function LiveTVScreen() {
         playlistId: activePlaylistId || '',
         limit: 50,
         contentType: 'LIVE',
+        category: activeCategory === 'All' ? null : activeCategory,
         search: committedSearch,
         enabled: !!activePlaylistId
     });
+
+    const { data: categoriesData } = useCategories({
+        playlistId: activePlaylistId || '',
+        contentType: 'LIVE',
+        enabled: !!activePlaylistId
+    });
+
 
     const channels: Channel[] = useMemo(() => {
         if (!apiData?.pages) return [];
@@ -68,13 +80,17 @@ export default function LiveTVScreen() {
     }, [apiData]);
 
     const categories = useMemo(() => {
-        const uniqueCats = Array.from(new Set(channels.map((ch: Channel) => ch.category)));
-        return ['All', ...uniqueCats];
-    }, [channels]);
+        if (!categoriesData?.items) return ['All'];
+        const apiCats = categoriesData.items.map(c => c.name);
+        return ['All', ...apiCats];
+    }, [categoriesData]);
 
 
-    const [activeCategory, setActiveCategory] = useState('All');
+
+
+
     const [categoryAllNode, setCategoryAllNode] = useState<number | undefined>(undefined);
+
     const [lastCategoryNode, setLastCategoryNode] = useState<number | undefined>(undefined);
     const [firstChannelNode, setFirstChannelNode] = useState<number | undefined>(undefined);
 
@@ -91,14 +107,8 @@ export default function LiveTVScreen() {
     const lastCategoryRef = useRef<any>(null);
     const channelRefs = useRef<Record<number, any>>({});
 
-    const filteredChannels = useMemo(() => {
-        // Text search is handled by the backend via the `search` query param.
-        // Only category filtering is done client-side here.
-        if (activeCategory === 'All') return channels;
-        return channels.filter(
-            (ch: Channel) => ch.category.toLowerCase() === activeCategory.toLowerCase()
-        );
-    }, [activeCategory, channels]);
+    const filteredChannels = channels;
+
 
     useEffect(() => {
         // Use requestIdleCallback to defer node-handle resolution until after

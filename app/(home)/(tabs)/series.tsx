@@ -34,7 +34,9 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useTab } from '@/context/TabContext';
 import { useSeries } from '@/hooks/useSeries';
 import { usePlaylistChannels } from '@/lib/api';
+import { useCategories } from '@/lib/api/hooks/useCategories';
 import { useDeviceStore } from '@/lib/store/useDeviceStore';
+
 import { styles } from '@/styles/series.styles';
 import { useTranslation } from 'react-i18next';
 
@@ -70,43 +72,63 @@ export default function SeriesScreen() {
         playlistId: activePlaylistId || '',
         limit: 48,
         contentType: 'SERIES',
+        category: activeCategory === 'All' ? null : activeCategory,
         search: committedSearch,
         enabled: !!activePlaylistId
     });
 
+    const { data: categoriesData } = useCategories({
+        playlistId: activePlaylistId || '',
+        contentType: 'SERIES',
+        enabled: !!activePlaylistId
+    });
+
+
     const series: Series[] = useMemo(() => {
         if (!apiData?.pages) return [];
-        return apiData.pages.flatMap((page) =>
-            page.items.map((item) => ({
-                id: item.streamHash,
-                name: item.name,
-                category: item.category,
-                year: "2024",
-                season: item.category || "Season 1",
-                logo: item.tvgLogo,
-                description: item.name,
-                streamHash: item.streamHash,
-                tvgId: item.tvgId,
-                contentType: item.contentType,
-                seriesTitle: item.name,
-            }))
-        );
+        const seenIds = new Set<string>();
+        const result: Series[] = [];
+
+        apiData.pages.forEach((page) => {
+            page.items.forEach((item) => {
+                // Use streamHash or a combination of name and category as a unique identifier
+                const seriesId = item.streamHash || `${item.name}-${item.category}`;
+                
+                if (!seenIds.has(seriesId)) {
+                    seenIds.add(seriesId);
+                    result.push({
+                        id: seriesId,
+                        name: item.name,
+                        category: item.category,
+                        year: "2024",
+                        season: item.category || "Season 1",
+                        logo: item.tvgLogo,
+                        description: item.name,
+                        streamHash: item.streamHash || '',
+                        tvgId: item.tvgId,
+                        contentType: item.contentType,
+                        seriesTitle: item.name,
+                        episodes: item.ep || [],
+                    });
+                }
+            });
+        });
+        return result;
     }, [apiData]);
 
+
+
     const categories = useMemo(() => {
-        const uniqueCats = Array.from(new Set(series.map((s) => s.category)));
-        return ['All', ...uniqueCats];
-    }, [series]);
+        if (!categoriesData?.items) return ['All'];
+        const apiCats = categoriesData.items.map(c => c.name);
+        return ['All', ...apiCats];
+    }, [categoriesData]);
 
 
-    const filteredSeries = useMemo(() => {
-        // Text search is handled by the backend via the `search` query param.
-        // Only category filtering is done client-side here.
-        if (activeCategory === 'All') return series;
-        return series.filter(
-            (s) => s.category.toLowerCase() === activeCategory.toLowerCase()
-        );
-    }, [activeCategory, series]);
+
+
+    const filteredSeries = series;
+
 
     const currentHero = HERO_SERIES_SLIDES[heroIndex] || HERO_SERIES_SLIDES[0];
 

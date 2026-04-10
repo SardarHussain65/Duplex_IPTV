@@ -62,6 +62,22 @@ export interface GetPlaylistsByDeviceResponse {
 
 // ─── Channels ────────────────────────────────────────────────────────────────
 
+export interface Episode {
+  name: string;
+  tvgId: string;
+  tvgName: string;
+  tvgLogo: string;
+  groupTitle: string;
+  contentType: string;
+  category: string;
+  genre: string;
+  seriesTitle: string;
+  seasonNumber: number;
+  episodeNumber: number;
+  seriesStreamId: string;
+  streamHash: string;
+}
+
 export interface Channel {
   name: string;
   tvgId: string;
@@ -72,11 +88,23 @@ export interface Channel {
   category: string;
   genre: string;
   streamHash: string;
+  ep?: Episode[];
 }
+
 
 export interface GetChannelsResponse {
   items: Channel[];
 }
+
+export interface ChannelCategory {
+  name: string;
+  count: number;
+}
+
+export interface GetCategoriesResponse {
+  items: ChannelCategory[];
+}
+
 
 // ─── Favorites ───────────────────────────────────────────────────────────────
 

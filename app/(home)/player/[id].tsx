@@ -10,7 +10,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AudioTrack, SubtitleTrack, useVideoPlayer, VideoView } from 'expo-video';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
 import {
     ActivityIndicator,
     Animated,
@@ -36,20 +37,16 @@ type Episode = {
 };
 
 // ── Mock Episodes ──────────────────────────────────────────────
-const generateEpisodes = (): Episode[] =>
-    Array.from({ length: 10 }, (_, i) => ({
-        id: `ep${i + 1}`,
-        number: i + 1,
-        title: 'Echoes of the Past',
-        description: 'A key piece of evidence in a cold case suddenly resurfaces...',
-        duration: '1h 20m',
-        image: 'https://image.tmdb.org/t/p/w500/8UlWHLMpgZm9bx6QYh0NFoq67TZ.jpg',
-        progress: i === 0 ? 0.35 : undefined,
-    }));
+// REMOVED generateEpisodes
+
+
+import { useAutoplay } from '@/lib/api/hooks/useAutoplay';
 
 // ── Screen ─────────────────────────────────────────────────────
 export default function VideoPlayerScreen() {
+    const { refetch: syncAutoplay } = useAutoplay();
     const router = useRouter();
+
     const params = useLocalSearchParams<{
         id: string;
         name: string;
@@ -61,7 +58,11 @@ export default function VideoPlayerScreen() {
         streamHash?: string;
         contentType?: string;
         startTime?: string;
+        episodes?: string;
     }>();
+
+
+
 
     const streamHash = params.streamHash || params.id;
 
@@ -98,8 +99,19 @@ export default function VideoPlayerScreen() {
     const [currentAudioTrack, setCurrentAudioTrack] = useState<AudioTrack | null>(null);
     const [currentSubtitleTrack, setCurrentSubtitleTrack] = useState<SubtitleTrack | null>(null);
 
-    const [currentEpisodeIndex, setCurrentEpisodeIndex] = useState(0);
-    const episodes = generateEpisodes();
+    const episodes = useMemo(() => {
+        try {
+            return params.episodes ? JSON.parse(params.episodes) : [];
+        } catch (e) {
+            console.error('Failed to parse episodes:', e);
+            return [];
+        }
+    }, [params.episodes]);
+
+    const currentEpisodeIndex = useMemo(() => {
+        return episodes.findIndex((ep: any) => ep.streamHash === streamHash);
+    }, [episodes, streamHash]);
+
 
     // ── Controls Visibility logic ──────────────────────────────
     const [showControls, setShowControls] = useState(true);
@@ -166,7 +178,8 @@ export default function VideoPlayerScreen() {
             : 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
 
     const player = useVideoPlayer(videoSource, (player) => {
-        player.loop = true;
+        player.loop = false;
+
         
         // Resume from saved position if provided
         if (params.startTime && Number(params.startTime) > 0) {
@@ -224,6 +237,20 @@ export default function VideoPlayerScreen() {
         };
     }, [player]);
 
+    // ── Autoplay ──────────────────────────────────────────────
+    const { isAutoplayEnabled } = useTab();
+
+    useEffect(() => {
+        const subscription = player.addListener('playToEnd', () => {
+            if (isSeries && isAutoplayEnabled) {
+                console.log('[VideoPlayer] Episode ended, triggering autoplay...');
+                handleSkipNext();
+            }
+        });
+        return () => subscription.remove();
+    }, [player, isSeries, isAutoplayEnabled, handleSkipNext]);
+
+
     const handleSeek = (newProgress: number) => {
         player.currentTime = newProgress * player.duration;
     };
@@ -277,47 +304,64 @@ export default function VideoPlayerScreen() {
 
     const handleSkipPrevious = () => {
         if (isSeries && currentEpisodeIndex > 0) {
-            setCurrentEpisodeIndex(currentEpisodeIndex - 1);
-            player.currentTime = 0;
-            player.play();
+            const prevEp = episodes[currentEpisodeIndex - 1];
+            router.setParams({
+                id: prevEp.streamHash,
+                streamHash: prevEp.streamHash,
+                name: prevEp.name,
+                startTime: '0',
+            });
         } else {
             // Skip backward 10s
             player.seekBy(-10);
         }
     };
 
+
     const handleSkipNext = () => {
         if (isSeries && currentEpisodeIndex < episodes.length - 1) {
-            setCurrentEpisodeIndex(currentEpisodeIndex + 1);
-            player.currentTime = 0;
-            player.play();
+            const nextEp = episodes[currentEpisodeIndex + 1];
+            router.setParams({
+                id: nextEp.streamHash,
+                streamHash: nextEp.streamHash,
+                name: nextEp.name,
+                startTime: '0',
+            });
         } else {
             // Skip forward 10s
             player.seekBy(10);
         }
     };
 
-    const handleSelectEpisode = useCallback((episodeIndex: number) => {
-        setCurrentEpisodeIndex(episodeIndex);
-        player.currentTime = 0;
-        player.play();
-        setViewMode('normal');
-    }, [player]);
 
-    const renderEpisodeItem = useCallback(({ item, index }: { item: Episode, index: number }) => (
+    const handleSelectEpisode = useCallback((episodeIndex: number) => {
+        const ep = episodes[episodeIndex];
+        router.setParams({
+            id: ep.streamHash,
+            streamHash: ep.streamHash,
+            name: ep.name,
+            startTime: '0',
+        });
+        setViewMode('normal');
+    }, [episodes, router]);
+
+
+    const renderEpisodeItem = useCallback(({ item, index }: { item: any, index: number }) => (
         <EpisodeCard
-            key={item.id}
+            key={item.streamHash || index}
             variant="mini"
-            number={item.number}
-            title={item.title}
-            description={item.description}
-            duration={item.duration}
-            image={item.image}
-            progress={item.progress}
+            number={item.episodeNumber || item.number}
+            title={item.name}
+            description={params.description || ""}
+            duration={""}
+            image={item.tvgLogo || item.image || logo}
+            progress={undefined}
+
             isPlaying={index === currentEpisodeIndex}
             onPress={() => handleSelectEpisode(index)}
         />
-    ), [currentEpisodeIndex, handleSelectEpisode]);
+    ), [currentEpisodeIndex, handleSelectEpisode, logo, params.description]);
+
 
     const { setParentalModalVisible } = useTab();
 
@@ -341,6 +385,7 @@ export default function VideoPlayerScreen() {
                     <View style={styles.videoWrapper}>
                         {videoSource && (
                             <VideoView
+                                key={streamHash}
                                 player={player}
                                 style={styles.videoBg}
                                 contentFit="cover"
@@ -349,6 +394,7 @@ export default function VideoPlayerScreen() {
                                 allowsPictureInPicture={false}
                             />
                         )}
+
                         {!videoSource && (
                             <View style={[styles.videoBg, { backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }]}>
                                 <Text style={{ color: '#fff' }}>{isStreamLoading ? 'Loading Stream...' : 'No Stream Available'}</Text>
@@ -564,9 +610,10 @@ export default function VideoPlayerScreen() {
                                 <FlatList
                                     showsVerticalScrollIndicator={false}
                                     data={episodes}
-                                    keyExtractor={(item) => item.id}
+                                    keyExtractor={(item: any, index) => item.streamHash || `${index}`}
                                     renderItem={renderEpisodeItem}
                                 />
+
                             </View>
                         )}
                     </View>

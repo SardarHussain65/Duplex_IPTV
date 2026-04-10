@@ -15,7 +15,8 @@ import { useTab } from '@/context/TabContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+
 import {
     FlatList,
     ScrollView,
@@ -36,7 +37,9 @@ type Episode = {
     duration: string;
     image: string;
     progress?: number; // 0-1, undefined = not started
+    streamHash?: string;
 };
+
 
 // ── Mock Data ──────────────────────────────────────────────────
 const CAST = [
@@ -88,7 +91,9 @@ export default function SeriesDetailScreen() {
         contentType?: string;
         seriesTitle?: string;
         startTime?: string;
+        episodes?: string;
     }>();
+
 
     const { useGetFavorites, addFavorite, removeFavorite, isAdding, isRemoving } = useFavorites();
     const { data: favData } = useGetFavorites({ type: 'SERIES' });
@@ -136,7 +141,37 @@ export default function SeriesDetailScreen() {
 
     console.log(`[SeriesDetailScreen] name: ${name}, streamHash: ${params.streamHash}`);
 
-    const episodes = generateEpisodes(activeSeason + 1);
+    const allEpisodes = useMemo(() => {
+        try {
+            return params.episodes ? JSON.parse(params.episodes) : [];
+        } catch (e) {
+            console.error('Failed to parse episodes:', e);
+            return [];
+        }
+    }, [params.episodes]);
+
+    const seasons = useMemo(() => {
+        const s = new Set<number>();
+        allEpisodes.forEach((ep: any) => s.add(ep.seasonNumber || 1));
+        return Array.from(s).sort((a, b) => a - b);
+    }, [allEpisodes]);
+
+    const episodes = useMemo(() => {
+        const seasonNum = seasons[activeSeason] || 1;
+        return allEpisodes
+            .filter((ep: any) => (ep.seasonNumber || 1) === seasonNum)
+            .map((ep: any) => ({
+                id: `${ep.streamHash}-${ep.seasonNumber}-${ep.episodeNumber}`,
+                number: ep.episodeNumber,
+                title: ep.name,
+                description: params.description || '',
+                duration: "",
+                image: ep.tvgLogo || logo,
+                streamHash: ep.streamHash,
+            }));
+
+    }, [allEpisodes, activeSeason, seasons, logo, params.description]);
+
 
     const handleScroll = (event: any) => {
         const offsetY = event.nativeEvent.contentOffset.y;
@@ -219,12 +254,15 @@ export default function SeriesDetailScreen() {
                         duration: item.duration,
                         logo: item.image,
                         isSeries: 'true',
-                        streamHash: params.streamHash, // Assuming episodes share the same hash for now or have their own
+                        streamHash: item.streamHash || params.streamHash,
+                        episodes: params.episodes, // Pass the same episodes string
                     },
                 })
             }
+
         />
     );
+
 
     return (
         <ScrollView
@@ -305,9 +343,11 @@ export default function SeriesDetailScreen() {
                                         isSeries: 'true',
                                         streamHash: params.streamHash || params.id,
                                         startTime: String(resumeTime),
+                                        episodes: params.episodes,
                                     },
                                 })
                             }
+
                         >
                             {t('common.watchNow')}
                         </NavButton>
@@ -352,21 +392,23 @@ export default function SeriesDetailScreen() {
             {/* ── Season Tabs ── */}
             <View style={styles.divider} />
             <ScrollView
+
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 style={styles.seasonsScroll}
                 contentContainerStyle={styles.seasonsContent}
             >
-                {SEASONS.map((s, i) => (
+                {seasons.map((s, i) => (
                     <CategoryButton
-                        key={s}
+                        key={`season-${s}`}
                         isActive={i === activeSeason}
                         onPress={() => setActiveSeason(i)}
                     >
-                        {t('detail.season')} {i + 1}
+                        {t('detail.season')} {s}
                     </CategoryButton>
                 ))}
             </ScrollView>
+
 
             {/* ── Episodes List ── */}
             <Text style={styles.episodesHeader}>

@@ -33,9 +33,11 @@ export function useSeries() {
                 tvgId: series.tvgId,
                 contentType: series.contentType,
                 seriesTitle: series.seriesTitle,
+                episodes: JSON.stringify(series.episodes || []),
             },
         });
     };
+
 
     const filteredSeries = useMemo(() => {
         let result = MOCK_SERIES;

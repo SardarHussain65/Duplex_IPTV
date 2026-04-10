@@ -38,6 +38,15 @@ export type Movie = {
     contentType?: string;
 };
 
+export type SeriesEpisode = {
+    name: string;
+    seasonNumber: number;
+    episodeNumber: number;
+    streamHash: string;
+    tvgLogo?: string;
+    seriesTitle?: string;
+};
+
 export type Series = {
     id: string;
     name: string;
@@ -50,7 +59,9 @@ export type Series = {
     tvgId?: string;
     contentType?: string;
     seriesTitle?: string;
+    episodes?: SeriesEpisode[];
 };
+
 
 export type EPGSlot = {
     id: string;

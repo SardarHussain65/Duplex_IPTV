@@ -34,7 +34,9 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useTab } from '@/context/TabContext';
 import { useMovies } from '@/hooks/useMovies';
 import { usePlaylistChannels } from '@/lib/api';
+import { useCategories } from '@/lib/api/hooks/useCategories';
 import { useDeviceStore } from '@/lib/store/useDeviceStore';
+
 import { styles } from '@/styles/movies.styles';
 import { useTranslation } from 'react-i18next';
 
@@ -70,9 +72,17 @@ export default function MoviesScreen() {
         playlistId: activePlaylistId || '',
         limit: 48,
         contentType: 'MOVIE',
+        category: activeCategory === 'All' ? null : activeCategory,
         search: committedSearch,
         enabled: !!activePlaylistId
     });
+
+    const { data: categoriesData } = useCategories({
+        playlistId: activePlaylistId || '',
+        contentType: 'MOVIE',
+        enabled: !!activePlaylistId
+    });
+
 
     const movies: Movie[] = useMemo(() => {
         if (!apiData?.pages) return [];
@@ -93,19 +103,16 @@ export default function MoviesScreen() {
     }, [apiData]);
 
     const categories = useMemo(() => {
-        const uniqueCats = Array.from(new Set(movies.map((m) => m.category)));
-        return ['All', ...uniqueCats];
-    }, [movies]);
+        if (!categoriesData?.items) return ['All'];
+        const apiCats = categoriesData.items.map(c => c.name);
+        return ['All', ...apiCats];
+    }, [categoriesData]);
 
 
-    const filteredMovies = useMemo(() => {
-        // Text search is handled by the backend via the `search` query param.
-        // Only category filtering is done client-side here.
-        if (activeCategory === 'All') return movies;
-        return movies.filter(
-            (m) => m.category.toLowerCase() === activeCategory.toLowerCase()
-        );
-    }, [activeCategory, movies]);
+
+
+    const filteredMovies = movies;
+
 
     const currentHero = HERO_MOVIES_SLIDES[heroIndex] || HERO_MOVIES_SLIDES[0];
 
