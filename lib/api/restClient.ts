@@ -91,13 +91,15 @@ interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown;
   /** Skip auth header even if token exists */
   skipAuth?: boolean;
+  /** Custom timeout for this request */
+  timeout?: number;
 }
 
 /**
  * Core REST fetch. Handles auth injection, 401 refresh, and error parsing.
  */
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { body, skipAuth, ...rest } = options;
+  const { body, skipAuth, timeout, ...rest } = options;
 
   const buildHeaders = async (): Promise<Record<string, string>> => {
     const headers: Record<string, string> = {
@@ -121,7 +123,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
       ...rest,
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
-    });
+    }, timeout);
   };
 
   let response = await execute();

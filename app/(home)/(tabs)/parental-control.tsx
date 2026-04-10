@@ -1,5 +1,4 @@
-import { BackdropCard, EmptyState, EnterPinModal, PosterCard } from '@/components/ui';
-import { CategoryButton } from '@/components/ui/buttons/CategoryButton';
+import { BackdropCard, EmptyState, EnterPinModal, PosterCard, Skeleton, CategoryButtonSkeleton, PosterGridSkeleton, BackdropGridSkeleton, CategoryButton } from '@/components/ui';
 import { Colors } from '@/constants';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useTab } from '@/context/TabContext';
@@ -8,7 +7,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useIsFocused } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, View, findNodeHandle } from 'react-native';
+import { FlatList, StyleSheet, Text, View, findNodeHandle } from 'react-native';
 
 import { useTranslation } from 'react-i18next';
 import { useParentalControls } from '@/lib/api';
@@ -276,8 +275,18 @@ export default function ParentalControlScreen() {
             />
 
             {loading && !data ? (
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={Colors.primary[500]} />
+                <View style={styles.content}>
+                    <Skeleton width="40%" height={scale(22)} borderRadius={8} style={{ marginBottom: xdHeight(16) }} />
+                    <View style={styles.categoryRow}>
+                        {Array.from({ length: 3 }).map((_, i) => (
+                            <CategoryButtonSkeleton key={i} />
+                        ))}
+                    </View>
+                    {activeSubTab === 'Live TV' ? (
+                        <BackdropGridSkeleton rows={3} columns={5} />
+                    ) : (
+                        <PosterGridSkeleton rows={3} columns={6} />
+                    )}
                 </View>
             ) : (
                 <FlatList

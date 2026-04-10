@@ -1,5 +1,4 @@
-import { BackdropCard, EmptyState, PosterCard } from '@/components/ui';
-import { CategoryButton } from '@/components/ui/buttons/CategoryButton';
+import { BackdropCard, EmptyState, PosterCard, Skeleton, CategoryButtonSkeleton, PosterGridSkeleton, BackdropGridSkeleton, CategoryButton } from '@/components/ui';
 import { Colors } from '@/constants';
 import { FAVORITE_CATEGORIES } from '@/constants/appData';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
@@ -7,7 +6,7 @@ import { useTab } from '@/context/TabContext';
 import { FavoriteItem, FavoriteType } from '@/types';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, View, findNodeHandle } from 'react-native';
+import { FlatList, StyleSheet, Text, View, findNodeHandle } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useFavorites } from '@/lib/api';
 
@@ -259,8 +258,18 @@ export default function FavoritesScreen() {
     return (
         <View style={styles.container}>
             {loading && !data ? (
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={Colors.primary[500]} />
+                <View style={[styles.content, styles.gridContainer]}>
+                    <Skeleton width="40%" height={scale(22)} borderRadius={8} style={{ marginBottom: xdHeight(16) }} />
+                    <View style={styles.categoryRow}>
+                        {Array.from({ length: 3 }).map((_, i) => (
+                            <CategoryButtonSkeleton key={i} />
+                        ))}
+                    </View>
+                    {activeTab === 'Live TV' ? (
+                        <BackdropGridSkeleton rows={3} columns={5} />
+                    ) : (
+                        <PosterGridSkeleton rows={3} columns={6} />
+                    )}
                 </View>
             ) : (
                 <FlatList

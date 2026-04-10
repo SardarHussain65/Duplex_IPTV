@@ -11,6 +11,7 @@ import { ActionFilledButton } from '@/components/ui/buttons/ActionFilledButton';
 import { CategoryButton } from '@/components/ui/buttons/CategoryButton';
 import { HistoryCard } from '@/components/ui/cards/HistoryCard';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { HistoryGridSkeleton, CategoryButtonSkeleton } from '@/components/ui';
 import { Colors, FAVORITE_CATEGORIES } from '@/constants';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useTab } from '@/context/TabContext';
@@ -20,7 +21,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Alert, findNodeHandle, FlatList, StyleSheet, Text, View } from 'react-native';
+import { Alert, findNodeHandle, FlatList, StyleSheet, Text, View } from 'react-native';
 
 // ── Tab type (matches UI label ↔ API type) ────────────────────
 type HistoryTab = 'Live TV' | 'Movies' | 'Series';
@@ -249,7 +250,7 @@ export const WatchHistorySection: React.FC<WatchHistorySectionProps> = ({
             {/* ── Loading spinner ── */}
             {loading && items.length === 0 && (
                 <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={Colors.primary[500]} />
+                    <HistoryGridSkeleton rows={3} />
                 </View>
             )}
 

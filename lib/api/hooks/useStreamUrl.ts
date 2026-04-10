@@ -32,7 +32,7 @@ export function useStreamUrl(streamHash: string | null, enabled: boolean = true)
         // We call the API to ensure the backend processes the resolution/tracking
         // Since it's a "raw" stream endpoint, we use restClient which adds Auth headers.
         // We only care about the URL for the player, so we return it.
-        const response = await restClient.get<any>(path);
+        const response = await restClient.get<any>(path, { timeout: 30_000 });
         
         // If the backend returns a JSON with an actual playable URL, use it.
         // Otherwise, use the original /raw URL.

@@ -106,4 +106,12 @@ export const styles = StyleSheet.create({
     cardSpacing: {
         marginBottom: xdHeight(16),
     },
+    footerLoader: {
+        paddingVertical: xdHeight(20),
+    },
+    footerGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: xdWidth(12.8),
+    },
 });

@@ -5,10 +5,7 @@
  * ─────────────────────────────────────────────────────────────
  */
 
-import { CategoryLockedState, EmptyState, SearchBar } from '@/components/ui';
-import { CategoryButton } from '@/components/ui/buttons/CategoryButton';
-import { NavButton } from '@/components/ui/buttons/NavButton';
-import { BackdropCard } from '@/components/ui/cards/BackdropCard';
+import { BackdropCard, CategoryLockedState, EmptyState, SearchBar, HeroSkeleton, PosterGridSkeleton, PosterCardSkeleton, Skeleton, CategoryButtonSkeleton, NavButton, CategoryButton } from '@/components/ui';
 import { RecentlyWatchedRow } from '@/components/shared/RecentlyWatchedRow';
 import { PosterCard } from '@/components/ui/cards/PosterCard';
 import { EnterPinModal, ManageCategoryModal, RenameCategoryModal } from '@/components/ui/modals';
@@ -20,7 +17,6 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
     FlatList,
     ScrollView,
     StyleSheet,
@@ -361,10 +357,22 @@ export default function SeriesScreen() {
 
     if (isLoading) {
         return (
-            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-                <ActivityIndicator size="large" color="#FFD700" />
-                <Text style={{ color: '#9DA3B4', marginTop: xdHeight(16) }}>{t('series.loading')}</Text>
-            </View>
+            <ScrollView
+                style={styles.container}
+                contentContainerStyle={[styles.content, styles.gridContainer]}
+                showsVerticalScrollIndicator={false}
+            >
+                <HeroSkeleton />
+                <View style={{ marginBottom: xdHeight(32) }}>
+                    <Skeleton width="100%" height={xdHeight(50)} borderRadius={12} />
+                </View>
+                <View style={{ flexDirection: 'row', marginBottom: xdHeight(24) }}>
+                    {Array.from({ length: 10 }).map((_, i) => (
+                        <CategoryButtonSkeleton key={i} />
+                    ))}
+                </View>
+                <PosterGridSkeleton rows={3} columns={6} />
+            </ScrollView>
         );
     }
 
@@ -396,8 +404,12 @@ export default function SeriesScreen() {
                 onEndReachedThreshold={2.0}
                 ListFooterComponent={() =>
                     isFetchingNextPage ? (
-                        <View style={{ paddingVertical: xdHeight(20), alignItems: 'center' }}>
-                            <ActivityIndicator size="small" color="#FFD700" />
+                        <View style={styles.footerLoader}>
+                            <View style={styles.footerGrid}>
+                                {Array.from({ length: 6 }).map((_, i) => (
+                                    <PosterCardSkeleton key={i} />
+                                ))}
+                            </View>
                         </View>
                     ) : null
                 }

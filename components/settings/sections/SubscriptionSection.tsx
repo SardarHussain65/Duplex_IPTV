@@ -1,8 +1,9 @@
 import { Colors } from '@/constants';
+import { Skeleton } from '@/components/ui';
 import { useTab } from '@/context/TabContext';
 import { panelStyles } from '@/styles/settings_panel.styles';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, findNodeHandle, Text, View } from 'react-native';
+import { findNodeHandle, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSubscription } from '@/lib/api/hooks/useSubscription';
 
@@ -82,9 +83,20 @@ export const SubscriptionSection: React.FC<SubscriptionSectionProps> = ({ startR
 
     if (loading) {
         return (
-            <View style={[panelStyles.card, { height: 150, justifyContent: 'center', alignItems: 'center' }]}>
-                <ActivityIndicator size="large" color={Colors.primary[500]} />
-                <Text style={[panelStyles.rowLabel, { marginTop: 12 }]}>{t('common.loading') || 'Loading...'}</Text>
+            <View style={panelStyles.card}>
+                <View style={[panelStyles.row, { justifyContent: 'flex-start', alignItems: 'center', gap: 12 }]}>
+                    <Skeleton width="40%" height={24} borderRadius={4} />
+                    <Skeleton width={80} height={20} borderRadius={10} />
+                </View>
+                <View style={panelStyles.divider} />
+                <View style={panelStyles.row}>
+                    <Skeleton width="30%" height={16} borderRadius={4} />
+                    <Skeleton width="40%" height={16} borderRadius={4} />
+                </View>
+                <View style={panelStyles.row}>
+                    <Skeleton width="30%" height={16} borderRadius={4} />
+                    <Skeleton width="40%" height={16} borderRadius={4} />
+                </View>
             </View>
         );
     }

@@ -1,10 +1,11 @@
 import { Colors } from '@/constants';
+import { PlaylistCardSkeleton } from '../index';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { usePlaylists } from '@/lib/api/hooks/usePlaylists';
 import { useDeviceStore } from '@/lib/store/useDeviceStore';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Animated, Dimensions, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Dimensions, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PlaylistRowButton } from '../buttons/PlaylistRowButton';
 import { ConfirmPlaylistModal } from './ConfirmPlaylistModal';
 
@@ -108,9 +109,10 @@ export const PlaylistSidebarModal: React.FC<PlaylistSidebarModalProps> = ({
                         showsVerticalScrollIndicator={false}
                     >
                         {loading ? (
-                            <View style={styles.loadingContainer}>
-                                <ActivityIndicator size="large" color="#FFFFFF" />
-                                <Text style={styles.loadingText}>{t('settings.playlistOptions.loading')}</Text>
+                            <View style={{ flex: 1, gap: xdHeight(12) }}>
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                    <PlaylistCardSkeleton key={i} />
+                                ))}
                             </View>
                         ) : error ? (
                             <View style={styles.loadingContainer}>

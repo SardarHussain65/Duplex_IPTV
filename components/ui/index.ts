@@ -18,6 +18,8 @@ export * from './inputs/SearchBar';
 export * from './EmptyState';
 export * from './SyncingStep';
 export * from './CategoryLockedState';
+export * from './Skeleton';
+export * from './Skeletons';
 
 // Modals
 export * from './modals/EnterPinModal';

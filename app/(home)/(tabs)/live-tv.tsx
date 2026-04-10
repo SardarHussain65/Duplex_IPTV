@@ -5,8 +5,7 @@
  * ─────────────────────────────────────────────────────────────
  */
 
-import { BackdropCard, CategoryLockedState, EmptyState, SearchBar } from '@/components/ui';
-import { CategoryButton } from '@/components/ui/buttons/CategoryButton';
+import { BackdropCard, CategoryLockedState, EmptyState, SearchBar, BackdropGridSkeleton, BackdropCardSkeleton, Skeleton, CategoryButtonSkeleton, CategoryButton } from '@/components/ui';
 import { RecentlyWatchedRow } from '@/components/shared/RecentlyWatchedRow';
 import { EnterPinModal, ManageCategoryModal, RenameCategoryModal } from '@/components/ui/modals';
 import { Colors } from '@/constants';
@@ -21,7 +20,7 @@ import { Channel } from '@/types';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, View, findNodeHandle } from 'react-native';
+import { FlatList, ScrollView, StyleSheet, Text, View, findNodeHandle } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { useTranslation } from 'react-i18next';
@@ -331,10 +330,28 @@ export default function LiveTVScreen() {
 
     if (isLoading) {
         return (
-            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-                <ActivityIndicator size="large" color={Colors.primary[500]} />
-                <Text style={{ color: Colors.gray[400], marginTop: xdHeight(16) }}>{t('liveTv.loadingChannels')}</Text>
-            </View>
+            <ScrollView
+                style={styles.container}
+                contentContainerStyle={[styles.content, styles.gridContainer]}
+                showsVerticalScrollIndicator={false}
+            >
+                <View style={{ height: xdHeight(280), marginBottom: xdHeight(24), justifyContent: 'center' }}>
+                    <Skeleton width="40%" height={scale(32)} borderRadius={8} style={{ marginBottom: 12 }} />
+                    <Skeleton width="60%" height={scale(14)} borderRadius={4} />
+                </View>
+
+                <View style={{ marginBottom: xdHeight(32) }}>
+                    <Skeleton width="100%" height={xdHeight(50)} borderRadius={12} />
+                </View>
+
+                <View style={{ flexDirection: 'row', marginBottom: xdHeight(24) }}>
+                    {Array.from({ length: 10 }).map((_, i) => (
+                        <CategoryButtonSkeleton key={i} />
+                    ))}
+                </View>
+
+                <BackdropGridSkeleton rows={4} columns={5} />
+            </ScrollView>
         );
     }
 
@@ -365,8 +382,12 @@ export default function LiveTVScreen() {
                 onEndReachedThreshold={2.0}
                 ListFooterComponent={() =>
                     isFetchingNextPage ? (
-                        <View style={{ paddingVertical: xdHeight(20), alignItems: 'center' }}>
-                            <ActivityIndicator size="small" color={Colors.primary[500]} />
+                        <View style={styles.footerLoader}>
+                            <View style={styles.footerGrid}>
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                    <BackdropCardSkeleton key={i} />
+                                ))}
+                            </View>
                         </View>
                     ) : null
                 }
@@ -445,5 +466,12 @@ const styles = StyleSheet.create({
     channelCount: { fontSize: scale(13), color: Colors.gray[400], marginBottom: xdHeight(16) },
     grid: { flexDirection: 'row', flexWrap: 'wrap' },
     cardSpacing: { marginBottom: xdHeight(16) },
-
+    footerLoader: {
+        paddingVertical: xdHeight(20),
+    },
+    footerGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: xdWidth(16),
+    },
 });
