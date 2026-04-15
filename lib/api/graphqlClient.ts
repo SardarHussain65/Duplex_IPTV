@@ -45,7 +45,9 @@ async function refreshAccessToken(): Promise<string | null> {
   try {
     const refreshToken = await tokenStorage.getRefreshToken();
     if (!refreshToken) {
-      console.error('[GraphQL] Session refresh failed: No refresh token in storage.');
+      // If we are here, it means we have an expired access token but no refresh token.
+      // This is a terminal state for the session.
+      console.warn('[GraphQL] Session refresh aborted: No refresh token found in storage.');
       return null;
     }
 
@@ -59,19 +61,26 @@ async function refreshAccessToken(): Promise<string | null> {
       }),
     });
 
+    if (!response.ok) {
+      console.warn(`[GraphQL] Session refresh network error: ${response.status} ${response.statusText}`);
+      return null; // Don't clear tokens on 5xx or network-level non-ok responses
+    }
+
     const json = await response.json();
     const result = json.data?.refreshTokenMobile;
 
     if (result?.accessToken && result?.refreshToken) {
       await tokenStorage.setTokens(result.accessToken, result.refreshToken);
       newToken = result.accessToken;
+      console.log('[GraphQL] Session refreshed successfully.');
     } else {
-      console.warn('[GraphQL] Session refresh failed: Invalid response from server.', json);
+      // The server explicitly failed to provide new tokens (e.g. refresh token expired)
+      console.error('[GraphQL] Session refresh failed: Invalid or expired refresh token.', json.errors || json);
       await tokenStorage.clearTokens();
     }
   } catch (error) {
     console.error('[GraphQL] Session refresh exception:', error);
-    // Be careful here — only clear if definitively toast
+    // Don't clear tokens on connection timeout/refusal
   } finally {
     isRefreshing = false;
     refreshQueue.forEach((resolve) => resolve(newToken));
@@ -80,6 +89,7 @@ async function refreshAccessToken(): Promise<string | null> {
 
   return newToken;
 }
+
 
 // ─── Auth Link ─────────────────────────────────────────────────────────────────
 

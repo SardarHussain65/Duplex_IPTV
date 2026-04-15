@@ -1,7 +1,7 @@
 import { Colors, Spacing } from '@/constants';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
-import { Animated, findNodeHandle, Pressable, Text, TextStyle, ViewStyle } from 'react-native';
+import { Animated, findNodeHandle, Pressable, Text, TextStyle, ViewStyle, ActivityIndicator } from 'react-native';
 import { useButtonState } from './useButtonState';
 
 export interface CategoryButtonProps {
@@ -19,6 +19,7 @@ export interface CategoryButtonProps {
     nextFocusUp?: number | 'self';
     nextFocusDown?: number | 'self';
     isLocked?: boolean;
+    isUpdating?: boolean;
 }
 
 export const CategoryButton = React.forwardRef<any, CategoryButtonProps>(({
@@ -36,6 +37,7 @@ export const CategoryButton = React.forwardRef<any, CategoryButtonProps>(({
     nextFocusUp,
     nextFocusDown,
     isLocked = false,
+    isUpdating = false,
 }, ref) => {
     const {
         state,
@@ -188,7 +190,13 @@ export const CategoryButton = React.forwardRef<any, CategoryButtonProps>(({
                     />
                 )}
                 <Text style={getTextStyle()}>{children}</Text>
-                {isLocked && (
+                {isUpdating ? (
+                    <ActivityIndicator
+                        size="small"
+                        color={getIconColor()}
+                        style={{ marginLeft: 6 }}
+                    />
+                ) : isLocked && (
                     <MaterialCommunityIcons
                         name="lock-outline"
                         size={14}

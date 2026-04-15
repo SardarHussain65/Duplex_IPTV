@@ -1,4 +1,4 @@
-import { BackdropCard, EmptyState, EnterPinModal, PosterCard, Skeleton, CategoryButtonSkeleton, PosterGridSkeleton, BackdropGridSkeleton, CategoryButton } from '@/components/ui';
+import { BackdropCard, BackdropGridSkeleton, CategoryButton, CategoryButtonSkeleton, EmptyState, EnterPinModal, PosterCard, PosterGridSkeleton, Skeleton } from '@/components/ui';
 import { Colors } from '@/constants';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useTab } from '@/context/TabContext';
@@ -9,8 +9,8 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, StyleSheet, Text, View, findNodeHandle } from 'react-native';
 
-import { useTranslation } from 'react-i18next';
 import { useParentalControls } from '@/lib/api';
+import { useTranslation } from 'react-i18next';
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -55,6 +55,8 @@ export default function ParentalControlScreen() {
 
     const { data, loading, error } = useGetParentalControls({
         type: apiTabMap[activeSubTab]
+    }, {
+        skip: !isFocused
     });
 
     useEffect(() => {
@@ -72,7 +74,7 @@ export default function ParentalControlScreen() {
     const categoryAllRef = useRef<any>(null);
     const lastCategoryRef = useRef<any>(null);
     const itemRefs = useRef<Record<number, any>>({});
-    
+
     const filteredItems: LockedItem[] = useMemo(() => {
         if (!data?.getParentalControls?.items) return [];
 
@@ -82,13 +84,13 @@ export default function ParentalControlScreen() {
                 const meta = item.metadata!;
                 return {
                     id: item.id,
-                    title: meta.name || '',
+                    title: meta.name || meta.tvgName || '',
                     type: activeSubTab,
                     image: meta.tvgLogo || '',
                     genre: meta.genre || meta.category || '',
                     year: meta.releaseYear?.toString() || '',
-                    duration: '', 
-                    description: '', 
+                    duration: '',
+                    description: '',
                     streamHash: meta.streamHash || '',
                     tvgId: meta.tvgId || '',
                 } as LockedItem;

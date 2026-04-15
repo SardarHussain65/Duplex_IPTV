@@ -99,6 +99,8 @@ export interface GetChannelsResponse {
 export interface ChannelCategory {
   name: string;
   count: number;
+  isCategoryLocked?: boolean;
+  renamedCategory?: string | null;
 }
 
 export interface GetCategoriesResponse {
@@ -255,7 +257,9 @@ export interface CreateParentalControlInput {
   playlistId: string;
   name: string;
   type: string;
-  metadata: ParentalControlMetadata;
+  metadata?: ParentalControlMetadata;
+  isCategoryLock?: boolean;
+  category?: string;
 }
 
 export interface QueryParentalControlInput {
@@ -307,6 +311,16 @@ export interface ToggleParentalControlResponse {
   toggleParentalControl: ToggleParentalControlStatus;
 }
 
+export interface RemoveParentalControlInput {
+  category: string;
+  playlistId: string;
+  type: string;
+}
+
+export interface RemoveParentalControlResponse {
+  removeParentalControl: boolean;
+}
+
 // ─── Autoplay ────────────────────────────────────────────────────────────────
 
 export interface Autoplay {
@@ -321,4 +335,17 @@ export interface ToggleAutoplayResponse {
 
 export interface GetAutoplayResponse {
   getAutoplayByPlaylistId: Autoplay;
+}
+export interface RenameCategoryInput {
+  category: string;
+  playlistId: string;
+  renamedCategory: string;
+  contentType: 'MOVIE' | 'SERIES' | 'LIVE';
+}
+
+export interface RenameCategoryResponse {
+  renamePlaylistCategory: {
+    category: string;
+    renamedCategory: string;
+  };
 }

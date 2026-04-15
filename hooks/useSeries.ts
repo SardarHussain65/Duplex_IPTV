@@ -38,6 +38,32 @@ export function useSeries() {
         });
     };
 
+    const handleWatchNow = (series: Series) => {
+        // Use the first episode's stream hash if available, otherwise fallback to series streamHash
+        const firstEpisode = series.episodes?.[0];
+        const streamHash = firstEpisode?.streamHash || series.streamHash;
+
+        router.push({
+            pathname: '/player/[id]',
+            params: {
+                id: series.id,
+                name: firstEpisode?.name || series.name,
+                category: series.category,
+                year: series.year,
+                duration: series.season,
+                logo: series.logo,
+                isSeries: 'true',
+                streamHash: streamHash,
+                contentType: 'SERIES',
+                episodes: JSON.stringify(series.episodes || []),
+            },
+        });
+    };
+
+    const goToHero = (index: number) => {
+        setHeroIndex(index);
+    };
+
 
     const filteredSeries = useMemo(() => {
         let result = MOCK_SERIES;
@@ -63,6 +89,8 @@ export function useSeries() {
         setHeroIndex,
         currentHero,
         handleSeriesPress,
+        handleWatchNow,
+        goToHero,
         filteredSeries,
         handleScroll,
     };

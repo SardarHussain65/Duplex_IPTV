@@ -25,11 +25,12 @@ import {
     View,
     findNodeHandle
 } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { useTab } from '@/context/TabContext';
 import { useSeries } from '@/hooks/useSeries';
-import { usePlaylistChannels } from '@/lib/api';
+import { usePlaylistChannels, useParentalControlPin } from '@/lib/api';
 import { useCategories } from '@/lib/api/hooks/useCategories';
 import { useDeviceStore } from '@/lib/store/useDeviceStore';
 
@@ -48,15 +49,28 @@ export default function SeriesScreen() {
         heroIndex,
         setHeroIndex,
         handleSeriesPress,
+        handleWatchNow,
+        goToHero,
         handleScroll,
     } = useSeries();
     const { setSearchBarNode, settingsTabNode, searchBarNode } = useTab();
-    const { isCategoryLocked, lockCategory, unlockCategory, renameCategory, getCategoryLabel } = useCategoryManagement();
+    const { lockCategory, unlockCategory, renameCategory, getCategoryLabel } = useCategoryManagement();
+    const isFocused = useIsFocused();
+    const { verifyPin } = useParentalControlPin();
     const activePlaylistId = useDeviceStore((state) => state.activePlaylistId);
 
     // only send to API when ✓ is pressed
     const [inputValue, setInputValue] = useState('');
     const [committedSearch, setCommittedSearch] = useState('');
+
+    const { data: categoriesData, isFetching: isCategoriesFetching, isLoading: isCategoriesLoading } = useCategories({
+        playlistId: activePlaylistId || '',
+        contentType: 'SERIES',
+        enabled: !!activePlaylistId && isFocused
+    });
+
+    const activeCategoryData = categoriesData?.items?.find(c => c.name === activeCategory);
+    const isCurrentCategoryLocked = activeCategory !== 'All' && !!activeCategoryData?.isCategoryLocked;
 
     const {
         data: apiData,
@@ -70,13 +84,7 @@ export default function SeriesScreen() {
         contentType: 'SERIES',
         category: activeCategory === 'All' ? null : activeCategory,
         search: committedSearch,
-        enabled: !!activePlaylistId
-    });
-
-    const { data: categoriesData } = useCategories({
-        playlistId: activePlaylistId || '',
-        contentType: 'SERIES',
-        enabled: !!activePlaylistId
+        enabled: !!activePlaylistId && !isCurrentCategoryLocked && isFocused
     });
 
 
@@ -125,8 +133,31 @@ export default function SeriesScreen() {
 
     const filteredSeries = series;
 
+    const [bannerSeries, setBannerSeries] = useState<Series[]>([]);
 
-    const currentHero = HERO_SERIES_SLIDES[heroIndex] || HERO_SERIES_SLIDES[0];
+    // Pick 10 random series for the banner once data is loaded
+    useEffect(() => {
+        if (series.length > 0 && bannerSeries.length === 0) {
+            const shuffled = [...series].sort(() => 0.5 - Math.random());
+            setBannerSeries(shuffled.slice(0, 10));
+        }
+    }, [series, bannerSeries.length]);
+
+    // 10 second auto-cycle timer
+    useEffect(() => {
+        if (bannerSeries.length === 0) return;
+
+        const interval = setInterval(() => {
+            setHeroIndex((prev) => (prev + 1) % bannerSeries.length);
+        }, 10000);
+
+        return () => clearInterval(interval);
+    }, [bannerSeries.length, setHeroIndex]);
+
+
+    const currentHero = bannerSeries.length > 0 
+        ? bannerSeries[heroIndex] || bannerSeries[0]
+        : HERO_SERIES_SLIDES[heroIndex] || HERO_SERIES_SLIDES[0];
 
     const [isManageModalVisible, setManageModalVisible] = useState(false);
     const [isRenameModalVisible, setRenameModalVisible] = useState(false);
@@ -190,20 +221,30 @@ export default function SeriesScreen() {
         setRenameModalVisible(true);
     }, []);
 
-    const handlePinSuccess = useCallback(() => {
+    const handlePinSuccess = useCallback(async () => {
         if (categoryToManage) {
-            if (isCategoryLocked(categoryToManage)) {
-                unlockCategory(categoryToManage);
-            } else {
-                lockCategory(categoryToManage);
+            setPinModalVisible(false);
+            try {
+                const catData = categoriesData?.items?.find(c => c.name === categoryToManage);
+                const isLocked = !!catData?.isCategoryLocked;
+                if (isLocked) {
+                    await unlockCategory(categoryToManage, "SERIES");
+                } else {
+                    await lockCategory(categoryToManage, "SERIES");
+                }
+            } catch (err) {
+                console.error("Failed to update category lock:", err);
             }
         }
-        setPinModalVisible(false);
-    }, [categoryToManage, isCategoryLocked, lockCategory, unlockCategory]);
+    }, [categoryToManage, lockCategory, unlockCategory, categoriesData]);
 
-    const handleRenameSave = useCallback((newName: string) => {
+    const handleRenameSave = useCallback(async (newName: string) => {
         if (categoryToManage) {
-            renameCategory(categoryToManage, newName);
+            try {
+                await renameCategory(categoryToManage, newName, "SERIES");
+            } catch (err) {
+                console.error("Failed to rename category:", err);
+            }
         }
         setRenameModalVisible(false);
     }, [categoryToManage, renameCategory]);
@@ -266,7 +307,7 @@ export default function SeriesScreen() {
                     <View style={styles.heroBtns}>
                         <NavButton
                             icon={<MaterialCommunityIcons name="play" size={scale(18)} />}
-                            onPress={() => handleSeriesPress(currentHero)}
+                            onPress={() => handleWatchNow(currentHero)}
                         >
                             {t('common.watchNow')}
                         </NavButton>
@@ -281,10 +322,10 @@ export default function SeriesScreen() {
 
                 {/* Carousel Dots */}
                 <View style={styles.dotsRow}>
-                    {HERO_SERIES_SLIDES.map((_, i) => (
+                    {(bannerSeries.length > 0 ? bannerSeries : HERO_SERIES_SLIDES).map((_, i) => (
                         <TouchableOpacity
                             key={i}
-                            onPress={() => setHeroIndex(i)}
+                            onPress={() => goToHero(i)}
                             style={[styles.dot, i === heroIndex && styles.dotActive]}
                         />
                     ))}
@@ -320,6 +361,11 @@ export default function SeriesScreen() {
                 {categories.map((cat, index) => {
                     const isFirst = index === 0;
                     const isLast = index === categories.length - 1;
+                    
+                    // Find the category object to check its backend lock status
+                    const catData = categoriesData?.items?.find(c => c.name === cat);
+                    const isLocked = catData?.isCategoryLocked ?? false;
+
                     return (
                         <CategoryButton
                             key={cat}
@@ -327,14 +373,15 @@ export default function SeriesScreen() {
                             isActive={activeCategory === cat}
                             onPress={() => setActiveCategory(cat)}
                             onLongPress={() => handleCategoryLongPress(cat)}
-                            isLocked={isCategoryLocked(cat)}
+                            isLocked={isLocked}
+                            isUpdating={isCategoriesFetching && categoryToManage === cat}
                             style={{ marginRight: xdWidth(8) }}
                             nextFocusLeft={isFirst ? (searchBarNode || undefined) : undefined}
                             nextFocusUp={isFirst ? (searchBarNode || undefined) : undefined}
                             nextFocusRight={isLast ? firstSeriesNode : undefined}
                             nextFocusDown={firstSeriesNode}
                         >
-                            {getCategoryLabel(cat)}
+                            {catData?.renamedCategory || cat}
                         </CategoryButton>
                     );
                 })}
@@ -349,13 +396,11 @@ export default function SeriesScreen() {
     const listHeader = useMemo(() => renderHeader(), [
         currentHero, heroIndex, handleSeriesPress, inputValue,
         settingsTabNode, categoryAllNode, searchBarNode, categories, activeCategory,
-        firstSeriesNode, isCategoryLocked, getCategoryLabel, handleCategoryLongPress,
-        filteredSeries.length,
+        firstSeriesNode, getCategoryLabel, handleCategoryLongPress,
+        filteredSeries.length, isCategoriesFetching, categoryToManage,
     ]);
 
-    const isCurrentCategoryLocked = activeCategory !== 'All' && isCategoryLocked(activeCategory);
-
-    if (isLoading) {
+    if (isLoading && bannerSeries.length === 0) {
         return (
             <ScrollView
                 style={styles.container}
@@ -381,7 +426,7 @@ export default function SeriesScreen() {
             {/* ── Poster Grid — FlatList nested inside ScrollView ── */}
             <FlatList
                 key="series-grid"
-                data={isCurrentCategoryLocked ? [] : filteredSeries}
+                data={(isCurrentCategoryLocked || isCategoriesFetching) ? [] : filteredSeries}
                 keyExtractor={(item) => item.id}
                 ListHeaderComponent={listHeader}
                 renderItem={renderSeriesItem}
@@ -414,7 +459,9 @@ export default function SeriesScreen() {
                     ) : null
                 }
                 ListEmptyComponent={
-                    isCurrentCategoryLocked ? (
+                    isLoading || isCategoriesFetching ? (
+                        <PosterGridSkeleton rows={3} columns={6} />
+                    ) : isCurrentCategoryLocked ? (
                         <CategoryLockedState />
                     ) : (
                         <EmptyState
@@ -434,23 +481,23 @@ export default function SeriesScreen() {
                 onClose={() => setManageModalVisible(false)}
                 onLockPress={handleLockToggle}
                 onRenamePress={handleRenamePress}
-                isLocked={!!categoryToManage && isCategoryLocked(categoryToManage)}
-                categoryName={categoryToManage || ''}
+                isLocked={!!categoryToManage && !!categoriesData?.items?.find(c => c.name === categoryToManage)?.isCategoryLocked}
+                categoryName={categoriesData?.items?.find(c => c.name === categoryToManage)?.renamedCategory || categoryToManage || ''}
             />
 
             <RenameCategoryModal
                 visible={isRenameModalVisible}
                 onClose={() => setRenameModalVisible(false)}
                 onSave={handleRenameSave}
-                currentName={categoryToManage || ''}
+                currentName={categoriesData?.items?.find(c => c.name === categoryToManage)?.renamedCategory || categoryToManage || ''}
             />
 
             <EnterPinModal
                 visible={isPinModalVisible}
                 onClose={() => setPinModalVisible(false)}
                 onSuccess={handlePinSuccess}
-                onVerify={async (pin: string) => pin === "1234"}
-                title={categoryToManage && isCategoryLocked(categoryToManage) ? 'Enter PIN to Unlock' : 'Enter PIN to Lock'}
+                onVerify={verifyPin}
+                title={categoryToManage && categoriesData?.items?.find(c => c.name === categoryToManage)?.isCategoryLocked ? 'Enter PIN to Unlock' : 'Enter PIN to Lock'}
             />
         </View>
     );

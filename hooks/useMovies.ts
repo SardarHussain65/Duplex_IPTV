@@ -53,6 +53,23 @@ export function useMovies() {
         });
     };
 
+    const handleWatchNow = (movie: Movie) => {
+        router.push({
+            pathname: '/player/[id]',
+            params: {
+                id: movie.id,
+                name: movie.name,
+                category: movie.category,
+                year: movie.year,
+                duration: movie.duration,
+                logo: movie.logo,
+                isSeries: 'false',
+                streamHash: movie.streamHash,
+                contentType: 'MOVIE',
+            },
+        });
+    };
+
     const goToHero = (index: number) => {
         setHeroIndex(index);
     };
@@ -68,9 +85,11 @@ export function useMovies() {
         searchQuery,
         setSearchQuery,
         heroIndex,
+        setHeroIndex,
         filteredMovies,
         currentHero,
         handleMoviePress,
+        handleWatchNow,
         goToHero,
         handleScroll,
         scrollX,

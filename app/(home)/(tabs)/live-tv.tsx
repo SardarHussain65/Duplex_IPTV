@@ -12,7 +12,7 @@ import { Colors } from '@/constants';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useCategoryManagement } from '@/context/CategoryManagementContext';
 import { useTab } from '@/context/TabContext';
-import { usePlaylistChannels } from '@/lib/api';
+import { usePlaylistChannels, useParentalControlPin } from '@/lib/api';
 import { useCategories } from '@/lib/api/hooks/useCategories';
 import { useDeviceStore } from '@/lib/store/useDeviceStore';
 
@@ -21,6 +21,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, ScrollView, StyleSheet, Text, View, findNodeHandle } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { useTranslation } from 'react-i18next';
@@ -31,15 +32,25 @@ export default function LiveTVScreen() {
     const { t } = useTranslation();
     const router = useRouter();
     const { setIsScrolled, setSearchBarNode, settingsTabNode, searchBarNode } = useTab();
-    const { isCategoryLocked, lockCategory, unlockCategory, renameCategory, getCategoryLabel } = useCategoryManagement();
+    const { lockCategory, unlockCategory, renameCategory, getCategoryLabel } = useCategoryManagement();
+    const { verifyPin } = useParentalControlPin();
+    const isFocused = useIsFocused();
     const activePlaylistId = useDeviceStore((state) => state.activePlaylistId);
 
     // inputValue  = what the user is currently typing (controlled input)
     // committedSearch = sent to the API only when the keyboard ✓ button is pressed
     const [inputValue, setInputValue] = useState('');
     const [committedSearch, setCommittedSearch] = useState('');
-
     const [activeCategory, setActiveCategory] = useState('All');
+
+    const { data: categoriesData, isFetching: isCategoriesFetching, isLoading: isCategoriesLoading } = useCategories({
+        playlistId: activePlaylistId || '',
+        contentType: 'LIVE',
+        enabled: !!activePlaylistId && isFocused
+    });
+
+    const activeCategoryData = categoriesData?.items?.find(c => c.name === activeCategory);
+    const isCurrentCategoryLocked = activeCategory !== 'All' && !!activeCategoryData?.isCategoryLocked;
 
     const {
         data: apiData,
@@ -53,13 +64,7 @@ export default function LiveTVScreen() {
         contentType: 'LIVE',
         category: activeCategory === 'All' ? null : activeCategory,
         search: committedSearch,
-        enabled: !!activePlaylistId
-    });
-
-    const { data: categoriesData } = useCategories({
-        playlistId: activePlaylistId || '',
-        contentType: 'LIVE',
-        enabled: !!activePlaylistId
+        enabled: !!activePlaylistId && !isCurrentCategoryLocked && isFocused
     });
 
 
@@ -185,20 +190,30 @@ export default function LiveTVScreen() {
         setRenameModalVisible(true);
     }, []);
 
-    const handlePinSuccess = useCallback(() => {
+    const handlePinSuccess = useCallback(async () => {
         if (categoryToManage) {
-            if (isCategoryLocked(categoryToManage)) {
-                unlockCategory(categoryToManage);
-            } else {
-                lockCategory(categoryToManage);
+            setPinModalVisible(false);
+            try {
+                const catData = categoriesData?.items?.find(c => c.name === categoryToManage);
+                const isLocked = !!catData?.isCategoryLocked;
+                if (isLocked) {
+                    await unlockCategory(categoryToManage, "LIVE");
+                } else {
+                    await lockCategory(categoryToManage, "LIVE");
+                }
+            } catch (err) {
+                console.error("Failed to update category lock:", err);
             }
         }
-        setPinModalVisible(false);
-    }, [categoryToManage, isCategoryLocked, lockCategory, unlockCategory]);
+    }, [categoryToManage, lockCategory, unlockCategory, categoriesData]);
 
-    const handleRenameSave = useCallback((newName: string) => {
+    const handleRenameSave = useCallback(async (newName: string) => {
         if (categoryToManage) {
-            renameCategory(categoryToManage, newName);
+            try {
+                await renameCategory(categoryToManage, newName, "LIVE");
+            } catch (err) {
+                console.error("Failed to rename category:", err);
+            }
         }
         setRenameModalVisible(false);
     }, [categoryToManage, renameCategory]);
@@ -292,14 +307,15 @@ export default function LiveTVScreen() {
                             isActive={activeCategory === cat}
                             onPress={() => setActiveCategory(cat)}
                             onLongPress={() => handleCategoryLongPress(cat)}
-                            isLocked={isCategoryLocked(cat)}
+                            isLocked={!!categoriesData?.items?.find(c => c.name === cat)?.isCategoryLocked}
+                            isUpdating={isCategoriesFetching && categoryToManage === cat}
                             style={{ marginRight: xdWidth(8) }}
                             nextFocusLeft={isFirst ? (searchBarNode || undefined) : undefined}
                             nextFocusUp={isFirst ? (searchBarNode || undefined) : undefined}
                             nextFocusRight={isLast ? firstChannelNode : undefined}
                             nextFocusDown={firstChannelNode}
                         >
-                            {getCategoryLabel(cat)}
+                            {categoriesData?.items?.find(c => c.name === cat)?.renamedCategory || cat}
                         </CategoryButton>
                     );
                 })}
@@ -318,15 +334,13 @@ export default function LiveTVScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     // Memoized header element — prevents the entire header tree from being
     // recreated on every render. Deps cover everything renderHeader reads.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     const listHeader = useMemo(() => renderHeader(), [
         handleChannelPress, inputValue, settingsTabNode,
         categoryAllNode, searchBarNode, categories, activeCategory,
-        firstChannelNode, isCategoryLocked, getCategoryLabel,
-        handleCategoryLongPress, filteredChannels.length,
+        firstChannelNode, getCategoryLabel, handleCategoryLongPress, 
+        filteredChannels.length, isCategoriesFetching, categoryToManage,
     ]);
 
-    const isCurrentCategoryLocked = activeCategory !== 'All' && isCategoryLocked(activeCategory);
 
     if (isLoading) {
         return (
@@ -359,7 +373,7 @@ export default function LiveTVScreen() {
         <View style={styles.container}>
             <FlatList
                 key="livetv-grid"
-                data={isCurrentCategoryLocked ? [] : filteredChannels}
+                data={(isCurrentCategoryLocked || isCategoriesFetching) ? [] : filteredChannels}
                 contentContainerStyle={[styles.content, styles.gridContainer, { flexGrow: 1 }]}
                 keyExtractor={(item) => item.id}
                 ListHeaderComponent={listHeader}
@@ -392,7 +406,9 @@ export default function LiveTVScreen() {
                     ) : null
                 }
                 ListEmptyComponent={
-                    isCurrentCategoryLocked ? (
+                    isLoading || isCategoriesFetching ? (
+                        <BackdropGridSkeleton rows={4} columns={5} />
+                    ) : isCurrentCategoryLocked ? (
                         <CategoryLockedState />
                     ) : (
                         <EmptyState
@@ -412,23 +428,23 @@ export default function LiveTVScreen() {
                 onClose={() => setManageModalVisible(false)}
                 onLockPress={handleLockToggle}
                 onRenamePress={handleRenamePress}
-                isLocked={!!categoryToManage && isCategoryLocked(categoryToManage)}
-                categoryName={categoryToManage || ''}
+                isLocked={!!categoryToManage && !!categoriesData?.items?.find(c => c.name === categoryToManage)?.isCategoryLocked}
+                categoryName={categoriesData?.items?.find(c => c.name === categoryToManage)?.renamedCategory || categoryToManage || ''}
             />
 
             <RenameCategoryModal
                 visible={isRenameModalVisible}
                 onClose={() => setRenameModalVisible(false)}
                 onSave={handleRenameSave}
-                currentName={categoryToManage || ''}
+                currentName={categoriesData?.items?.find(c => c.name === categoryToManage)?.renamedCategory || categoryToManage || ''}
             />
 
             <EnterPinModal
                 visible={isPinModalVisible}
                 onClose={() => setPinModalVisible(false)}
                 onSuccess={handlePinSuccess}
-                onVerify={async (pin: string) => pin === "1234"} // Default PIN for category management
-                title={categoryToManage && isCategoryLocked(categoryToManage) ? 'Enter PIN to Unlock' : 'Enter PIN to Lock'}
+                onVerify={verifyPin}
+                title={categoryToManage && categoriesData?.items?.find(c => c.name === categoryToManage)?.isCategoryLocked ? 'Enter PIN to Unlock' : 'Enter PIN to Lock'}
             />
         </View>
     );

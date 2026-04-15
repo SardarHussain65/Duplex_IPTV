@@ -1,11 +1,15 @@
 import { useMutation, useQuery } from '@apollo/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { useDeviceStore } from '@/lib/store/useDeviceStore';
-import { ADD_PARENTAL_CONTROL, REMOVE_PARENTAL_CONTROL } from '../mutations';
+import { ADD_PARENTAL_CONTROL, REMOVE_PARENTAL_CONTROL, RENAME_PLAYLIST_CATEGORY } from '../mutations';
 import { GET_PARENTAL_CONTROLS } from '../queries';
 import { 
   CreateParentalControlInput, 
   GetParentalControlsResponse, 
-  QueryParentalControlInput 
+  QueryParentalControlInput,
+  RemoveParentalControlInput,
+  RenameCategoryInput,
+  RenameCategoryResponse
 } from '../types';
 
 /**
@@ -13,11 +17,12 @@ import {
  */
 export function useParentalControls() {
   const activePlaylistId = useDeviceStore((state) => state.activePlaylistId);
+  const queryClient = useQueryClient();
 
   /**
-   * Fetch parental controls with optional filters.
+   * Fetch parental controls with optional filters and skip logic.
    */
-  const useGetParentalControls = (filters: Partial<QueryParentalControlInput> = {}) => {
+  const useGetParentalControls = (filters: Partial<QueryParentalControlInput> = {}, options: { skip?: boolean } = {}) => {
     return useQuery<GetParentalControlsResponse>(GET_PARENTAL_CONTROLS, {
       variables: {
         filters: {
@@ -27,7 +32,7 @@ export function useParentalControls() {
           ...filters,
         },
       },
-      skip: !activePlaylistId,
+      skip: !activePlaylistId || options.skip,
       notifyOnNetworkStatusChange: true,
       fetchPolicy: 'cache-and-network',
     });
@@ -47,6 +52,11 @@ export function useParentalControls() {
     refetchQueries: [GET_PARENTAL_CONTROLS],
   });
 
+  /**
+   * Rename a category.
+   */
+  const [renameCategoryMutation, { loading: isRenaming }] = useMutation<RenameCategoryResponse, { input: RenameCategoryInput }>(RENAME_PLAYLIST_CATEGORY);
+
   const addParentalControl = async (input: Omit<CreateParentalControlInput, 'playlistId'> & { playlistId?: string }) => {
     const playlistId = input.playlistId || activePlaylistId;
     
@@ -54,7 +64,7 @@ export function useParentalControls() {
       throw new Error('No active playlist selected');
     }
 
-    return addParentalControlMutation({
+    const result = await addParentalControlMutation({
       variables: {
         input: {
           ...input,
@@ -62,25 +72,64 @@ export function useParentalControls() {
         },
       },
     });
+
+    // Invalidate ONLY the relevant REST categories list
+    queryClient.invalidateQueries({ queryKey: ['playlist-categories', playlistId, input.type] });
+
+    return result;
   };
 
-  const removeParentalControl = async (id: string) => {
-    if (!id) {
-      throw new Error('No parental control ID provided for removal');
+  const removeParentalControl = async (input: Omit<RemoveParentalControlInput, 'playlistId'> & { playlistId?: string }) => {
+    const playlistId = input.playlistId || activePlaylistId;
+    
+    if (!playlistId) {
+      throw new Error('No active playlist selected');
     }
 
-    return removeParentalControlMutation({
+    const result = await removeParentalControlMutation({
       variables: {
-        removeParentalControlId: id,
+        input: {
+          ...input,
+          playlistId,
+        },
       },
     });
+
+    // Invalidate ONLY the relevant REST categories list
+    queryClient.invalidateQueries({ queryKey: ['playlist-categories', playlistId, input.type] });
+
+    return result;
+  };
+
+  const renamePlaylistCategory = async (input: Omit<RenameCategoryInput, 'playlistId'> & { playlistId?: string }) => {
+    const playlistId = input.playlistId || activePlaylistId;
+    
+    if (!playlistId) {
+      throw new Error('No active playlist selected');
+    }
+
+    const result = await renameCategoryMutation({
+      variables: {
+        input: {
+          ...input,
+          playlistId,
+        },
+      },
+    });
+
+    // Invalidate the REST categories list to reflect the rename
+    queryClient.invalidateQueries({ queryKey: ['playlist-categories', playlistId, input.contentType] });
+
+    return result;
   };
 
   return {
     useGetParentalControls,
     addParentalControl,
     removeParentalControl,
+    renamePlaylistCategory,
     isAdding,
     isRemoving,
+    isRenaming,
   };
 }

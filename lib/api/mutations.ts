@@ -94,8 +94,8 @@ export const ADD_PARENTAL_CONTROL = gql`
 `;
 
 export const REMOVE_PARENTAL_CONTROL = gql`
-  mutation RemoveParentalControl($removeParentalControlId: ID!) {
-    removeParentalControl(id: $removeParentalControlId)
+  mutation RemoveParentalControl($input: RemoveParentalControlInput!) {
+    removeParentalControl(input: $input)
   }
 `;
 
@@ -126,6 +126,15 @@ export const TOGGLE_PARENTAL_CONTROL = gql`
     toggleParentalControl(playlistId: $playlistId) {
       id
       isRestricted
+    }
+  }
+`;
+
+export const RENAME_PLAYLIST_CATEGORY = gql`
+  mutation RenamePlaylistCategory($input: RenameCategoryInput!) {
+    renamePlaylistCategory(input: $input) {
+      category
+      renamedCategory
     }
   }
 `;

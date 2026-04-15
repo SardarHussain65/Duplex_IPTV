@@ -86,7 +86,7 @@ export const TopNavBar: React.FC = () => {
 
     const handleTabPress = (tab: typeof TEXT_TABS[0] | typeof ICON_TABS[0]) => {
         setIsScrolled(false);
-        router.replace({ pathname: tab.route as any });
+        router.replace(tab.route as any);
     };
 
     return (

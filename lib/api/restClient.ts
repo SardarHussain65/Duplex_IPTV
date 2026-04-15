@@ -9,8 +9,7 @@
  */
 
 import { API_BASE_URL, REQUEST_TIMEOUT_MS } from './config';
-import { tokenStorage } from './tokenStorage';
-import { ApiError, AuthTokens } from './types';
+import { ApiError } from './types';
 
 // ─── Internal Helpers ──────────────────────────────────────────────────────────
 
@@ -28,52 +27,6 @@ async function fetchWithTimeout(
   }
 }
 
-let isRefreshing = false;
-let refreshQueue: Array<(token: string | null) => void> = [];
-
-async function refreshAccessToken(): Promise<string | null> {
-  if (isRefreshing) {
-    // Wait for in-flight refresh
-    return new Promise((resolve) => {
-      refreshQueue.push(resolve);
-    });
-  }
-
-  isRefreshing = true;
-  let newToken: string | null = null;
-
-  try {
-    const refreshToken = await tokenStorage.getRefreshToken();
-    if (!refreshToken) return null;
-
-    const response = await fetchWithTimeout(
-      `${API_BASE_URL}/api/auth/refresh`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken }),
-      }
-    );
-
-    if (response.ok) {
-      const data: AuthTokens = await response.json();
-      await tokenStorage.setTokens(data.accessToken, data.refreshToken);
-      newToken = data.accessToken;
-    } else {
-      await tokenStorage.clearTokens();
-    }
-  } catch (err) {
-    console.error('Token refresh failed:', err);
-  } finally {
-    isRefreshing = false;
-    // Notify all waiters in the queue
-    refreshQueue.forEach((resolve) => resolve(newToken));
-    refreshQueue = [];
-  }
-
-  return newToken;
-}
-
 // ─── Public API ────────────────────────────────────────────────────────────────
 
 export class ApiRequestError extends Error {
@@ -89,35 +42,22 @@ export class ApiRequestError extends Error {
 
 interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown;
-  /** Skip auth header even if token exists */
-  skipAuth?: boolean;
   /** Custom timeout for this request */
   timeout?: number;
 }
 
 /**
- * Core REST fetch. Handles auth injection, 401 refresh, and error parsing.
+ * Core REST fetch. Simplified - no auth injection or 401 refresh.
  */
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { body, skipAuth, timeout, ...rest } = options;
+  const { body, timeout, ...rest } = options;
 
-  const buildHeaders = async (): Promise<Record<string, string>> => {
-    const headers: Record<string, string> = {
+  const execute = async (): Promise<Response> => {
+    const headers = { 
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      ...(rest.headers as Record<string, string>),
+      ...(rest.headers as Record<string, string>)
     };
-
-    if (!skipAuth) {
-      const token = await tokenStorage.getAccessToken();
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    return headers;
-  };
-
-  const execute = async (extraHeaders?: Record<string, string>): Promise<Response> => {
-    const headers = { ...(await buildHeaders()), ...extraHeaders };
     const separator = path.startsWith('/') ? '' : '/';
     return fetchWithTimeout(`${API_BASE_URL}${separator}${path}`, {
       ...rest,
@@ -126,17 +66,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     }, timeout);
   };
 
-  let response = await execute();
-
-  // Auto-refresh on 401
-  if (response.status === 401 && !skipAuth) {
-    const newToken = await refreshAccessToken();
-    if (newToken) {
-      response = await execute({ Authorization: `Bearer ${newToken}` });
-    } else {
-      throw new ApiRequestError(401, 'Session expired. Please log in again.');
-    }
-  }
+  const response = await execute();
 
   if (!response.ok) {
     let errorBody: ApiError | null = null;

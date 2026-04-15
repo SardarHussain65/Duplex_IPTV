@@ -15,6 +15,8 @@ export default function RootLayout() {
             <Stack.Screen name="(auth)" />
             {/* Main app — home screen with all tabs */}
             <Stack.Screen name="(home)" />
+            {/* Temporary diagnostic test screen */}
+            <Stack.Screen name="test-player" />
           </Stack>
         </AuthProvider>
       </ApolloProvider>

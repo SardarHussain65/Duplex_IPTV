@@ -25,11 +25,12 @@ import {
     View,
     findNodeHandle
 } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { useTab } from '@/context/TabContext';
 import { useMovies } from '@/hooks/useMovies';
-import { usePlaylistChannels } from '@/lib/api';
+import { usePlaylistChannels, useParentalControlPin } from '@/lib/api';
 import { useCategories } from '@/lib/api/hooks/useCategories';
 import { useDeviceStore } from '@/lib/store/useDeviceStore';
 
@@ -46,17 +47,30 @@ export default function MoviesScreen() {
         searchQuery,
         setSearchQuery,
         heroIndex,
+        setHeroIndex,
         handleMoviePress,
+        handleWatchNow,
         goToHero,
         handleScroll,
     } = useMovies();
+    const isFocused = useIsFocused();
     const { setSearchBarNode, settingsTabNode, searchBarNode } = useTab();
-    const { isCategoryLocked, lockCategory, unlockCategory, renameCategory, getCategoryLabel } = useCategoryManagement();
+    const { lockCategory, unlockCategory, renameCategory, getCategoryLabel } = useCategoryManagement();
+    const { verifyPin } = useParentalControlPin();
     const activePlaylistId = useDeviceStore((state) => state.activePlaylistId);
 
     // Debounce the search query so we only hit the API after typing stops
     const [inputValue, setInputValue] = useState('');
     const [committedSearch, setCommittedSearch] = useState('');
+
+    const { data: categoriesData, isFetching: isCategoriesFetching, isLoading: isCategoriesLoading } = useCategories({
+        playlistId: activePlaylistId || '',
+        contentType: 'MOVIE',
+        enabled: !!activePlaylistId && isFocused
+    });
+
+    const activeCategoryData = categoriesData?.items?.find(c => c.name === activeCategory);
+    const isCurrentCategoryLocked = activeCategory !== 'All' && !!activeCategoryData?.isCategoryLocked;
 
     const {
         data: apiData,
@@ -70,13 +84,7 @@ export default function MoviesScreen() {
         contentType: 'MOVIE',
         category: activeCategory === 'All' ? null : activeCategory,
         search: committedSearch,
-        enabled: !!activePlaylistId
-    });
-
-    const { data: categoriesData } = useCategories({
-        playlistId: activePlaylistId || '',
-        contentType: 'MOVIE',
-        enabled: !!activePlaylistId
+        enabled: !!activePlaylistId && !isCurrentCategoryLocked && isFocused
     });
 
 
@@ -109,8 +117,31 @@ export default function MoviesScreen() {
 
     const filteredMovies = movies;
 
+    const [bannerMovies, setBannerMovies] = useState<Movie[]>([]);
 
-    const currentHero = HERO_MOVIES_SLIDES[heroIndex] || HERO_MOVIES_SLIDES[0];
+    // Pick 10 random movies for the banner once data is loaded
+    useEffect(() => {
+        if (movies.length > 0 && bannerMovies.length === 0) {
+            const shuffled = [...movies].sort(() => 0.5 - Math.random());
+            setBannerMovies(shuffled.slice(0, 10));
+        }
+    }, [movies, bannerMovies.length]);
+
+    // 10 second auto-cycle timer
+    useEffect(() => {
+        if (bannerMovies.length === 0) return;
+
+        const interval = setInterval(() => {
+            setHeroIndex((prev) => (prev + 1) % bannerMovies.length);
+        }, 10000);
+
+        return () => clearInterval(interval);
+    }, [bannerMovies.length, setHeroIndex]);
+
+
+    const currentHero = bannerMovies.length > 0 
+        ? bannerMovies[heroIndex] || bannerMovies[0]
+        : HERO_MOVIES_SLIDES[heroIndex] || HERO_MOVIES_SLIDES[0];
 
     const [isManageModalVisible, setManageModalVisible] = useState(false);
     const [isRenameModalVisible, setRenameModalVisible] = useState(false);
@@ -174,20 +205,30 @@ export default function MoviesScreen() {
         setRenameModalVisible(true);
     }, []);
 
-    const handlePinSuccess = useCallback(() => {
+    const handlePinSuccess = useCallback(async () => {
         if (categoryToManage) {
-            if (isCategoryLocked(categoryToManage)) {
-                unlockCategory(categoryToManage);
-            } else {
-                lockCategory(categoryToManage);
+            setPinModalVisible(false);
+            try {
+                const catData = categoriesData?.items?.find(c => c.name === categoryToManage);
+                const isLocked = !!catData?.isCategoryLocked;
+                if (isLocked) {
+                    await unlockCategory(categoryToManage, "MOVIE");
+                } else {
+                    await lockCategory(categoryToManage, "MOVIE");
+                }
+            } catch (err) {
+                console.error("Failed to update category lock:", err);
             }
         }
-        setPinModalVisible(false);
-    }, [categoryToManage, isCategoryLocked, lockCategory, unlockCategory]);
+    }, [categoryToManage, lockCategory, unlockCategory, categoriesData]);
 
-    const handleRenameSave = useCallback((newName: string) => {
+    const handleRenameSave = useCallback(async (newName: string) => {
         if (categoryToManage) {
-            renameCategory(categoryToManage, newName);
+            try {
+                await renameCategory(categoryToManage, newName, "MOVIE");
+            } catch (err) {
+                console.error("Failed to rename category:", err);
+            }
         }
         setRenameModalVisible(false);
     }, [categoryToManage, renameCategory]);
@@ -250,7 +291,7 @@ export default function MoviesScreen() {
                     <View style={styles.heroBtns}>
                         <NavButton
                             icon={<MaterialCommunityIcons name="play" size={scale(18)} />}
-                            onPress={() => handleMoviePress(currentHero)}
+                            onPress={() => handleWatchNow(currentHero)}
                         >
                             {t('common.watchNow')}
                         </NavButton>
@@ -265,7 +306,7 @@ export default function MoviesScreen() {
 
                 {/* Carousel Dots */}
                 <View style={styles.dotsRow}>
-                    {HERO_MOVIES_SLIDES.map((_, i) => (
+                    {(bannerMovies.length > 0 ? bannerMovies : HERO_MOVIES_SLIDES).map((_, i) => (
                         <TouchableOpacity
                             key={i}
                             onPress={() => goToHero(i)}
@@ -304,6 +345,11 @@ export default function MoviesScreen() {
                 {categories.map((cat, index) => {
                     const isFirst = index === 0;
                     const isLast = index === categories.length - 1;
+                    
+                    // Find the category object to check its backend lock status
+                    const catData = categoriesData?.items?.find(c => c.name === cat);
+                    const isLocked = catData?.isCategoryLocked ?? false;
+
                     return (
                         <CategoryButton
                             key={cat}
@@ -311,14 +357,15 @@ export default function MoviesScreen() {
                             isActive={activeCategory === cat}
                             onPress={() => setActiveCategory(cat)}
                             onLongPress={() => handleCategoryLongPress(cat)}
-                            isLocked={isCategoryLocked(cat)}
+                            isLocked={isLocked}
+                            isUpdating={isCategoriesFetching && categoryToManage === cat}
                             style={{ marginRight: xdWidth(8) }}
                             nextFocusLeft={isFirst ? (searchBarNode || undefined) : undefined}
                             nextFocusUp={isFirst ? (searchBarNode || undefined) : undefined}
                             nextFocusRight={isLast ? firstMovieNode : undefined}
                             nextFocusDown={firstMovieNode}
                         >
-                            {getCategoryLabel(cat)}
+                            {catData?.renamedCategory || cat}
                         </CategoryButton>
                     );
                 })}
@@ -330,16 +377,15 @@ export default function MoviesScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     // Memoized header — stable reference prevents full header reconciliation on every render
     // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const listHeader = useMemo(() => renderHeader(), [
         currentHero, heroIndex, handleMoviePress, inputValue,
         settingsTabNode, categoryAllNode, searchBarNode, categories, activeCategory,
-        firstMovieNode, isCategoryLocked, getCategoryLabel, handleCategoryLongPress,
-        filteredMovies.length,
+        firstMovieNode, getCategoryLabel, handleCategoryLongPress,
+        filteredMovies.length, isCategoriesFetching, categoryToManage
     ]);
 
-    const isCurrentCategoryLocked = activeCategory !== 'All' && isCategoryLocked(activeCategory);
-
-    if (isLoading) {
+    if (isLoading && bannerMovies.length === 0) {
         return (
             <ScrollView
                 style={styles.container}
@@ -364,7 +410,7 @@ export default function MoviesScreen() {
         <View style={styles.container}>
             <FlatList
                 key="movies-grid"
-                data={isCurrentCategoryLocked ? [] : filteredMovies}
+                data={(isCurrentCategoryLocked || isCategoriesFetching) ? [] : filteredMovies}
                 keyExtractor={(item) => item.id}
                 ListHeaderComponent={listHeader}
                 renderItem={renderMovieItem}
@@ -397,7 +443,9 @@ export default function MoviesScreen() {
                     ) : null
                 }
                 ListEmptyComponent={
-                    isCurrentCategoryLocked ? (
+                    isLoading || isCategoriesFetching ? (
+                        <PosterGridSkeleton rows={3} columns={6} />
+                    ) : isCurrentCategoryLocked ? (
                         <CategoryLockedState />
                     ) : (
                         <EmptyState
@@ -417,23 +465,23 @@ export default function MoviesScreen() {
                 onClose={() => setManageModalVisible(false)}
                 onLockPress={handleLockToggle}
                 onRenamePress={handleRenamePress}
-                isLocked={!!categoryToManage && isCategoryLocked(categoryToManage)}
-                categoryName={categoryToManage || ''}
+                isLocked={!!categoryToManage && !!categoriesData?.items?.find(c => c.name === categoryToManage)?.isCategoryLocked}
+                categoryName={categoriesData?.items?.find(c => c.name === categoryToManage)?.renamedCategory || categoryToManage || ''}
             />
 
             <RenameCategoryModal
                 visible={isRenameModalVisible}
                 onClose={() => setRenameModalVisible(false)}
                 onSave={handleRenameSave}
-                currentName={categoryToManage || ''}
+                currentName={categoriesData?.items?.find(c => c.name === categoryToManage)?.renamedCategory || categoryToManage || ''}
             />
 
             <EnterPinModal
                 visible={isPinModalVisible}
                 onClose={() => setPinModalVisible(false)}
                 onSuccess={handlePinSuccess}
-                onVerify={async (pin: string) => pin === "1234"}
-                title={categoryToManage && isCategoryLocked(categoryToManage) ? 'Enter PIN to Unlock' : 'Enter PIN to Lock'}
+                onVerify={verifyPin}
+                title={categoryToManage && categoriesData?.items?.find(c => c.name === categoryToManage)?.isCategoryLocked ? 'Enter PIN to Unlock' : 'Enter PIN to Lock'}
             />
         </View>
     );
