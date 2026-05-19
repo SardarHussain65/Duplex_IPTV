@@ -10,18 +10,17 @@ import {
   ApolloClient,
   ApolloLink,
   createHttpLink,
-  InMemoryCache,
   fromPromise,
-  from,
-  Observable,
+  InMemoryCache,
+  Observable
 } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
 import { RetryLink } from '@apollo/client/link/retry';
-import { GRAPHQL_URL } from './config';
-import { tokenStorage } from './tokenStorage';
-import { REFRESH_TOKEN_MOBILE } from './mutations';
 import { print } from 'graphql';
+import { GRAPHQL_URL } from './config';
+import { REFRESH_TOKEN_MOBILE } from './mutations';
+import { tokenStorage } from './tokenStorage';
 
 // ─── Refresh Logic Singleton ──────────────────────────────────────────────────
 
@@ -103,10 +102,10 @@ const authLink = setContext(async (_, { headers }) => {
   };
 });
 
-// ─── Error Link (with Refresh Logic) ──────────────────────────────────────────
+// ─── Error Links (with Refresh Logic) ──────────────────────────────────────────
 
 const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) => {
-  const isUnauthorized = 
+  const isUnauthorized =
     graphQLErrors?.some(e => e.extensions?.code === 'UNAUTHENTICATED' || e.message?.toLowerCase().includes('unauthorized')) ||
     (networkError as any)?.statusCode === 401;
 
