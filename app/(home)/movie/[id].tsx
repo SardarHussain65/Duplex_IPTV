@@ -49,7 +49,7 @@ export default function MovieDetailScreen() {
         duration?: string;
         logo?: string;
         description?: string;
-        streamHash?: string;
+        streamUrl?: string;
         tvgId?: string;
         contentType?: string;
         startTime?: string;
@@ -60,7 +60,7 @@ export default function MovieDetailScreen() {
     const { data: favData } = useGetFavorites({ type: 'MOVIE' });
 
     const favoriteItem = favData?.getFavorites?.items?.find(item =>
-        item?.metadata?.streamHash === params.streamHash || item.id === params.id
+        item?.metadata?.streamUrl === params.streamUrl || item?.metadata?.streamHash === params.streamUrl || item.id === params.id
     );
     const isFavorite = !!favoriteItem;
 
@@ -68,7 +68,7 @@ export default function MovieDetailScreen() {
     const { data: parentalData } = useGetParentalControls({ type: 'MOVIE' });
 
     const parentalItem = parentalData?.getParentalControls?.items?.find(item =>
-        item?.metadata?.streamHash === params.streamHash || item.id === params.id
+        item?.metadata?.streamUrl === params.streamUrl || item?.metadata?.streamHash === params.streamUrl || item.id === params.id
     );
     const isLocked = !!parentalItem;
 
@@ -78,7 +78,7 @@ export default function MovieDetailScreen() {
 
     // Find this movie in history to get current progress
     const historyItem = historyData?.getWatchHistory?.items?.find(item =>
-        item.externalId === params.streamHash || item.id === params.id
+        item.externalId === params.streamUrl || item.id === params.id
     );
 
     // Use startTime from params (higher priority) or from history
@@ -124,7 +124,7 @@ export default function MovieDetailScreen() {
                         category: category,
                         genre: category,
                         releaseYear: year,
-                        streamHash: params.streamHash || params.id || '',
+                        streamUrl: params.streamUrl || params.id || '',
                     }
                 });
             }
@@ -151,7 +151,7 @@ export default function MovieDetailScreen() {
                         category: category,
                         genre: category,
                         releaseYear: year,
-                        streamHash: params.streamHash || params.id || '',
+                        streamUrl: params.streamUrl || params.id || '',
                     }
                 });
             }
@@ -240,7 +240,7 @@ export default function MovieDetailScreen() {
                                             year,
                                             duration,
                                             logo,
-                                            streamHash: params.streamHash || params.id,
+                                            streamUrl: params.streamUrl || params.id,
                                             startTime: String(resumeTime),
                                         },
                                     })

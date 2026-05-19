@@ -13,7 +13,6 @@ import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useTab } from '@/context/TabContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useStreamUrl } from '@/lib/api/hooks/useStreamUrl';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -56,7 +55,7 @@ export default function ChannelDetailScreen() {
         name: string;
         category: string;
         logo: string;
-        streamHash?: string;
+        streamUrl?: string;
         tvgId?: string;
         contentType?: string;
     }>();
@@ -66,14 +65,14 @@ export default function ChannelDetailScreen() {
 
     // Check if this channel is in favorites
     const favoriteItem = favData?.getFavorites?.items?.find(item => 
-        item?.metadata?.streamHash === params.streamHash || item.id === params.id
+        item?.metadata?.streamUrl === params.streamUrl || item?.metadata?.streamHash === params.streamUrl || item.id === params.id
     );
     const isFavorite = !!favoriteItem;
 
     const { useGetParentalControls, addParentalControl, removeParentalControl, isAdding: isAddingParental } = useParentalControls();
     const { data: parentalData } = useGetParentalControls({ type: 'LIVE' });
     const parentalItem = parentalData?.getParentalControls?.items?.find(item =>
-        item?.metadata?.streamHash === params.streamHash || item.id === params.id
+        item?.metadata?.streamUrl === params.streamUrl || item?.metadata?.streamHash === params.streamUrl || item.id === params.id
     );
     const isLocked = !!parentalItem;
 
@@ -102,9 +101,9 @@ export default function ChannelDetailScreen() {
         progress: 0,
     };
 
-    const streamHash = params.streamHash || params.id;
-    const { data: streamUrl } = useStreamUrl(streamHash || null);
-    console.log(`[ChannelDetailScreen] channelName: ${channelName}, streamHash: ${streamHash}, streamUrl: ${streamUrl}`);
+    // Use streamUrl directly from params — no extra API call needed
+    const streamUrl = params.streamUrl;
+    console.log(`[ChannelDetailScreen] channelName: ${channelName}, streamUrl: ${streamUrl}`);
 
     const handleExpand = () => {
         router.push({
@@ -116,7 +115,7 @@ export default function ChannelDetailScreen() {
                 year: 'Live',
                 duration: 'Live',
                 logo: channelLogo,
-                streamHash: params.streamHash,
+                streamUrl: params.streamUrl,
                 contentType: params.contentType || 'LIVE',
             },
         });
@@ -139,7 +138,7 @@ export default function ChannelDetailScreen() {
                         contentType: params.contentType || 'LIVE',
                         category: channelCategory,
                         genre: channelCategory,
-                        streamHash: params.streamHash || params.id || '',
+                        streamUrl: params.streamUrl || '',
                     }
                 });
             }
@@ -165,7 +164,7 @@ export default function ChannelDetailScreen() {
                         contentType: params.contentType || 'LIVE',
                         category: channelCategory,
                         genre: channelCategory,
-                        streamHash: params.streamHash || params.id || '',
+                        streamUrl: params.streamUrl || '',
                     }
                 });
             }

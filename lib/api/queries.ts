@@ -7,6 +7,7 @@ export const GET_PLAYLISTS_BY_DEVICE = gql`
         id
         name
         url
+        type
         isPinRequired
       }
     }

@@ -1,11 +1,11 @@
-import { Colors } from '@/constants';
 import { Skeleton } from '@/components/ui';
+import { Colors } from '@/constants';
 import { useTab } from '@/context/TabContext';
+import { useSubscription } from '@/lib/api/hooks/useSubscription';
 import { panelStyles } from '@/styles/settings_panel.styles';
 import React, { useEffect, useRef, useState } from 'react';
-import { findNodeHandle, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useSubscription } from '@/lib/api/hooks/useSubscription';
+import { findNodeHandle, Text, View } from 'react-native';
 
 interface SubscriptionSectionProps {
     startRef: React.RefObject<any>;
@@ -75,9 +75,16 @@ export const SubscriptionSection: React.FC<SubscriptionSectionProps> = ({ startR
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     };
 
-    const getDaysRemaining = (endDate: string | undefined) => {
+    const getDaysRemaining = (endDate?: string) => {
         if (!endDate) return 0;
-        const diff = new Date(endDate).getTime() - new Date().getTime();
+
+        const now = new Date();
+        const end = new Date(endDate);
+
+        console.log("NOW:", now.toISOString());
+        console.log("END:", end.toISOString());
+
+        const diff = end.getTime() - now.getTime();
         return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
     };
 
@@ -110,6 +117,8 @@ export const SubscriptionSection: React.FC<SubscriptionSectionProps> = ({ startR
     }
 
     const daysRemaining = getDaysRemaining(subscription.endDate);
+
+    console.log("subscription day remaining ----->", daysRemaining, subscription);
     const planName = subscription.plan?.name || t('settings.subscriptionOptions.monthlyPlan');
     const statusLabel = subscription.status || t('settings.subscriptionOptions.active');
 

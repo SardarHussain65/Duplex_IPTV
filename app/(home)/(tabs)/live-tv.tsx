@@ -72,11 +72,11 @@ export default function LiveTVScreen() {
         if (!apiData?.pages) return [];
         return apiData.pages.flatMap((page) =>
             page.items.map((item) => ({
-                id: item.streamHash,
+                id: item.streamUrl,
                 name: item.name,
                 category: item.category,
                 logo: item.tvgLogo || '',
-                streamHash: item.streamHash,
+                streamUrl: item.streamUrl,
                 tvgId: item.tvgId,
                 contentType: item.contentType,
             }))
@@ -163,7 +163,7 @@ export default function LiveTVScreen() {
                 name: channel.name,
                 category: channel.category,
                 logo: channel.logo,
-                streamHash: channel.streamHash,
+                streamUrl: channel.streamUrl,
                 tvgId: channel.tvgId,
                 contentType: channel.contentType,
             },

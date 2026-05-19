@@ -318,22 +318,7 @@ const ActivationScreen = () => {
                     )}
                 </View>
 
-                {/* ─── TEMPORARY: Test Player Button ─── */}
-                <ActionOutlineButton
-                    onPress={() => router.push('/test-player')}
-                    style={{
-                        marginTop: s(12),
-                        borderColor: '#E0334C',
-                        borderRadius: s(8),
-                        height: s(44),
-                        width: '100%',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                    }}
-                >
-                    🎬 Test Player (Direct URL)
-                </ActionOutlineButton>
-                {/* ─────────────────────────────────── */}
+
 
             </View>
 

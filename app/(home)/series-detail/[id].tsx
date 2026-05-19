@@ -86,7 +86,7 @@ export default function SeriesDetailScreen() {
         season: string;
         logo: string;
         description: string;
-        streamHash?: string;
+        streamUrl?: string;
         tvgId?: string;
         contentType?: string;
         seriesTitle?: string;
@@ -99,14 +99,14 @@ export default function SeriesDetailScreen() {
     const { data: favData } = useGetFavorites({ type: 'SERIES' });
 
     const favoriteItem = favData?.getFavorites?.items?.find(item => 
-        item?.metadata?.streamHash === params.streamHash || item.id === params.id
+        item?.metadata?.streamUrl === params.streamUrl || item?.metadata?.streamHash === params.streamUrl || item.id === params.id
     );
     const isFavorite = !!favoriteItem;
 
     const { useGetParentalControls, addParentalControl, removeParentalControl, isAdding: isAddingParental } = useParentalControls();
     const { data: parentalData } = useGetParentalControls({ type: 'SERIES' });
     const parentalItem = parentalData?.getParentalControls?.items?.find(item =>
-        item?.metadata?.streamHash === params.streamHash || item.id === params.id
+        item?.metadata?.streamUrl === params.streamUrl || item?.metadata?.streamHash === params.streamUrl || item.id === params.id
     );
     const isLocked = !!parentalItem;
 
@@ -116,7 +116,7 @@ export default function SeriesDetailScreen() {
 
     // Find this series in history
     const historyItem = historyData?.getWatchHistory?.items?.find(item =>
-        item.externalId === params.streamHash || item.id === params.id
+        item.externalId === params.streamUrl || item.id === params.id
     );
 
     // Use startTime from params (higher priority) or from history
@@ -139,7 +139,7 @@ export default function SeriesDetailScreen() {
         params.description ??
         'Set in a modern city, this series follows a group of individuals whose lives secretly intersect through crime, power, and ambition. Each episode uncovers new layers of mystery, personal conflict, and unexpected alliances. As tensions rise across multiple seasons, hidden motives are revealed, relationships are tested, and one wrong move can change everything forever.';
 
-    console.log(`[SeriesDetailScreen] name: ${name}, streamHash: ${params.streamHash}`);
+    console.log(`[SeriesDetailScreen] name: ${name}, streamUrl: ${params.streamUrl}`);
 
     const allEpisodes = useMemo(() => {
         try {
@@ -161,13 +161,13 @@ export default function SeriesDetailScreen() {
         return allEpisodes
             .filter((ep: any) => (ep.seasonNumber || 1) === seasonNum)
             .map((ep: any) => ({
-                id: `${ep.streamHash}-${ep.seasonNumber}-${ep.episodeNumber}`,
+                id: `${ep.streamUrl}-${ep.seasonNumber}-${ep.episodeNumber}`,
                 number: ep.episodeNumber,
                 title: ep.name,
                 description: params.description || '',
                 duration: "",
                 image: ep.tvgLogo || logo,
-                streamHash: ep.streamHash,
+                streamUrl: ep.streamUrl,
             }));
 
     }, [allEpisodes, activeSeason, seasons, logo, params.description]);
@@ -197,7 +197,7 @@ export default function SeriesDetailScreen() {
                         genre: category,
                         seriesTitle: params.seriesTitle || name,
                         releaseYear: year,
-                        streamHash: params.streamHash || params.id || '',
+                        streamUrl: params.streamUrl || params.id || '',
                     }
                 });
             }
@@ -225,7 +225,7 @@ export default function SeriesDetailScreen() {
                         genre: category,
                         seriesTitle: params.seriesTitle || name,
                         releaseYear: year,
-                        streamHash: params.streamHash || params.id || '',
+                        streamUrl: params.streamUrl || params.id || '',
                     }
                 });
             }
@@ -254,7 +254,7 @@ export default function SeriesDetailScreen() {
                         duration: item.duration,
                         logo: item.image,
                         isSeries: 'true',
-                        streamHash: item.streamHash || params.streamHash,
+                        streamUrl: item.streamUrl || params.streamUrl,
                         episodes: params.episodes, // Pass the same episodes string
                     },
                 })
@@ -330,24 +330,51 @@ export default function SeriesDetailScreen() {
                     <View style={styles.actionRow}>
                         <NavButton
                             icon={<MaterialCommunityIcons name="play" size={scale(18)} />}
-                            onPress={() =>
-                                router.push({
-                                    pathname: '/player/[id]',
-                                    params: {
-                                        id: params.id || 'series',
-                                        name: name,
-                                        category,
-                                        year,
-                                        duration: season,
-                                        logo: logo,
-                                        isSeries: 'true',
-                                        streamHash: params.streamHash || params.id,
-                                        startTime: String(resumeTime),
-                                        episodes: params.episodes,
-                                    },
-                                })
-                            }
-
+                            onPress={() => {
+                                let targetEp = null;
+                                if (allEpisodes && allEpisodes.length > 0) {
+                                    targetEp = [...allEpisodes].sort((a: any, b: any) => {
+                                        const sA = a.seasonNumber || 1;
+                                        const sB = b.seasonNumber || 1;
+                                        if (sA !== sB) return sA - sB;
+                                        return (a.episodeNumber || 1) - (b.episodeNumber || 1);
+                                    })[0];
+                                }
+                                
+                                if (targetEp) {
+                                    router.push({
+                                        pathname: '/player/[id]',
+                                        params: {
+                                            id: `${targetEp.streamUrl}-${targetEp.seasonNumber}-${targetEp.episodeNumber}`,
+                                            name: targetEp.name || name,
+                                            category,
+                                            year,
+                                            duration: season,
+                                            logo: targetEp.tvgLogo || logo,
+                                            isSeries: 'true',
+                                            streamUrl: targetEp.streamUrl || params.streamUrl,
+                                            startTime: String(resumeTime),
+                                            episodes: params.episodes,
+                                        },
+                                    });
+                                } else {
+                                    router.push({
+                                        pathname: '/player/[id]',
+                                        params: {
+                                            id: params.id || 'series',
+                                            name: name,
+                                            category,
+                                            year,
+                                            duration: season,
+                                            logo: logo,
+                                            isSeries: 'true',
+                                            streamUrl: params.streamUrl || params.id,
+                                            startTime: String(resumeTime),
+                                            episodes: params.episodes,
+                                        },
+                                    });
+                                }
+                            }}
                         >
                             {t('common.watchNow')}
                         </NavButton>

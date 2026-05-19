@@ -29,7 +29,7 @@ export function useSeries() {
                 season: series.season,
                 logo: series.logo,
                 description: series.description,
-                streamHash: series.streamHash,
+                streamUrl: series.streamUrl,
                 tvgId: series.tvgId,
                 contentType: series.contentType,
                 seriesTitle: series.seriesTitle,
@@ -41,7 +41,7 @@ export function useSeries() {
     const handleWatchNow = (series: Series) => {
         // Use the first episode's stream hash if available, otherwise fallback to series streamHash
         const firstEpisode = series.episodes?.[0];
-        const streamHash = firstEpisode?.streamHash || series.streamHash;
+        const streamUrl = firstEpisode?.streamUrl || series.streamUrl;
 
         router.push({
             pathname: '/player/[id]',
@@ -53,7 +53,7 @@ export function useSeries() {
                 duration: series.season,
                 logo: series.logo,
                 isSeries: 'true',
-                streamHash: streamHash,
+                streamUrl: streamUrl,
                 contentType: 'SERIES',
                 episodes: JSON.stringify(series.episodes || []),
             },

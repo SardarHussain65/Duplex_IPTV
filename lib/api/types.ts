@@ -46,6 +46,7 @@ export interface Playlist {
   id: string;
   name: string;
   url: string;
+  type: string;
   isPinRequired: boolean;
 }
 
@@ -75,7 +76,7 @@ export interface Episode {
   seasonNumber: number;
   episodeNumber: number;
   seriesStreamId: string;
-  streamHash: string;
+  streamUrl: string;
 }
 
 export interface Channel {
@@ -87,7 +88,7 @@ export interface Channel {
   contentType: string;
   category: string;
   genre: string;
-  streamHash: string;
+  streamUrl: string;
   ep?: Episode[];
 }
 
@@ -124,7 +125,9 @@ export interface FavoriteMetadata {
   genre?: string;
   seriesTitle?: string;
   releaseYear?: number | string;
-  streamHash: string;
+  streamUrl?: string;
+  /** @deprecated use streamUrl */
+  streamHash?: string;
 }
 
 export interface Favorite {
@@ -171,6 +174,8 @@ export interface WatchHistoryMetadata {
   category?: string;
   genre?: string;
   releaseYear?: number | null;
+  streamUrl?: string | null;
+  /** @deprecated use streamUrl */
   streamHash?: string | null;
 }
 
@@ -241,7 +246,9 @@ export interface ParentalControlMetadata {
   genre?: string;
   seriesTitle?: string;
   releaseYear?: number | string;
-  streamHash: string;
+  streamUrl?: string;
+  /** @deprecated use streamUrl */
+  streamHash?: string;
 }
 
 export interface ParentalControl {

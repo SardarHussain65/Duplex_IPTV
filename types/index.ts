@@ -11,7 +11,7 @@ export interface FavoriteItem {
     season?: string;
     description?: string;
     tvgId?: string;
-    streamHash?: string;
+    streamUrl?: string;
 }
 
 
@@ -20,7 +20,7 @@ export type Channel = {
     name: string;
     category: string;
     logo: string;
-    streamHash: string;
+    streamUrl: string;
     tvgId?: string;
     contentType?: string;
 };
@@ -33,7 +33,7 @@ export type Movie = {
     duration: string;
     logo: string;
     description: string;
-    streamHash: string;
+    streamUrl: string;
     tvgId?: string;
     contentType?: string;
 };
@@ -42,7 +42,7 @@ export type SeriesEpisode = {
     name: string;
     seasonNumber: number;
     episodeNumber: number;
-    streamHash: string;
+    streamUrl: string;
     tvgLogo?: string;
     seriesTitle?: string;
 };
@@ -55,7 +55,7 @@ export type Series = {
     season: string;
     logo: string;
     description: string;
-    streamHash: string;
+    streamUrl: string;
     tvgId?: string;
     contentType?: string;
     seriesTitle?: string;

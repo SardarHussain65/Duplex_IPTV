@@ -27,7 +27,7 @@ interface LockedItem {
     duration?: string;
     season?: string;
     description?: string;
-    streamHash?: string;
+    streamUrl?: string;
     tvgId?: string;
 }
 
@@ -91,7 +91,7 @@ export default function ParentalControlScreen() {
                     year: meta.releaseYear?.toString() || '',
                     duration: '',
                     description: '',
-                    streamHash: meta.streamHash || '',
+                    streamUrl: meta.streamUrl || '',
                     tvgId: meta.tvgId || '',
                 } as LockedItem;
             });
@@ -153,7 +153,7 @@ export default function ParentalControlScreen() {
                 image: item.image,
                 logo: item.image,
                 description: item.description || '',
-                streamHash: item.streamHash || '',
+                streamUrl: item.streamUrl || '',
                 tvgId: item.tvgId || '',
             },
         } as any);

@@ -95,8 +95,8 @@ export default function SeriesScreen() {
 
         apiData.pages.forEach((page) => {
             page.items.forEach((item) => {
-                // Use streamHash or a combination of name and category as a unique identifier
-                const seriesId = item.streamHash || `${item.name}-${item.category}`;
+                // Use streamUrl or a combination of name and category as a unique identifier
+                const seriesId = item.streamUrl || `${item.name}-${item.category}`;
                 
                 if (!seenIds.has(seriesId)) {
                     seenIds.add(seriesId);
@@ -108,7 +108,7 @@ export default function SeriesScreen() {
                         season: item.category || "Season 1",
                         logo: item.tvgLogo,
                         description: item.name,
-                        streamHash: item.streamHash || '',
+                        streamUrl: item.streamUrl || '',
                         tvgId: item.tvgId,
                         contentType: item.contentType,
                         seriesTitle: item.name,

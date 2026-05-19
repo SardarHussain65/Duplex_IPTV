@@ -46,7 +46,7 @@ export function useMovies() {
                 duration: movie.duration,
                 logo: movie.logo,
                 description: movie.description,
-                streamHash: movie.streamHash,
+                streamUrl: movie.streamUrl,
                 tvgId: movie.tvgId,
                 contentType: movie.contentType,
             },
@@ -64,7 +64,7 @@ export function useMovies() {
                 duration: movie.duration,
                 logo: movie.logo,
                 isSeries: 'false',
-                streamHash: movie.streamHash,
+                streamUrl: movie.streamUrl,
                 contentType: 'MOVIE',
             },
         });

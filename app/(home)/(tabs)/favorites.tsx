@@ -62,7 +62,7 @@ export default function FavoritesScreen() {
                     year: meta.releaseYear?.toString() || '',
                     duration: '', 
                     description: '', 
-                    streamHash: meta.streamHash || '',
+                    streamUrl: meta.streamUrl || '',
                     tvgId: meta.tvgId || '',
                 };
             });
@@ -113,7 +113,7 @@ export default function FavoritesScreen() {
                     name: item.name,
                     category: item.category || '',
                     logo: item.logo,
-                    streamHash: item.streamHash,
+                    streamUrl: item.streamUrl,
                     tvgId: item.tvgId,
                 },
             });
@@ -128,7 +128,7 @@ export default function FavoritesScreen() {
                     duration: item.duration || '',
                     logo: item.logo,
                     description: item.description || '',
-                    streamHash: item.streamHash,
+                    streamUrl: item.streamUrl,
                     tvgId: item.tvgId,
                 },
             });
@@ -143,7 +143,7 @@ export default function FavoritesScreen() {
                     season: item.season || '',
                     logo: item.logo,
                     description: item.description || '',
-                    streamHash: item.streamHash,
+                    streamUrl: item.streamUrl,
                     tvgId: item.tvgId,
                 },
             });

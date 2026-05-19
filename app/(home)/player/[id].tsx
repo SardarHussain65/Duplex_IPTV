@@ -3,7 +3,6 @@ import { EpisodeCard } from '@/components/ui/cards/EpisodeCard';
 import { SettingCard } from '@/components/ui/cards/SettingCard';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useTab } from '@/context/TabContext';
-import { useStreamUrl } from '@/lib/api/hooks/useStreamUrl';
 import { useWatchHistory } from '@/lib/api';
 import type { WatchableItem, VideoPlayerRef } from '@/lib/api';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -55,7 +54,7 @@ export default function VideoPlayerScreen() {
         duration: string;
         logo: string;
         isSeries?: string;
-        streamHash?: string;
+        streamUrl?: string;
         contentType?: string;
         startTime?: string;
         episodes?: string;
@@ -64,7 +63,7 @@ export default function VideoPlayerScreen() {
 
 
 
-    const streamHash = params.streamHash || params.id;
+    const streamUrl = params.streamUrl;
 
     const name = params.name ?? 'The World Poker Toure';
     const category = params.category ?? 'Action / Thriller';
@@ -109,8 +108,8 @@ export default function VideoPlayerScreen() {
     }, [params.episodes]);
 
     const currentEpisodeIndex = useMemo(() => {
-        return episodes.findIndex((ep: any) => ep.streamHash === streamHash);
-    }, [episodes, streamHash]);
+        return episodes.findIndex((ep: any) => ep.streamUrl === streamUrl);
+    }, [episodes, streamUrl]);
 
 
     // ── Controls Visibility logic ──────────────────────────────
@@ -165,17 +164,12 @@ export default function VideoPlayerScreen() {
         }).start();
     }, [viewMode]);
 
-    // ── expo-video logic ──────────────────────────────────────
-    const { data: streamUrl, isLoading: isStreamLoading } = useStreamUrl(
-        streamHash || null,
-        true
-    );
-
+    // Use streamUrl directly from params — no API resolution needed
     const videoSource = streamUrl
         ? streamUrl
-        : streamHash
-            ? null // Wait for fetch
-            : 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+        : 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+
+    const isStreamLoading = false; // No async loading needed
 
     const player = useVideoPlayer(videoSource, (player) => {
         player.loop = false;
@@ -255,13 +249,12 @@ export default function VideoPlayerScreen() {
         player.currentTime = newProgress * player.duration;
     };
 
-    // ── Watch History effect ───────────────────────────────────
-    // Runs once when a new channel/content is loaded (streamHash changes).
+    // Watch History effect
     useEffect(() => {
-        if (!streamHash) return;
+        if (!streamUrl) return;
 
         const item: WatchableItem = {
-            streamHash: streamHash,
+            streamUrl: streamUrl,
             name,
             type: contentType,
             tvgLogo: logo || undefined,
@@ -270,17 +263,13 @@ export default function VideoPlayerScreen() {
             category,
         };
 
-        // 1. Save immediately on play start (position = 0)
         saveHistory(item, 0);
-
-        // 2. Start 2-min interval for VOD/SERIES (no-op for LIVE)
         startProgressTracking(item, historyPlayerRef);
 
-        // 3. Cleanup on unmount or when content changes
         return () => {
             stopProgressTracking();
         };
-    }, [streamHash]);
+    }, [streamUrl]);
 
     // Time formatting
     const fmt = (ms: number) => {
@@ -306,13 +295,12 @@ export default function VideoPlayerScreen() {
         if (isSeries && currentEpisodeIndex > 0) {
             const prevEp = episodes[currentEpisodeIndex - 1];
             router.setParams({
-                id: prevEp.streamHash,
-                streamHash: prevEp.streamHash,
+                id: prevEp.streamUrl,
+                streamUrl: prevEp.streamUrl,
                 name: prevEp.name,
                 startTime: '0',
             });
         } else {
-            // Skip backward 10s
             player.seekBy(-10);
         }
     };
@@ -322,13 +310,12 @@ export default function VideoPlayerScreen() {
         if (isSeries && currentEpisodeIndex < episodes.length - 1) {
             const nextEp = episodes[currentEpisodeIndex + 1];
             router.setParams({
-                id: nextEp.streamHash,
-                streamHash: nextEp.streamHash,
+                id: nextEp.streamUrl,
+                streamUrl: nextEp.streamUrl,
                 name: nextEp.name,
                 startTime: '0',
             });
         } else {
-            // Skip forward 10s
             player.seekBy(10);
         }
     };
@@ -337,8 +324,8 @@ export default function VideoPlayerScreen() {
     const handleSelectEpisode = useCallback((episodeIndex: number) => {
         const ep = episodes[episodeIndex];
         router.setParams({
-            id: ep.streamHash,
-            streamHash: ep.streamHash,
+            id: ep.streamUrl,
+            streamUrl: ep.streamUrl,
             name: ep.name,
             startTime: '0',
         });
@@ -348,7 +335,7 @@ export default function VideoPlayerScreen() {
 
     const renderEpisodeItem = useCallback(({ item, index }: { item: any, index: number }) => (
         <EpisodeCard
-            key={item.streamHash || index}
+            key={item.streamUrl || index}
             variant="mini"
             number={item.episodeNumber || item.number}
             title={item.name}
@@ -356,7 +343,6 @@ export default function VideoPlayerScreen() {
             duration={""}
             image={item.tvgLogo || item.image || logo}
             progress={undefined}
-
             isPlaying={index === currentEpisodeIndex}
             onPress={() => handleSelectEpisode(index)}
         />
@@ -385,7 +371,7 @@ export default function VideoPlayerScreen() {
                     <View style={styles.videoWrapper}>
                         {videoSource && (
                             <VideoView
-                                key={streamHash}
+                                key={streamUrl}
                                 player={player}
                                 style={styles.videoBg}
                                 contentFit="cover"
@@ -397,7 +383,7 @@ export default function VideoPlayerScreen() {
 
                         {!videoSource && (
                             <View style={[styles.videoBg, { backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }]}>
-                                <Text style={{ color: '#fff' }}>{isStreamLoading ? 'Loading Stream...' : 'No Stream Available'}</Text>
+                                <Text style={{ color: '#fff' }}>{'No Stream Available'}</Text>
                             </View>
                         )}
 
@@ -610,7 +596,7 @@ export default function VideoPlayerScreen() {
                                 <FlatList
                                     showsVerticalScrollIndicator={false}
                                     data={episodes}
-                                    keyExtractor={(item: any, index) => item.streamHash || `${index}`}
+                                    keyExtractor={(item: any, index) => item.streamUrl || `${index}`}
                                     renderItem={renderEpisodeItem}
                                 />
 

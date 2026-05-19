@@ -92,14 +92,14 @@ export default function MoviesScreen() {
         if (!apiData?.pages) return [];
         return apiData.pages.flatMap((page) =>
             page.items.map((item) => ({
-                id: item.streamHash,
+                id: item.streamUrl,
                 name: item.name,
                 category: item.category,
                 year: "2024",
                 duration: item.genre || "2h",
                 logo: item.tvgLogo,
                 description: item.name,
-                streamHash: item.streamHash,
+                streamUrl: item.streamUrl,
                 tvgId: item.tvgId,
                 contentType: item.contentType,
             }))

@@ -21,7 +21,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, findNodeHandle, FlatList, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, findNodeHandle, FlatList, StyleSheet, Text, View } from 'react-native';
 
 // ── Tab type (matches UI label ↔ API type) ────────────────────
 type HistoryTab = 'Live TV' | 'Movies' | 'Series';
@@ -139,7 +139,7 @@ export const WatchHistorySection: React.FC<WatchHistorySectionProps> = ({
             name: item.name,
             category: metadata.category || '',
             logo: metadata.tvgLogo || '',
-            streamHash: item.externalId,
+            streamUrl: item.externalId,
             tvgId: metadata.tvgId || '',
             contentType: item.type,
         };

@@ -31,7 +31,7 @@ const PROGRESS_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
 // ── Shape of a channel/content item passed into the hook ─────
 export interface WatchableItem {
   /** Unique identifier — used as externalId */
-  streamHash: string;
+  streamUrl: string;
   name: string;
   type: 'LIVE' | 'MOVIE' | 'SERIES';
   tvgId?: string;
@@ -76,13 +76,13 @@ export function useWatchHistory() {
         category: item.category ?? item.groupTitle ?? '',
         genre: item.genre ?? item.groupTitle ?? '',
         releaseYear: item.releaseYear ? Number(item.releaseYear) : null,
-        streamHash: item.streamHash,
+        streamUrl: item.streamUrl,
       };
 
       return {
         playlistId: activePlaylistId ?? '',
         name: item.name,
-        externalId: item.streamHash,
+        externalId: item.streamUrl,
         type: item.type,
         metadata,
         // KEY: LIVE channels backend expects Int!, so we pass 0
