@@ -3,6 +3,7 @@ import { apolloClient, queryClient } from "@/lib/api";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/context/AuthContext";
 import { Stack } from "expo-router";
+import "@/lib/i18n/i18n";
 
 export default function RootLayout() {
   return (
@@ -14,6 +15,7 @@ export default function RootLayout() {
             <Stack.Screen name="(auth)" />
             {/* Main app — home screen with all tabs */}
             <Stack.Screen name="(home)" />
+
           </Stack>
         </AuthProvider>
       </ApolloProvider>

@@ -5,10 +5,8 @@
  * ─────────────────────────────────────────────────────────────
  */
 
-import { CategoryLockedState, EmptyState, SearchBar } from '@/components/ui';
-import { CategoryButton } from '@/components/ui/buttons/CategoryButton';
-import { NavButton } from '@/components/ui/buttons/NavButton';
-import { BackdropCard } from '@/components/ui/cards/BackdropCard';
+import { BackdropCard, CategoryLockedState, EmptyState, SearchBar, HeroSkeleton, PosterGridSkeleton, PosterCardSkeleton, Skeleton, CategoryButtonSkeleton, NavButton, CategoryButton } from '@/components/ui';
+import { RecentlyWatchedRow } from '@/components/shared/RecentlyWatchedRow';
 import { PosterCard } from '@/components/ui/cards/PosterCard';
 import { EnterPinModal, ManageCategoryModal, RenameCategoryModal } from '@/components/ui/modals';
 import { HERO_SERIES_SLIDES } from '@/constants/appData';
@@ -17,7 +15,7 @@ import { useCategoryManagement } from '@/context/CategoryManagementContext';
 import { Series } from '@/types';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     FlatList,
     ScrollView,
@@ -25,20 +23,24 @@ import {
     Text,
     TouchableOpacity,
     View,
-    findNodeHandle,
+    findNodeHandle
 } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { useTab } from '@/context/TabContext';
 import { useSeries } from '@/hooks/useSeries';
-import { usePlaylistChannels } from '@/lib/api';
+import { usePlaylistChannels, useParentalControlPin } from '@/lib/api';
+import { useCategories } from '@/lib/api/hooks/useCategories';
 import { useDeviceStore } from '@/lib/store/useDeviceStore';
+
 import { styles } from '@/styles/series.styles';
-import { ActivityIndicator } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 // ── Screen ─────────────────────────────────────────────────────
 
 export default function SeriesScreen() {
+    const { t } = useTranslation();
     const {
         activeCategory,
         setActiveCategory,
@@ -47,15 +49,28 @@ export default function SeriesScreen() {
         heroIndex,
         setHeroIndex,
         handleSeriesPress,
+        handleWatchNow,
+        goToHero,
         handleScroll,
     } = useSeries();
     const { setSearchBarNode, settingsTabNode, searchBarNode } = useTab();
-    const { isCategoryLocked, lockCategory, unlockCategory, renameCategory, getCategoryLabel } = useCategoryManagement();
+    const { lockCategory, unlockCategory, renameCategory, getCategoryLabel } = useCategoryManagement();
+    const isFocused = useIsFocused();
+    const { verifyPin } = useParentalControlPin();
     const activePlaylistId = useDeviceStore((state) => state.activePlaylistId);
 
     // only send to API when ✓ is pressed
     const [inputValue, setInputValue] = useState('');
     const [committedSearch, setCommittedSearch] = useState('');
+
+    const { data: categoriesData, isFetching: isCategoriesFetching, isLoading: isCategoriesLoading } = useCategories({
+        playlistId: activePlaylistId || '',
+        contentType: 'SERIES',
+        enabled: !!activePlaylistId && isFocused
+    });
+
+    const activeCategoryData = categoriesData?.items?.find(c => c.name === activeCategory);
+    const isCurrentCategoryLocked = activeCategory !== 'All' && !!activeCategoryData?.isCategoryLocked;
 
     const {
         data: apiData,
@@ -67,48 +82,82 @@ export default function SeriesScreen() {
         playlistId: activePlaylistId || '',
         limit: 48,
         contentType: 'SERIES',
+        category: activeCategory === 'All' ? null : activeCategory,
         search: committedSearch,
-        enabled: !!activePlaylistId
+        enabled: !!activePlaylistId && !isCurrentCategoryLocked && isFocused
     });
+
 
     const series: Series[] = useMemo(() => {
         if (!apiData?.pages) return [];
-        return apiData.pages.flatMap((page) =>
-            page.items.map((item) => ({
-                id: item.streamHash,
-                title: item.name,
-                genre: item.category,
-                year: "2024",
-                season: item.category || "Season 1",
-                image: item.tvgLogo,
-                description: item.name,
-                streamHash: item.streamHash,
-            }))
-        );
+        const seenIds = new Set<string>();
+        const result: Series[] = [];
+
+        apiData.pages.forEach((page) => {
+            page.items.forEach((item) => {
+                // Use streamUrl or a combination of name and category as a unique identifier
+                const seriesId = item.streamUrl || `${item.name}-${item.category}`;
+                
+                if (!seenIds.has(seriesId)) {
+                    seenIds.add(seriesId);
+                    result.push({
+                        id: seriesId,
+                        name: item.name,
+                        category: item.category,
+                        year: "2024",
+                        season: item.category || "Season 1",
+                        logo: item.tvgLogo,
+                        description: item.name,
+                        streamUrl: item.streamUrl || '',
+                        tvgId: item.tvgId,
+                        contentType: item.contentType,
+                        seriesTitle: item.name,
+                        episodes: item.ep || [],
+                    });
+                }
+            });
+        });
+        return result;
     }, [apiData]);
 
+
+
     const categories = useMemo(() => {
-        const uniqueCats = Array.from(new Set(series.map((s) => s.genre)));
-        return ['All', ...uniqueCats];
-    }, [series]);
+        if (!categoriesData?.items) return ['All'];
+        const apiCats = categoriesData.items.map(c => c.name);
+        return ['All', ...apiCats];
+    }, [categoriesData]);
 
-    const recentlyWatched = useMemo(() => {
-        return series.slice(0, 5).map((s, idx) => ({
-            ...s,
-            progress: [0.45, 0.2, 0.8, 0.1, 0.65][idx] || 0.5
-        }));
-    }, [series]);
 
-    const filteredSeries = useMemo(() => {
-        // Text search is handled by the backend via the `search` query param.
-        // Only category filtering is done client-side here.
-        if (activeCategory === 'All') return series;
-        return series.filter(
-            (s) => s.genre.toLowerCase() === activeCategory.toLowerCase()
-        );
-    }, [activeCategory, series]);
 
-    const currentHero = HERO_SERIES_SLIDES[heroIndex] || HERO_SERIES_SLIDES[0];
+
+    const filteredSeries = series;
+
+    const [bannerSeries, setBannerSeries] = useState<Series[]>([]);
+
+    // Pick 10 random series for the banner once data is loaded
+    useEffect(() => {
+        if (series.length > 0 && bannerSeries.length === 0) {
+            const shuffled = [...series].sort(() => 0.5 - Math.random());
+            setBannerSeries(shuffled.slice(0, 10));
+        }
+    }, [series, bannerSeries.length]);
+
+    // 10 second auto-cycle timer
+    useEffect(() => {
+        if (bannerSeries.length === 0) return;
+
+        const interval = setInterval(() => {
+            setHeroIndex((prev) => (prev + 1) % bannerSeries.length);
+        }, 10000);
+
+        return () => clearInterval(interval);
+    }, [bannerSeries.length, setHeroIndex]);
+
+
+    const currentHero = bannerSeries.length > 0 
+        ? bannerSeries[heroIndex] || bannerSeries[0]
+        : HERO_SERIES_SLIDES[heroIndex] || HERO_SERIES_SLIDES[0];
 
     const [isManageModalVisible, setManageModalVisible] = useState(false);
     const [isRenameModalVisible, setRenameModalVisible] = useState(false);
@@ -127,7 +176,7 @@ export default function SeriesScreen() {
     const seriesRefs = useRef<Record<number, any>>({});
 
     useEffect(() => {
-        const timer = setTimeout(() => {
+        const handle = requestIdleCallback(() => {
             if (searchRef.current) {
                 const node = findNodeHandle(searchRef.current);
                 if (node) setSearchBarNode(node);
@@ -153,65 +202,68 @@ export default function SeriesScreen() {
             });
             setSeriesNodes(newNodes);
             if (firstNode) setFirstSeriesNode(firstNode);
-        }, 1200);
-        return () => clearTimeout(timer);
+        });
+        return () => cancelIdleCallback(handle);
     }, [activeCategory, filteredSeries]);
 
-    const handleCategoryLongPress = (category: string) => {
+    const handleCategoryLongPress = useCallback((category: string) => {
         setCategoryToManage(category);
         setManageModalVisible(true);
-    };
+    }, []);
 
-    const handleLockToggle = () => {
+    const handleLockToggle = useCallback(() => {
         setManageModalVisible(false);
         setPinModalVisible(true);
-    };
+    }, []);
 
-    const handleRenamePress = () => {
+    const handleRenamePress = useCallback(() => {
         setManageModalVisible(false);
         setRenameModalVisible(true);
-    };
+    }, []);
 
-    const handlePinSuccess = () => {
+    const handlePinSuccess = useCallback(async () => {
         if (categoryToManage) {
-            if (isCategoryLocked(categoryToManage)) {
-                unlockCategory(categoryToManage);
-            } else {
-                lockCategory(categoryToManage);
+            setPinModalVisible(false);
+            try {
+                const catData = categoriesData?.items?.find(c => c.name === categoryToManage);
+                const isLocked = !!catData?.isCategoryLocked;
+                if (isLocked) {
+                    await unlockCategory(categoryToManage, "SERIES");
+                } else {
+                    await lockCategory(categoryToManage, "SERIES");
+                }
+            } catch (err) {
+                console.error("Failed to update category lock:", err);
             }
         }
-        setPinModalVisible(false);
-    };
+    }, [categoryToManage, lockCategory, unlockCategory, categoriesData]);
 
-    const handleRenameSave = (newName: string) => {
+    const handleRenameSave = useCallback(async (newName: string) => {
         if (categoryToManage) {
-            renameCategory(categoryToManage, newName);
+            try {
+                await renameCategory(categoryToManage, newName, "SERIES");
+            } catch (err) {
+                console.error("Failed to rename category:", err);
+            }
         }
         setRenameModalVisible(false);
-    };
+    }, [categoryToManage, renameCategory]);
 
-    const renderSeriesItem = ({ item, index }: { item: Series; index: number }) => {
-        const isRowEnd = index % 6 === 5;
-
-        return (
-            <PosterCard
-                innerRef={(ref) => { if (ref) seriesRefs.current[index] = ref; }}
-                image={item.image}
-                title={item.title}
-                subtitle={item.season}
-                width={xdWidth(132)}
-                onPress={() => handleSeriesPress(item)}
-                style={styles.cardSpacing}
-                // Up navigation: first row goes to categories
-                nextFocusUp={index < 6 ? lastCategoryNode : seriesNodes[index - 6]}
-                nextFocusDown={seriesNodes[index + 6]}
-                // Left navigation: ONLY index 0 wraps back to category menu
-                nextFocusLeft={index === 0 ? lastCategoryNode : seriesNodes[index - 1]}
-                // Right navigation: wrap row-by-row
-                nextFocusRight={index === filteredSeries.length - 1 ? undefined : seriesNodes[index + 1]}
-            />
-        );
-    };
+    const renderSeriesItem = useCallback(({ item, index }: { item: Series; index: number }) => (
+        <PosterCard
+            innerRef={(ref) => { if (ref) seriesRefs.current[index] = ref; }}
+            image={item.logo}
+            title={item.name}
+            subtitle={item.season}
+            width={xdWidth(136)}
+            onPress={() => handleSeriesPress(item)}
+            style={styles.cardSpacing}
+            nextFocusUp={index < 6 ? lastCategoryNode : seriesNodes[index - 6]}
+            nextFocusDown={seriesNodes[index + 6]}
+            nextFocusLeft={index === 0 ? lastCategoryNode : seriesNodes[index - 1]}
+            nextFocusRight={index === filteredSeries.length - 1 ? undefined : seriesNodes[index + 1]}
+        />
+    ), [handleSeriesPress, lastCategoryNode, seriesNodes, filteredSeries.length]);
 
     const renderHeader = () => (
         <View style={styles.headerContainer}>
@@ -219,7 +271,7 @@ export default function SeriesScreen() {
             <View style={styles.heroContainer}>
                 {/* Background image */}
                 <Image
-                    source={{ uri: currentHero.image }}
+                    source={{ uri: currentHero.logo }}
                     style={styles.heroBg}
                     contentFit="cover"
                 />
@@ -244,9 +296,9 @@ export default function SeriesScreen() {
                 {/* Text content */}
                 <View style={styles.heroContent}>
                     <Text style={styles.heroMeta}>
-                        {currentHero.genre}{'  •  '}{currentHero.year}{'  •  '}{currentHero.season}
+                        {currentHero.category}{'  •  '}{currentHero.year}{'  •  '}{currentHero.season}
                     </Text>
-                    <Text style={styles.heroTitle}>{currentHero.title}</Text>
+                    <Text style={styles.heroTitle}>{currentHero.name}</Text>
                     <Text style={styles.heroDesc} numberOfLines={2}>
                         {currentHero.description}
                     </Text>
@@ -255,25 +307,25 @@ export default function SeriesScreen() {
                     <View style={styles.heroBtns}>
                         <NavButton
                             icon={<MaterialCommunityIcons name="play" size={scale(18)} />}
-                            onPress={() => handleSeriesPress(currentHero)}
+                            onPress={() => handleWatchNow(currentHero)}
                         >
-                            Watch now
+                            {t('common.watchNow')}
                         </NavButton>
                         <NavButton
                             icon={<MaterialCommunityIcons name="information-outline" size={scale(18)} />}
                             onPress={() => handleSeriesPress(currentHero)}
                         >
-                            Learn More
+                            {t('common.learnMore')}
                         </NavButton>
                     </View>
                 </View>
 
                 {/* Carousel Dots */}
                 <View style={styles.dotsRow}>
-                    {HERO_SERIES_SLIDES.map((_, i) => (
+                    {(bannerSeries.length > 0 ? bannerSeries : HERO_SERIES_SLIDES).map((_, i) => (
                         <TouchableOpacity
                             key={i}
-                            onPress={() => setHeroIndex(i)}
+                            onPress={() => goToHero(i)}
                             style={[styles.dot, i === heroIndex && styles.dotActive]}
                         />
                     ))}
@@ -281,29 +333,7 @@ export default function SeriesScreen() {
             </View>
 
             {/* ── Recently Watched ── */}
-            {recentlyWatched.length > 0 && (
-                <View style={{ marginBottom: xdHeight(32) }}>
-                    <Text style={styles.sectionTitle}>Recently Watched</Text>
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        style={{ marginHorizontal: -xdWidth(40) }}
-                        contentContainerStyle={{ paddingHorizontal: xdWidth(40) }}
-                    >
-                        {recentlyWatched.map((seriesItem, index) => (
-                            <BackdropCard
-                                key={`recent-${seriesItem.id}`}
-                                image={{ uri: seriesItem.image }}
-                                progress={seriesItem.progress}
-                                width={xdWidth(170)}
-                                height={xdHeight(96)}
-                                style={{ marginRight: xdWidth(12) }}
-                                onPress={() => handleSeriesPress(seriesItem)}
-                            />
-                        ))}
-                    </ScrollView>
-                </View>
-            )}
+            <RecentlyWatchedRow type="SERIES" />
 
             {/* ── Search Bar ── */}
             <View style={styles.searchWrapper}>
@@ -312,7 +342,7 @@ export default function SeriesScreen() {
                     value={inputValue}
                     onChangeText={setInputValue}
                     onSubmit={(text) => setCommittedSearch(text)}
-                    placeholder="Search for series...."
+                    placeholder={t('series.searchPlaceholder')}
                     nextFocusLeft={settingsTabNode || undefined}
                     nextFocusUp={settingsTabNode || undefined}
                     nextFocusRight={categoryAllNode}
@@ -321,7 +351,7 @@ export default function SeriesScreen() {
             </View>
 
             {/* ── Category Filter ── */}
-            <Text style={styles.sectionTitle}>Browse by Categories</Text>
+            <Text style={styles.sectionTitle}>{t('common.browseCategories')}</Text>
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -331,6 +361,11 @@ export default function SeriesScreen() {
                 {categories.map((cat, index) => {
                     const isFirst = index === 0;
                     const isLast = index === categories.length - 1;
+                    
+                    // Find the category object to check its backend lock status
+                    const catData = categoriesData?.items?.find(c => c.name === cat);
+                    const isLocked = catData?.isCategoryLocked ?? false;
+
                     return (
                         <CategoryButton
                             key={cat}
@@ -338,14 +373,15 @@ export default function SeriesScreen() {
                             isActive={activeCategory === cat}
                             onPress={() => setActiveCategory(cat)}
                             onLongPress={() => handleCategoryLongPress(cat)}
-                            isLocked={isCategoryLocked(cat)}
+                            isLocked={isLocked}
+                            isUpdating={isCategoriesFetching && categoryToManage === cat}
                             style={{ marginRight: xdWidth(8) }}
                             nextFocusLeft={isFirst ? (searchBarNode || undefined) : undefined}
                             nextFocusUp={isFirst ? (searchBarNode || undefined) : undefined}
                             nextFocusRight={isLast ? firstSeriesNode : undefined}
                             nextFocusDown={firstSeriesNode}
                         >
-                            {getCategoryLabel(cat)}
+                            {catData?.renamedCategory || cat}
                         </CategoryButton>
                     );
                 })}
@@ -353,14 +389,35 @@ export default function SeriesScreen() {
         </View>
     );
 
-    const isCurrentCategoryLocked = activeCategory !== 'All' && isCategoryLocked(activeCategory);
+    // Memoized header — stable reference prevents full header reconciliation on every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Memoized header — stable reference prevents full header reconciliation on every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const listHeader = useMemo(() => renderHeader(), [
+        currentHero, heroIndex, handleSeriesPress, inputValue,
+        settingsTabNode, categoryAllNode, searchBarNode, categories, activeCategory,
+        firstSeriesNode, getCategoryLabel, handleCategoryLongPress,
+        filteredSeries.length, isCategoriesFetching, categoryToManage,
+    ]);
 
-    if (isLoading) {
+    if (isLoading && bannerSeries.length === 0) {
         return (
-            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-                <ActivityIndicator size="large" color="#FFD700" />
-                <Text style={{ color: '#9DA3B4', marginTop: xdHeight(16) }}>Loading Series...</Text>
-            </View>
+            <ScrollView
+                style={styles.container}
+                contentContainerStyle={[styles.content, styles.gridContainer]}
+                showsVerticalScrollIndicator={false}
+            >
+                <HeroSkeleton />
+                <View style={{ marginBottom: xdHeight(32) }}>
+                    <Skeleton width="100%" height={xdHeight(50)} borderRadius={12} />
+                </View>
+                <View style={{ flexDirection: 'row', marginBottom: xdHeight(24) }}>
+                    {Array.from({ length: 10 }).map((_, i) => (
+                        <CategoryButtonSkeleton key={i} />
+                    ))}
+                </View>
+                <PosterGridSkeleton rows={3} columns={6} />
+            </ScrollView>
         );
     }
 
@@ -369,13 +426,13 @@ export default function SeriesScreen() {
             {/* ── Poster Grid — FlatList nested inside ScrollView ── */}
             <FlatList
                 key="series-grid"
-                data={isCurrentCategoryLocked ? [] : filteredSeries}
+                data={(isCurrentCategoryLocked || isCategoriesFetching) ? [] : filteredSeries}
                 keyExtractor={(item) => item.id}
-                ListHeaderComponent={renderHeader()}
-                renderItem={(props) => renderSeriesItem({ ...props })}
+                ListHeaderComponent={listHeader}
+                renderItem={renderSeriesItem}
                 numColumns={6}
                 contentContainerStyle={[styles.content, styles.gridContainer, { flexGrow: 1 }]}
-                columnWrapperStyle={filteredSeries.length > 1 ? { gap: xdWidth(12) } : undefined}
+                columnWrapperStyle={filteredSeries.length > 1 ? styles.columnWrapper : undefined}
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
                 showsVerticalScrollIndicator={false}
@@ -392,19 +449,25 @@ export default function SeriesScreen() {
                 onEndReachedThreshold={2.0}
                 ListFooterComponent={() =>
                     isFetchingNextPage ? (
-                        <View style={{ paddingVertical: xdHeight(20), alignItems: 'center' }}>
-                            <ActivityIndicator size="small" color="#FFD700" />
+                        <View style={styles.footerLoader}>
+                            <View style={styles.footerGrid}>
+                                {Array.from({ length: 6 }).map((_, i) => (
+                                    <PosterCardSkeleton key={i} />
+                                ))}
+                            </View>
                         </View>
                     ) : null
                 }
                 ListEmptyComponent={
-                    isCurrentCategoryLocked ? (
+                    isLoading || isCategoriesFetching ? (
+                        <PosterGridSkeleton rows={3} columns={6} />
+                    ) : isCurrentCategoryLocked ? (
                         <CategoryLockedState />
                     ) : (
                         <EmptyState
                             icon="television-play"
-                            title="No Series Found"
-                            subtitle="On this categories we can't find any series. Try another category"
+                            title={t('series.noSeriesFound')}
+                            subtitle={t('series.noSeriesSubtitle')}
                         />
                     )
                 }
@@ -418,23 +481,23 @@ export default function SeriesScreen() {
                 onClose={() => setManageModalVisible(false)}
                 onLockPress={handleLockToggle}
                 onRenamePress={handleRenamePress}
-                isLocked={!!categoryToManage && isCategoryLocked(categoryToManage)}
-                categoryName={categoryToManage || ''}
+                isLocked={!!categoryToManage && !!categoriesData?.items?.find(c => c.name === categoryToManage)?.isCategoryLocked}
+                categoryName={categoriesData?.items?.find(c => c.name === categoryToManage)?.renamedCategory || categoryToManage || ''}
             />
 
             <RenameCategoryModal
                 visible={isRenameModalVisible}
                 onClose={() => setRenameModalVisible(false)}
                 onSave={handleRenameSave}
-                currentName={categoryToManage || ''}
+                currentName={categoriesData?.items?.find(c => c.name === categoryToManage)?.renamedCategory || categoryToManage || ''}
             />
 
             <EnterPinModal
                 visible={isPinModalVisible}
                 onClose={() => setPinModalVisible(false)}
                 onSuccess={handlePinSuccess}
-                onVerify={async (pin: string) => pin === "1234"}
-                title={categoryToManage && isCategoryLocked(categoryToManage) ? 'Enter PIN to Unlock' : 'Enter PIN to Lock'}
+                onVerify={verifyPin}
+                title={categoryToManage && categoriesData?.items?.find(c => c.name === categoryToManage)?.isCategoryLocked ? 'Enter PIN to Unlock' : 'Enter PIN to Lock'}
             />
         </View>
     );

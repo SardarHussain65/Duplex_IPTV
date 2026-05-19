@@ -2,7 +2,9 @@ import { SettingCard } from '@/components/ui/cards/SettingCard';
 import { Colors } from '@/constants';
 import { useTab } from '@/context/TabContext';
 import React from 'react';
-import { findNodeHandle, StyleSheet, Switch, View } from 'react-native';
+import { findNodeHandle, StyleSheet, Switch, View, ActivityIndicator } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { useAutoplay } from '@/lib/api/hooks/useAutoplay';
 
 interface AutoplaySectionProps {
     startRef: React.RefObject<any>;
@@ -13,7 +15,17 @@ export const AutoplaySection: React.FC<AutoplaySectionProps> = ({
     startRef,
     sidebarRef,
 }) => {
-    const { isAutoplayEnabled, setIsAutoplayEnabled, settingsTabNode } = useTab();
+    const { t } = useTranslation();
+    const { isAutoplayEnabled, settingsTabNode } = useTab();
+    const { toggleAutoplay, isToggling, loading } = useAutoplay();
+
+    const handleToggle = async () => {
+        try {
+            await toggleAutoplay(!isAutoplayEnabled);
+        } catch (error) {
+            // Error is logged in the hook
+        }
+    };
 
     return (
         <View style={styles.container}>
@@ -27,20 +39,25 @@ export const AutoplaySection: React.FC<AutoplaySectionProps> = ({
                 nextFocusRight="self"
                 nextFocusUp={settingsTabNode || undefined}
                 nextFocusDown={findNodeHandle(sidebarRef.current) || undefined}
-                title="Enable Autoplay"
-                subtitle="Automatically play the next episode after the current one finishes."
+                title={t('settings.autoplayOptions.enable')}
+                subtitle={t('settings.autoplayOptions.enableSub')}
                 icon={
-                    <View pointerEvents="none">
-                        <Switch
-                            value={isAutoplayEnabled}
-                            onValueChange={setIsAutoplayEnabled}
-                            trackColor={{ false: Colors.dark[8], true: '#E91E63' }}
-                            thumbColor={Colors.gray[100]}
-                        />
+                    <View pointerEvents="none" style={styles.iconContainer}>
+                        {isToggling || loading ? (
+                            <ActivityIndicator size="small" color="#E91E63" />
+                        ) : (
+                            <Switch
+                                value={isAutoplayEnabled}
+                                onValueChange={handleToggle}
+                                trackColor={{ false: Colors.dark[8], true: '#E91E63' }}
+                                thumbColor={Colors.gray[100]}
+                            />
+                        )}
                     </View>
                 }
                 iconPosition="right"
-                onPress={() => setIsAutoplayEnabled(!isAutoplayEnabled)}
+                onPress={handleToggle}
+                disabled={isToggling || loading}
             />
         </View>
     );
@@ -50,4 +67,9 @@ const styles = StyleSheet.create({
     container: {
         gap: 20,
     },
+    iconContainer: {
+        width: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+    }
 });

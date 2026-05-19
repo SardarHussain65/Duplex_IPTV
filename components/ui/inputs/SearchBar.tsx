@@ -10,6 +10,7 @@ import { Colors, Spacing } from '@/constants';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useRef, useState } from 'react';
 import { Pressable, TextInput, TextStyle, ViewStyle } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 export interface SearchBarProps {
     placeholder?: string;
@@ -27,7 +28,7 @@ export interface SearchBarProps {
 }
 
 export const SearchBar: React.FC<SearchBarProps> = ({
-    placeholder = 'Search for series...',
+    placeholder,
     value,
     onChangeText,
     onSubmit,
@@ -40,9 +41,12 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     nextFocusDown,
     hasTVPreferredFocus = false,
 }) => {
+    const { t } = useTranslation();
     const [isContainerFocused, setIsContainerFocused] = useState(false);
     const [isInputFocused, setIsInputFocused] = useState(false);
     const inputRef = useRef<TextInput>(null);
+
+    const displayPlaceholder = placeholder || t('common.search');
 
     const isFocused = isContainerFocused || isInputFocused;
 
@@ -91,7 +95,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                 onSubmitEditing={() => onSubmit?.(value || '')}
                 onFocus={() => setIsInputFocused(true)}
                 onBlur={() => setIsInputFocused(false)}
-                placeholder={placeholder}
+                placeholder={displayPlaceholder}
                 placeholderTextColor={isFocused ? Colors.dark[1] : Colors.dark[3]}
                 style={inputStyle}
                 focusable={false}

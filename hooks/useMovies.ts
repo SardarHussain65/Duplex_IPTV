@@ -23,11 +23,11 @@ export function useMovies() {
     const filteredMovies = useMemo(() => {
         let result = MOCK_MOVIES;
         if (activeCategory !== 'All') {
-            result = result.filter((m) => m.genre === activeCategory);
+            result = result.filter((m: any) => (m.category || m.genre) === activeCategory);
         }
         if (searchQuery.trim()) {
-            result = result.filter((m) =>
-                m.title.toLowerCase().includes(searchQuery.toLowerCase())
+            result = result.filter((m: any) =>
+                ((m.name || m.title) || '').toLowerCase().includes(searchQuery.toLowerCase())
             );
         }
         return result;
@@ -40,13 +40,32 @@ export function useMovies() {
             pathname: '/movie/[id]',
             params: {
                 id: movie.id,
-                title: movie.title,
-                genre: movie.genre,
+                name: movie.name,
+                category: movie.category,
                 year: movie.year,
                 duration: movie.duration,
-                image: movie.image,
+                logo: movie.logo,
                 description: movie.description,
-                streamHash: movie.streamHash,
+                streamUrl: movie.streamUrl,
+                tvgId: movie.tvgId,
+                contentType: movie.contentType,
+            },
+        });
+    };
+
+    const handleWatchNow = (movie: Movie) => {
+        router.push({
+            pathname: '/player/[id]',
+            params: {
+                id: movie.id,
+                name: movie.name,
+                category: movie.category,
+                year: movie.year,
+                duration: movie.duration,
+                logo: movie.logo,
+                isSeries: 'false',
+                streamUrl: movie.streamUrl,
+                contentType: 'MOVIE',
             },
         });
     };
@@ -66,9 +85,11 @@ export function useMovies() {
         searchQuery,
         setSearchQuery,
         heroIndex,
+        setHeroIndex,
         filteredMovies,
         currentHero,
         handleMoviePress,
+        handleWatchNow,
         goToHero,
         handleScroll,
         scrollX,

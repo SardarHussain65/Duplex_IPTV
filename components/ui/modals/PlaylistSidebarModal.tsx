@@ -1,11 +1,13 @@
 import { Colors } from '@/constants';
+import { PlaylistCardSkeleton } from '../index';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
-import React, { useState, useEffect, useRef } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View, Animated, Dimensions, findNodeHandle, ActivityIndicator } from 'react-native';
-import { PlaylistRowButton } from '../buttons/PlaylistRowButton';
-import { ConfirmPlaylistModal } from './ConfirmPlaylistModal';
 import { usePlaylists } from '@/lib/api/hooks/usePlaylists';
 import { useDeviceStore } from '@/lib/store/useDeviceStore';
+import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Animated, Dimensions, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { PlaylistRowButton } from '../buttons/PlaylistRowButton';
+import { ConfirmPlaylistModal } from './ConfirmPlaylistModal';
 
 interface PlaylistSidebarModalProps {
     visible: boolean;
@@ -19,6 +21,7 @@ export const PlaylistSidebarModal: React.FC<PlaylistSidebarModalProps> = ({
     visible,
     onClose,
 }) => {
+    const { t } = useTranslation();
     const deviceId = useDeviceStore((state) => state.id);
     const activePlaylistId = useDeviceStore((state) => state.activePlaylistId);
     const setActivePlaylistId = useDeviceStore((state) => state.setActivePlaylistId);
@@ -27,7 +30,7 @@ export const PlaylistSidebarModal: React.FC<PlaylistSidebarModalProps> = ({
 
     const [pendingPlaylistId, setPendingPlaylistId] = useState<string | null>(null);
     const [isConfirmVisible, setIsConfirmVisible] = useState(false);
-    
+
     const slideAnim = useRef(new Animated.Value(SIDEBAR_WIDTH)).current;
 
     // Ref for the first playlist item to auto-focus
@@ -40,7 +43,7 @@ export const PlaylistSidebarModal: React.FC<PlaylistSidebarModalProps> = ({
                 duration: 250,
                 useNativeDriver: true,
             }).start();
-            
+
             // Auto-focus first item after animation completes
             setTimeout(() => {
                 if (firstItemRef.current) {
@@ -95,28 +98,29 @@ export const PlaylistSidebarModal: React.FC<PlaylistSidebarModalProps> = ({
         >
             <View style={styles.overlay}>
                 <Pressable style={styles.backdrop} onPress={handleClose} />
-                
+
                 <Animated.View style={[styles.sidebar, { transform: [{ translateX: slideAnim }] }]}>
-                    <Text style={styles.title}>Playlists</Text>
+                    <Text style={styles.title}>{t('common.playlists')}</Text>
                     <View style={styles.divider} />
-                    
-                    <ScrollView 
+
+                    <ScrollView
                         style={styles.playlistContainer}
                         contentContainerStyle={{ gap: xdHeight(12) }}
                         showsVerticalScrollIndicator={false}
                     >
                         {loading ? (
-                            <View style={styles.loadingContainer}>
-                                <ActivityIndicator size="large" color="#FFFFFF" />
-                                <Text style={styles.loadingText}>Loading Playlists...</Text>
+                            <View style={{ flex: 1, gap: xdHeight(12) }}>
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                    <PlaylistCardSkeleton key={i} />
+                                ))}
                             </View>
                         ) : error ? (
                             <View style={styles.loadingContainer}>
-                                <Text style={styles.errorText}>Error loading playlists</Text>
+                                <Text style={styles.errorText}>{t('settings.playlistOptions.error')}</Text>
                             </View>
                         ) : playlists.length === 0 ? (
                             <View style={styles.loadingContainer}>
-                                <Text style={styles.loadingText}>No playlists found</Text>
+                                <Text style={styles.loadingText}>{t('settings.playlistOptions.empty')}</Text>
                             </View>
                         ) : (
                             playlists.map((p, index) => (
@@ -191,6 +195,7 @@ const styles = StyleSheet.create({
     },
     playlistContainer: {
         flex: 1,
+        padding: xdWidth(8)
     },
     loadingContainer: {
         flex: 1,

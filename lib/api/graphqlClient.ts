@@ -20,6 +20,76 @@ import { onError } from '@apollo/client/link/error';
 import { RetryLink } from '@apollo/client/link/retry';
 import { GRAPHQL_URL } from './config';
 import { tokenStorage } from './tokenStorage';
+import { REFRESH_TOKEN_MOBILE } from './mutations';
+import { print } from 'graphql';
+
+// ─── Refresh Logic Singleton ──────────────────────────────────────────────────
+
+let isRefreshing = false;
+let refreshQueue: Array<(token: string | null) => void> = [];
+
+/**
+ * Handles the logic of refreshing the access token once for multiple concurrent fails.
+ * Returns a promise that resolves with the new access token, or null if refresh failed.
+ */
+async function refreshAccessToken(): Promise<string | null> {
+  if (isRefreshing) {
+    return new Promise((resolve) => {
+      refreshQueue.push(resolve);
+    });
+  }
+
+  isRefreshing = true;
+  let newToken: string | null = null;
+
+  try {
+    const refreshToken = await tokenStorage.getRefreshToken();
+    if (!refreshToken) {
+      // If we are here, it means we have an expired access token but no refresh token.
+      // This is a terminal state for the session.
+      console.warn('[GraphQL] Session refresh aborted: No refresh token found in storage.');
+      return null;
+    }
+
+    // Use native fetch to bypass Apollo Link logic for the refresh mutation itself
+    const response = await fetch(GRAPHQL_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: print(REFRESH_TOKEN_MOBILE),
+        variables: { refreshToken },
+      }),
+    });
+
+    if (!response.ok) {
+      console.warn(`[GraphQL] Session refresh network error: ${response.status} ${response.statusText}`);
+      return null; // Don't clear tokens on 5xx or network-level non-ok responses
+    }
+
+    const json = await response.json();
+    const result = json.data?.refreshTokenMobile;
+
+    if (result?.accessToken && result?.refreshToken) {
+      await tokenStorage.setTokens(result.accessToken, result.refreshToken);
+      newToken = result.accessToken;
+      console.log('[GraphQL] Session refreshed successfully.');
+    } else {
+      // The server explicitly failed to provide new tokens (e.g. refresh token expired)
+      console.error('[GraphQL] Session refresh failed: Invalid or expired refresh token.', json.errors || json);
+      await tokenStorage.clearTokens();
+    }
+  } catch (error) {
+    console.error('[GraphQL] Session refresh exception:', error);
+    // Don't clear tokens on connection timeout/refusal
+  } finally {
+    isRefreshing = false;
+    refreshQueue.forEach((resolve) => resolve(newToken));
+    refreshQueue = [];
+  }
+
+  return newToken;
+}
+
 
 // ─── Auth Link ─────────────────────────────────────────────────────────────────
 
@@ -36,74 +106,38 @@ const authLink = setContext(async (_, { headers }) => {
 // ─── Error Link (with Refresh Logic) ──────────────────────────────────────────
 
 const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) => {
+  const isUnauthorized = 
+    graphQLErrors?.some(e => e.extensions?.code === 'UNAUTHENTICATED' || e.message?.toLowerCase().includes('unauthorized')) ||
+    (networkError as any)?.statusCode === 401;
+
+  if (isUnauthorized) {
+    return fromPromise(refreshAccessToken()).flatMap((accessToken) => {
+      if (accessToken) {
+        // Re-inject the new token into the headers for the upcoming retry
+        operation.setContext(({ headers = {} }) => ({
+          headers: {
+            ...headers,
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }));
+        return forward(operation);
+      }
+
+      // If refresh failed, stop execution
+      return new Observable((observer) => {
+        observer.error(new Error('Session expired'));
+        observer.complete();
+      });
+    });
+  }
+
   if (graphQLErrors) {
     for (const err of graphQLErrors) {
-      // Check for 401 Unauthorized or Unauthenticated
-      if (err.extensions?.code === 'UNAUTHENTICATED' || err.message?.includes('Unauthorized')) {
-        // Handle refresh logic below
-        break;
-      }
       console.warn(
         `[GraphQL] ${operation.operationName} — ${err.message}`,
         { locations: err.locations, path: err.path, code: err.extensions?.code }
       );
     }
-  }
-
-  const isUnauthorized = 
-    graphQLErrors?.some(e => e.extensions?.code === 'UNAUTHENTICATED' || e.message?.includes('Unauthorized')) ||
-    (networkError as any)?.statusCode === 401;
-
-  if (isUnauthorized) {
-    return fromPromise(
-      (async () => {
-        try {
-          const refreshToken = await tokenStorage.getRefreshToken();
-          if (!refreshToken) throw new Error('No refresh token available');
-
-          // Use native fetch to bypass Apollo Link logic for the refresh call
-          const response = await fetch(GRAPHQL_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              query: `
-                mutation RefreshTokenMobile($refreshToken: String!) {
-                  refreshTokenMobile(refreshToken: $refreshToken) {
-                    accessToken
-                    refreshToken
-                  }
-                }
-              `,
-              variables: { refreshToken },
-            }),
-          });
-
-          const json = await response.json();
-          const { accessToken, refreshToken: newRefreshToken } = json.data?.refreshTokenMobile || {};
-
-          if (accessToken && newRefreshToken) {
-            await tokenStorage.setTokens(accessToken, newRefreshToken);
-            
-            // Re-inject the new token into the headers for the upcoming retry
-            operation.setContext(({ headers = {} }) => ({
-              headers: {
-                ...headers,
-                Authorization: `Bearer ${accessToken}`,
-              },
-            }));
-            return true;
-          }
-          throw new Error('Refresh response invalid');
-        } catch (e) {
-          console.error('[GraphQL] Session refresh failed:', e);
-          await tokenStorage.clearTokens();
-          return false;
-        }
-      })()
-    ).flatMap((success) => {
-      if (success) return forward(operation);
-      return new Observable((observer) => observer.complete()); // Properly stop execution
-    });
   }
 
   if (networkError) {

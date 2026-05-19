@@ -5,34 +5,52 @@
  * ─────────────────────────────────────────────────────────────
  */
 
-import { BackdropCard, CategoryLockedState, EmptyState, SearchBar } from '@/components/ui';
-import { CategoryButton } from '@/components/ui/buttons/CategoryButton';
+import { BackdropCard, CategoryLockedState, EmptyState, SearchBar, BackdropGridSkeleton, BackdropCardSkeleton, Skeleton, CategoryButtonSkeleton, CategoryButton } from '@/components/ui';
+import { RecentlyWatchedRow } from '@/components/shared/RecentlyWatchedRow';
 import { EnterPinModal, ManageCategoryModal, RenameCategoryModal } from '@/components/ui/modals';
 import { Colors } from '@/constants';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useCategoryManagement } from '@/context/CategoryManagementContext';
 import { useTab } from '@/context/TabContext';
-import { usePlaylistChannels } from '@/lib/api';
+import { usePlaylistChannels, useParentalControlPin } from '@/lib/api';
+import { useCategories } from '@/lib/api/hooks/useCategories';
 import { useDeviceStore } from '@/lib/store/useDeviceStore';
+
 import { Channel } from '@/types';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, View, findNodeHandle } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FlatList, ScrollView, StyleSheet, Text, View, findNodeHandle } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+
+import { useTranslation } from 'react-i18next';
 
 // ── Screen ────────────────────────────────────────────────────
 
 export default function LiveTVScreen() {
+    const { t } = useTranslation();
     const router = useRouter();
     const { setIsScrolled, setSearchBarNode, settingsTabNode, searchBarNode } = useTab();
-    const { isCategoryLocked, lockCategory, unlockCategory, renameCategory, getCategoryLabel } = useCategoryManagement();
+    const { lockCategory, unlockCategory, renameCategory, getCategoryLabel } = useCategoryManagement();
+    const { verifyPin } = useParentalControlPin();
+    const isFocused = useIsFocused();
     const activePlaylistId = useDeviceStore((state) => state.activePlaylistId);
 
     // inputValue  = what the user is currently typing (controlled input)
     // committedSearch = sent to the API only when the keyboard ✓ button is pressed
     const [inputValue, setInputValue] = useState('');
     const [committedSearch, setCommittedSearch] = useState('');
+    const [activeCategory, setActiveCategory] = useState('All');
+
+    const { data: categoriesData, isFetching: isCategoriesFetching, isLoading: isCategoriesLoading } = useCategories({
+        playlistId: activePlaylistId || '',
+        contentType: 'LIVE',
+        enabled: !!activePlaylistId && isFocused
+    });
+
+    const activeCategoryData = categoriesData?.items?.find(c => c.name === activeCategory);
+    const isCurrentCategoryLocked = activeCategory !== 'All' && !!activeCategoryData?.isCategoryLocked;
 
     const {
         data: apiData,
@@ -44,40 +62,39 @@ export default function LiveTVScreen() {
         playlistId: activePlaylistId || '',
         limit: 50,
         contentType: 'LIVE',
+        category: activeCategory === 'All' ? null : activeCategory,
         search: committedSearch,
-        enabled: !!activePlaylistId
+        enabled: !!activePlaylistId && !isCurrentCategoryLocked && isFocused
     });
+
 
     const channels: Channel[] = useMemo(() => {
         if (!apiData?.pages) return [];
         return apiData.pages.flatMap((page) =>
             page.items.map((item) => ({
-                id: item.streamHash,
+                id: item.streamUrl,
                 name: item.name,
                 category: item.category,
-                image: item.tvgLogo,
-                streamHash: item.streamHash,
+                logo: item.tvgLogo || '',
+                streamUrl: item.streamUrl,
+                tvgId: item.tvgId,
+                contentType: item.contentType,
             }))
         );
     }, [apiData]);
 
     const categories = useMemo(() => {
-        const uniqueCats = Array.from(new Set(channels.map((ch: Channel) => ch.category)));
-        return ['All', ...uniqueCats];
-    }, [channels]);
+        if (!categoriesData?.items) return ['All'];
+        const apiCats = categoriesData.items.map(c => c.name);
+        return ['All', ...apiCats];
+    }, [categoriesData]);
 
-    const recentlyWatched = useMemo(() => {
-        // For now, if we have real channels, use the first few as 'recently watched' 
-        // to maintain UI consistency, or we could keep mock data if preferred.
-        // Let's use real channels if available.
-        return channels.slice(0, 5).map((ch, idx) => ({
-            ...ch,
-            progress: [0.45, 0.2, 0.8, 0.1, 0.65][idx] || 0.5
-        }));
-    }, [channels]);
 
-    const [activeCategory, setActiveCategory] = useState('All');
+
+
+
     const [categoryAllNode, setCategoryAllNode] = useState<number | undefined>(undefined);
+
     const [lastCategoryNode, setLastCategoryNode] = useState<number | undefined>(undefined);
     const [firstChannelNode, setFirstChannelNode] = useState<number | undefined>(undefined);
 
@@ -94,17 +111,13 @@ export default function LiveTVScreen() {
     const lastCategoryRef = useRef<any>(null);
     const channelRefs = useRef<Record<number, any>>({});
 
-    const filteredChannels = useMemo(() => {
-        // Text search is handled by the backend via the `search` query param.
-        // Only category filtering is done client-side here.
-        if (activeCategory === 'All') return channels;
-        return channels.filter(
-            (ch: Channel) => ch.category.toLowerCase() === activeCategory.toLowerCase()
-        );
-    }, [activeCategory, channels]);
+    const filteredChannels = channels;
+
 
     useEffect(() => {
-        const timer = setTimeout(() => {
+        // Use requestIdleCallback to defer node-handle resolution until after
+        // animations and interactions settle — avoids magic setTimeout delays.
+        const handle = requestIdleCallback(() => {
             if (searchRef.current) {
                 const node = findNodeHandle(searchRef.current);
                 if (node) setSearchBarNode(node);
@@ -118,7 +131,7 @@ export default function LiveTVScreen() {
                 if (node) setLastCategoryNode(node);
             }
 
-            // Map the first 24 channel nodes for row wrapping
+            // Map channel nodes for TV remote row-wrapping navigation
             const newNodes: Record<number, number> = {};
             let firstNode: number | undefined = undefined;
 
@@ -134,94 +147,96 @@ export default function LiveTVScreen() {
 
             setChannelNodes(newNodes);
             if (firstNode) setFirstChannelNode(firstNode);
-        }, 1200); // Increased delay for better stability in list rendering
-        return () => clearTimeout(timer);
-    }, [activeCategory, filteredChannels]); // Added filteredChannels to dependency to re-resolve if list changes
+        });
+        return () => cancelIdleCallback(handle);
+    }, [activeCategory, filteredChannels]);
 
     useEffect(() => {
         return () => setIsScrolled(false);
     }, [setIsScrolled]);
 
-    const handleChannelPress = (channel: Channel) => {
+    const handleChannelPress = useCallback((channel: Channel) => {
         router.push({
             pathname: '/channel/[id]',
             params: {
                 id: channel.id,
                 name: channel.name,
                 category: channel.category,
-                image: channel.image,
-                streamHash: channel.streamHash,
+                logo: channel.logo,
+                streamUrl: channel.streamUrl,
+                tvgId: channel.tvgId,
+                contentType: channel.contentType,
             },
         });
-    };
+    }, [router]);
 
-    const handleScroll = (event: any) => {
+    const handleScroll = useCallback((event: any) => {
         const offsetY = event.nativeEvent.contentOffset.y;
         setIsScrolled(offsetY > xdHeight(60));
-    };
+    }, [setIsScrolled]);
 
-    const handleCategoryLongPress = (category: string) => {
+    const handleCategoryLongPress = useCallback((category: string) => {
         setCategoryToManage(category);
         setManageModalVisible(true);
-    };
+    }, []);
 
-    const handleLockToggle = () => {
+    const handleLockToggle = useCallback(() => {
         setManageModalVisible(false);
         setPinModalVisible(true);
-    };
+    }, []);
 
-    const handleRenamePress = () => {
+    const handleRenamePress = useCallback(() => {
         setManageModalVisible(false);
         setRenameModalVisible(true);
-    };
+    }, []);
 
-    const handlePinSuccess = () => {
+    const handlePinSuccess = useCallback(async () => {
         if (categoryToManage) {
-            if (isCategoryLocked(categoryToManage)) {
-                unlockCategory(categoryToManage);
-            } else {
-                lockCategory(categoryToManage);
+            setPinModalVisible(false);
+            try {
+                const catData = categoriesData?.items?.find(c => c.name === categoryToManage);
+                const isLocked = !!catData?.isCategoryLocked;
+                if (isLocked) {
+                    await unlockCategory(categoryToManage, "LIVE");
+                } else {
+                    await lockCategory(categoryToManage, "LIVE");
+                }
+            } catch (err) {
+                console.error("Failed to update category lock:", err);
             }
         }
-        setPinModalVisible(false);
-    };
+    }, [categoryToManage, lockCategory, unlockCategory, categoriesData]);
 
-    const handleRenameSave = (newName: string) => {
+    const handleRenameSave = useCallback(async (newName: string) => {
         if (categoryToManage) {
-            renameCategory(categoryToManage, newName);
+            try {
+                await renameCategory(categoryToManage, newName, "LIVE");
+            } catch (err) {
+                console.error("Failed to rename category:", err);
+            }
         }
         setRenameModalVisible(false);
-    };
+    }, [categoryToManage, renameCategory]);
 
-    const renderChannel = ({ item, index }: { item: Channel; index: number }) => {
-        const isRowStart = index % 4 === 0;
-        const isRowEnd = index % 4 === 3;
-
-        return (
-            <BackdropCard
-                innerRef={(ref) => {
-                    if (ref) channelRefs.current[index] = ref;
-                    else delete channelRefs.current[index];
-                }}
-                title={item.name}
-                subtitle={item.category}
-                image={{ uri: item.image }}
-                width={xdWidth(160)}
-                height={xdHeight(90)}
-                style={styles.cardSpacing}
-                onPress={() => handleChannelPress(item)}
-                // Up navigation: first row goes to categories, others go to previous row item
-                nextFocusUp={index < 5 ? lastCategoryNode : channelNodes[index - 5]}
-                // Down navigation: explicitly point to next row item if available
-                nextFocusDown={channelNodes[index + 5]}
-                // Left navigation: ONLY the very first item wraps back to category menu.
-                // Others go to the previous item, which implicitly handles row wrapping.
-                nextFocusLeft={index === 0 ? lastCategoryNode : channelNodes[index - 1]}
-                // Right navigation: last item of row wraps to first item of next row
-                nextFocusRight={index === filteredChannels.length - 1 ? undefined : channelNodes[index + 1]}
-            />
-        );
-    };
+    const renderChannel = useCallback(({ item, index }: { item: Channel; index: number }) => (
+        <BackdropCard
+            innerRef={(ref) => {
+                if (ref) channelRefs.current[index] = ref;
+                else delete channelRefs.current[index];
+            }}
+            title={item.name}
+            subtitle={item.category}
+            image={{ uri: item.logo }}
+            width={xdWidth(160)}
+            height={xdHeight(90)}
+            style={styles.cardSpacing}
+            onPress={() => handleChannelPress(item)}
+            nextFocusUp={index < 5 ? lastCategoryNode : channelNodes[index - 5]}
+            nextFocusDown={channelNodes[index + 5]}
+            nextFocusLeft={index === 0 ? lastCategoryNode : channelNodes[index - 1]}
+            nextFocusRight={index === filteredChannels.length - 1 ? undefined : channelNodes[index + 1]}
+        />
+    ), [handleChannelPress, lastCategoryNode, channelNodes, filteredChannels.length]);
 
     const renderHeader = () => (
         <View style={styles.headerContainer}>
@@ -229,12 +244,11 @@ export default function LiveTVScreen() {
             <View style={styles.heroContainer}>
                 <View style={styles.heroOverlay}>
                     <Text style={styles.heroTitle}>
-                        What's Live{' '}
-                        <Text style={{ color: Colors.secondary[900] }}>Now!</Text>
+                        {t('liveTv.whatsLive')}{' '}
+                        <Text style={{ color: Colors.secondary[900] }}>{t('liveTv.now')}</Text>
                     </Text>
                     <Text style={styles.heroSubtitle}>
-                        Jump into live channels and see what's happening right now across
-                        news, sports, and entertainment.
+                        {t('liveTv.heroSubtitle')}
                     </Text>
                 </View>
                 <View style={styles.heroImageWrapper}>
@@ -259,29 +273,7 @@ export default function LiveTVScreen() {
 
             </View>
             {/* ── Recently Watched ── */}
-            {recentlyWatched.length > 0 && (
-                <View style={{ marginBottom: xdHeight(32) }}>
-                    <Text style={styles.sectionTitle}>Recently Watched</Text>
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        style={{ marginHorizontal: -xdWidth(40) }}
-                        contentContainerStyle={{ paddingHorizontal: xdWidth(40) }}
-                    >
-                        {recentlyWatched.map((channel, index) => (
-                            <BackdropCard
-                                key={`recent-${channel.id}`}
-                                image={{ uri: channel.image }}
-                                progress={channel.progress}
-                                width={xdWidth(170)}
-                                height={xdHeight(96)}
-                                style={{ marginRight: xdWidth(12) }}
-                                onPress={() => handleChannelPress(channel)}
-                            />
-                        ))}
-                    </ScrollView>
-                </View>
-            )}
+            <RecentlyWatchedRow type="LIVE" />
 
             {/* Search Bar */}
             <View style={styles.searchWrapper}>
@@ -299,7 +291,7 @@ export default function LiveTVScreen() {
 
 
             {/* Category Filter */}
-            <Text style={styles.sectionTitle}>Browse by Categories</Text>
+            <Text style={styles.sectionTitle}>{t('liveTv.browseCategories')}</Text>
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -315,14 +307,15 @@ export default function LiveTVScreen() {
                             isActive={activeCategory === cat}
                             onPress={() => setActiveCategory(cat)}
                             onLongPress={() => handleCategoryLongPress(cat)}
-                            isLocked={isCategoryLocked(cat)}
+                            isLocked={!!categoriesData?.items?.find(c => c.name === cat)?.isCategoryLocked}
+                            isUpdating={isCategoriesFetching && categoryToManage === cat}
                             style={{ marginRight: xdWidth(8) }}
                             nextFocusLeft={isFirst ? (searchBarNode || undefined) : undefined}
                             nextFocusUp={isFirst ? (searchBarNode || undefined) : undefined}
                             nextFocusRight={isLast ? firstChannelNode : undefined}
                             nextFocusDown={firstChannelNode}
                         >
-                            {getCategoryLabel(cat)}
+                            {categoriesData?.items?.find(c => c.name === cat)?.renamedCategory || cat}
                         </CategoryButton>
                     );
                 })}
@@ -330,20 +323,49 @@ export default function LiveTVScreen() {
 
             {/* Channel Count */}
             <Text style={styles.channelCount}>
-                {filteredChannels.length} channel{filteredChannels.length !== 1 ? 's' : ''} found
+                {t('liveTv.channelsFound', { count: filteredChannels.length })}
             </Text>
 
         </View>
     );
 
-    const isCurrentCategoryLocked = activeCategory !== 'All' && isCategoryLocked(activeCategory);
+    // Memoized header element — prevents the entire header tree from being
+    // recreated on every render. Deps cover everything renderHeader reads.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Memoized header element — prevents the entire header tree from being
+    // recreated on every render. Deps cover everything renderHeader reads.
+    const listHeader = useMemo(() => renderHeader(), [
+        handleChannelPress, inputValue, settingsTabNode,
+        categoryAllNode, searchBarNode, categories, activeCategory,
+        firstChannelNode, getCategoryLabel, handleCategoryLongPress, 
+        filteredChannels.length, isCategoriesFetching, categoryToManage,
+    ]);
+
 
     if (isLoading) {
         return (
-            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-                <ActivityIndicator size="large" color={Colors.primary[500]} />
-                <Text style={{ color: Colors.gray[400], marginTop: xdHeight(16) }}>Loading Channels...</Text>
-            </View>
+            <ScrollView
+                style={styles.container}
+                contentContainerStyle={[styles.content, styles.gridContainer]}
+                showsVerticalScrollIndicator={false}
+            >
+                <View style={{ height: xdHeight(280), marginBottom: xdHeight(24), justifyContent: 'center' }}>
+                    <Skeleton width="40%" height={scale(32)} borderRadius={8} style={{ marginBottom: 12 }} />
+                    <Skeleton width="60%" height={scale(14)} borderRadius={4} />
+                </View>
+
+                <View style={{ marginBottom: xdHeight(32) }}>
+                    <Skeleton width="100%" height={xdHeight(50)} borderRadius={12} />
+                </View>
+
+                <View style={{ flexDirection: 'row', marginBottom: xdHeight(24) }}>
+                    {Array.from({ length: 10 }).map((_, i) => (
+                        <CategoryButtonSkeleton key={i} />
+                    ))}
+                </View>
+
+                <BackdropGridSkeleton rows={4} columns={5} />
+            </ScrollView>
         );
     }
 
@@ -351,11 +373,11 @@ export default function LiveTVScreen() {
         <View style={styles.container}>
             <FlatList
                 key="livetv-grid"
-                data={isCurrentCategoryLocked ? [] : filteredChannels}
+                data={(isCurrentCategoryLocked || isCategoriesFetching) ? [] : filteredChannels}
                 contentContainerStyle={[styles.content, styles.gridContainer, { flexGrow: 1 }]}
                 keyExtractor={(item) => item.id}
-                ListHeaderComponent={renderHeader()}
-                renderItem={(props) => renderChannel({ ...props })}
+                ListHeaderComponent={listHeader}
+                renderItem={renderChannel}
                 numColumns={5}
                 columnWrapperStyle={filteredChannels.length > 1 ? { gap: xdWidth(16) } : null}
                 onScroll={handleScroll}
@@ -374,19 +396,25 @@ export default function LiveTVScreen() {
                 onEndReachedThreshold={2.0}
                 ListFooterComponent={() =>
                     isFetchingNextPage ? (
-                        <View style={{ paddingVertical: xdHeight(20), alignItems: 'center' }}>
-                            <ActivityIndicator size="small" color={Colors.primary[500]} />
+                        <View style={styles.footerLoader}>
+                            <View style={styles.footerGrid}>
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                    <BackdropCardSkeleton key={i} />
+                                ))}
+                            </View>
                         </View>
                     ) : null
                 }
                 ListEmptyComponent={
-                    isCurrentCategoryLocked ? (
+                    isLoading || isCategoriesFetching ? (
+                        <BackdropGridSkeleton rows={4} columns={5} />
+                    ) : isCurrentCategoryLocked ? (
                         <CategoryLockedState />
                     ) : (
                         <EmptyState
                             icon="television"
-                            title="No Live TV Found"
-                            subtitle="On this categories we can't find any live tv. Try another category"
+                            title={t('liveTv.noLiveTvFound')}
+                            subtitle={t('liveTv.noLiveTvSubtitle')}
                         />
                     )
                 }
@@ -400,23 +428,23 @@ export default function LiveTVScreen() {
                 onClose={() => setManageModalVisible(false)}
                 onLockPress={handleLockToggle}
                 onRenamePress={handleRenamePress}
-                isLocked={!!categoryToManage && isCategoryLocked(categoryToManage)}
-                categoryName={categoryToManage || ''}
+                isLocked={!!categoryToManage && !!categoriesData?.items?.find(c => c.name === categoryToManage)?.isCategoryLocked}
+                categoryName={categoriesData?.items?.find(c => c.name === categoryToManage)?.renamedCategory || categoryToManage || ''}
             />
 
             <RenameCategoryModal
                 visible={isRenameModalVisible}
                 onClose={() => setRenameModalVisible(false)}
                 onSave={handleRenameSave}
-                currentName={categoryToManage || ''}
+                currentName={categoriesData?.items?.find(c => c.name === categoryToManage)?.renamedCategory || categoryToManage || ''}
             />
 
             <EnterPinModal
                 visible={isPinModalVisible}
                 onClose={() => setPinModalVisible(false)}
                 onSuccess={handlePinSuccess}
-                onVerify={async (pin: string) => pin === "1234"} // Default PIN for category management
-                title={categoryToManage && isCategoryLocked(categoryToManage) ? 'Enter PIN to Unlock' : 'Enter PIN to Lock'}
+                onVerify={verifyPin}
+                title={categoryToManage && categoriesData?.items?.find(c => c.name === categoryToManage)?.isCategoryLocked ? 'Enter PIN to Unlock' : 'Enter PIN to Lock'}
             />
         </View>
     );
@@ -454,5 +482,12 @@ const styles = StyleSheet.create({
     channelCount: { fontSize: scale(13), color: Colors.gray[400], marginBottom: xdHeight(16) },
     grid: { flexDirection: 'row', flexWrap: 'wrap' },
     cardSpacing: { marginBottom: xdHeight(16) },
-
+    footerLoader: {
+        paddingVertical: xdHeight(20),
+    },
+    footerGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: xdWidth(16),
+    },
 });

@@ -1,10 +1,13 @@
 import * as Application from 'expo-application';
+import * as Device from 'expo-device';
 import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
 export interface DeviceInfo {
     macAddress: string;
     deviceId: string;
+    model: string;
+    osVersion: string;
 }
 
 /**
@@ -17,6 +20,8 @@ export const useDeviceInfo = () => {
     const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>({
         macAddress: 'LOADING...',
         deviceId: 'LOADING...',
+        model: 'LOADING...',
+        osVersion: 'LOADING...',
     });
 
     useEffect(() => {
@@ -47,12 +52,16 @@ export const useDeviceInfo = () => {
                 setDeviceInfo({
                     macAddress: `DPX-${formattedMac}`,
                     deviceId: formattedDeviceId,
+                    model: Device.modelName || 'Unknown Device',
+                    osVersion: `${Device.osName} ${Device.osVersion}`,
                 });
             } catch (error) {
                 console.error('Error fetching device info:', error);
                 setDeviceInfo({
                     macAddress: 'ERROR',
                     deviceId: 'ERROR',
+                    model: 'ERROR',
+                    osVersion: 'ERROR',
                 });
             }
         };

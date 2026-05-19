@@ -1,62 +1,70 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { useParentalControls } from '@/lib/api/hooks/useParentalControls';
+import React, { createContext, ReactNode, useContext } from 'react';
 
 interface CategoryManagementContextType {
-    lockedCategories: Set<string>;
-    renamedCategories: Record<string, string>;
-    lockCategory: (category: string) => void;
-    unlockCategory: (category: string) => void;
-    renameCategory: (originalName: string, newName: string) => void;
+    lockCategory: (category: string, contentType: 'MOVIE' | 'SERIES' | 'LIVE') => Promise<void>;
+    unlockCategory: (category: string, contentType: 'MOVIE' | 'SERIES' | 'LIVE') => Promise<void>;
+    renameCategory: (originalName: string, newName: string, contentType: 'MOVIE' | 'SERIES' | 'LIVE') => Promise<void>;
     getCategoryLabel: (category: string) => string;
-    isCategoryLocked: (category: string) => boolean;
 }
 
 const CategoryManagementContext = createContext<CategoryManagementContextType | undefined>(undefined);
 
 export const CategoryManagementProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [lockedCategories, setLockedCategories] = useState<Set<string>>(new Set());
-    const [renamedCategories, setRenamedCategories] = useState<Record<string, string>>({});
+    const { addParentalControl, removeParentalControl, renamePlaylistCategory } = useParentalControls();
 
-    const lockCategory = (category: string) => {
-        setLockedCategories(prev => {
-            const next = new Set(prev);
-            next.add(category);
-            return next;
-        });
+    const lockCategory = async (category: string, contentType: 'MOVIE' | 'SERIES' | 'LIVE') => {
+        try {
+            await addParentalControl({
+                name: category,
+                type: contentType,
+                isCategoryLock: true,
+                category: category,
+            });
+        } catch (error) {
+            console.error('Failed to lock category:', error);
+            throw error;
+        }
     };
 
-    const unlockCategory = (category: string) => {
-        setLockedCategories(prev => {
-            const next = new Set(prev);
-            next.delete(category);
-            return next;
-        });
+    const unlockCategory = async (category: string, contentType: 'MOVIE' | 'SERIES' | 'LIVE') => {
+        try {
+            await removeParentalControl({
+                category: category,
+                type: contentType,
+            });
+        } catch (error) {
+            console.error('Failed to unlock category:', error);
+            throw error;
+        }
     };
 
-    const renameCategory = (originalName: string, newName: string) => {
-        setRenamedCategories(prev => ({
-            ...prev,
-            [originalName]: newName,
-        }));
+    const renameCategory = async (originalName: string, newName: string, contentType: 'MOVIE' | 'SERIES' | 'LIVE') => {
+        try {
+            await renamePlaylistCategory({
+                category: originalName,
+                renamedCategory: newName,
+                contentType,
+            });
+        } catch (error) {
+            console.error('Failed to rename category:', error);
+            throw error;
+        }
     };
 
+    /**
+     * @deprecated Use the renamedCategory field from categories API instead.
+     */
     const getCategoryLabel = (category: string) => {
-        return renamedCategories[category] || category;
+        return category;
     };
-
-    const isCategoryLocked = (category: string) => {
-        return lockedCategories.has(category);
-    };
-
     return (
         <CategoryManagementContext.Provider
             value={{
-                lockedCategories,
-                renamedCategories,
                 lockCategory,
                 unlockCategory,
                 renameCategory,
                 getCategoryLabel,
-                isCategoryLocked,
             }}
         >
             {children}

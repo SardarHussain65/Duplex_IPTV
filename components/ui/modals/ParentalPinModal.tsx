@@ -8,7 +8,10 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import { Modal, StyleSheet, Text, View } from 'react-native';
 
+import { useTranslation } from 'react-i18next';
+
 export const ParentalPinModal: React.FC<{ visible?: boolean }> = ({ visible = true }) => {
+    const { t } = useTranslation();
     const { setParentalModalVisible } = useTab();
     const router = useRouter();
 
@@ -34,10 +37,9 @@ export const ParentalPinModal: React.FC<{ visible?: boolean }> = ({ visible = tr
                         </View>
                     </View>
 
-                    <Text style={styles.title}>Set Up Parental PIN</Text>
+                    <Text style={styles.title}>{t('parentalControl.setupTitle')}</Text>
                     <Text style={styles.subtitle}>
-                        To use parental lock, you need to create a PIN code first.{"\n"}
-                        Open Settings and set your PIN to continue.
+                        {t('parentalControl.setupSubtitle')}
                     </Text>
 
                     <View style={styles.buttonRow}>
@@ -46,7 +48,7 @@ export const ParentalPinModal: React.FC<{ visible?: boolean }> = ({ visible = tr
                                 onPress={() => setParentalModalVisible(false)}
                                 style={styles.btn}
                             >
-                                Cancel
+                                {t('enterPin.cancel')}
                             </ActionOutlineButton>
                         </View>
                         <View style={styles.btnWrapper}>
@@ -54,7 +56,7 @@ export const ParentalPinModal: React.FC<{ visible?: boolean }> = ({ visible = tr
                                 onPress={handleOpenSettings}
                                 style={styles.btn}
                             >
-                                Open Settings
+                                {t('parentalControl.openSettings')}
                             </ActionFilledButton>
                         </View>
                     </View>

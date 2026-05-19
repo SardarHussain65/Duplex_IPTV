@@ -61,11 +61,12 @@ export const SettingTabButton = React.forwardRef<any, SettingTabButtonProps>((
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'flex-start',
-            gap: Spacing.lg,
+            gap: Spacing.sm,
             paddingVertical: 10,
             paddingHorizontal: Spacing.sm,
             borderRadius: 12,
             width: '100%',
+            flexShrink: 1
         };
 
         const isHighlighted = state === 'focused' || isActive;
@@ -90,8 +91,8 @@ export const SettingTabButton = React.forwardRef<any, SettingTabButtonProps>((
 
         return {
             color: Colors.gray[100],
-            fontSize: 18,
-            fontWeight: isHighlighted ? '700' : '500',
+            fontSize: 16,
+            fontWeight: isHighlighted ? '600' : '400',
         };
     };
 
@@ -138,7 +139,7 @@ export const SettingTabButton = React.forwardRef<any, SettingTabButtonProps>((
                 {React.isValidElement(icon) && React.cloneElement(icon as React.ReactElement<any>, {
                     color: getIconColor(),
                 })}
-                <Text style={getTextStyle()}>{children}</Text>
+                <Text style={[getTextStyle(), { flex: 1, flexWrap: 'wrap' }]}>{children}</Text>
             </Pressable>
         </Animated.View>
     );

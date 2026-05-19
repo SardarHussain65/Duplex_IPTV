@@ -13,7 +13,6 @@ import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useTab } from '@/context/TabContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useStreamUrl } from '@/lib/api/hooks/useStreamUrl';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -22,6 +21,10 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
+
+// ── Dummy live stream URL (public domain) ─────────────────────
+import { useFavorites, useParentalControls } from '@/lib/api';
 
 // ── Dummy live stream URL (public domain) ─────────────────────
 const DUMMY_VIDEO_URI =
@@ -45,17 +48,34 @@ type EPGSlot = {
 // ── Screen ────────────────────────────────────────────────────
 
 export default function ChannelDetailScreen() {
+    const { t } = useTranslation();
     const router = useRouter();
     const params = useLocalSearchParams<{
         id: string;
         name: string;
         category: string;
-        image: string;
-        streamHash?: string;
+        logo: string;
+        streamUrl?: string;
+        tvgId?: string;
+        contentType?: string;
     }>();
 
-    const [isFavorite, setIsFavorite] = useState(false);
-    const [isLocked, setIsLocked] = useState(false);
+    const { useGetFavorites, addFavorite, removeFavorite, isAdding, isRemoving } = useFavorites();
+    const { data: favData } = useGetFavorites({ type: 'LIVE' });
+
+    // Check if this channel is in favorites
+    const favoriteItem = favData?.getFavorites?.items?.find(item => 
+        item?.metadata?.streamUrl === params.streamUrl || item?.metadata?.streamHash === params.streamUrl || item.id === params.id
+    );
+    const isFavorite = !!favoriteItem;
+
+    const { useGetParentalControls, addParentalControl, removeParentalControl, isAdding: isAddingParental } = useParentalControls();
+    const { data: parentalData } = useGetParentalControls({ type: 'LIVE' });
+    const parentalItem = parentalData?.getParentalControls?.items?.find(item =>
+        item?.metadata?.streamUrl === params.streamUrl || item?.metadata?.streamHash === params.streamUrl || item.id === params.id
+    );
+    const isLocked = !!parentalItem;
+
     const { setIsScrolled, setParentalModalVisible } = useTab();
 
     useEffect(() => {
@@ -66,39 +86,92 @@ export default function ChannelDetailScreen() {
     // Real data from params
     const channelName = params.name ?? 'Live Channel';
     const channelCategory = params.category ?? '';
-    const channelImage = params.image ?? '';
+    const channelLogo = params.logo ?? '';
 
     // EPG data — channel name is the best "show title" we have without a
     // dedicated EPG API. Other fields are clearly marked as placeholders.
     const programme = {
         showTitle: channelName,
         description: channelCategory
-            ? `Now streaming: ${channelName} — ${channelCategory}`
-            : `Now streaming: ${channelName}`,
-        date: 'Live',
-        episode: channelCategory || 'Live TV',
-        timeLeft: 'Live',
+            ? t('detail.nowStreamingNameCat', { name: channelName, category: channelCategory })
+            : t('detail.nowStreamingName', { name: channelName }),
+        date: t('detail.live'),
+        episode: channelCategory || t('common.liveTv'),
+        timeLeft: t('detail.live'),
         progress: 0,
     };
 
-    const { data: streamUrl } = useStreamUrl(params.streamHash || null);
-    console.log(`[ChannelDetailScreen] channelName: ${channelName}, streamHash: ${params.streamHash}, streamUrl: ${streamUrl}`);
+    // Use streamUrl directly from params — no extra API call needed
+    const streamUrl = params.streamUrl;
+    console.log(`[ChannelDetailScreen] channelName: ${channelName}, streamUrl: ${streamUrl}`);
 
     const handleExpand = () => {
         router.push({
             pathname: '/player/[id]',
             params: {
                 id: params.id || 'live',
-                title: channelName,
-                genre: channelCategory,
+                name: channelName,
+                category: channelCategory,
                 year: 'Live',
                 duration: 'Live',
-                image: channelImage,
-                streamHash: params.streamHash,
+                logo: channelLogo,
+                streamUrl: params.streamUrl,
+                contentType: params.contentType || 'LIVE',
             },
         });
     };
 
+    const handleFavoritePress = async () => {
+        try {
+            if (isFavorite && favoriteItem) {
+                await removeFavorite(favoriteItem.id);
+            } else {
+                await addFavorite({
+                    name: channelName,
+                    type: 'LIVE',
+                    metadata: {
+                        name: channelName,
+                        tvgId: params.tvgId || '',
+                        tvgName: channelName,
+                        tvgLogo: channelLogo,
+                        groupTitle: channelCategory,
+                        contentType: params.contentType || 'LIVE',
+                        category: channelCategory,
+                        genre: channelCategory,
+                        streamUrl: params.streamUrl || '',
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Failed to toggle favorite:', error);
+        }
+    };
+
+    const handleParentalLockPress = async () => {
+        try {
+            if (isLocked && parentalItem) {
+                await removeParentalControl(parentalItem.id);
+            } else {
+                await addParentalControl({
+                    name: channelName,
+                    type: 'LIVE',
+                    metadata: {
+                        name: channelName,
+                        tvgId: params.tvgId || '',
+                        tvgName: channelName,
+                        tvgLogo: channelLogo,
+                        groupTitle: channelCategory,
+                        contentType: params.contentType || 'LIVE',
+                        category: channelCategory,
+                        genre: channelCategory,
+                        streamUrl: params.streamUrl || '',
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Failed to toggle parental control:', error);
+        }
+    };
 
     return (
         <View style={styles.screen}>
@@ -106,9 +179,9 @@ export default function ChannelDetailScreen() {
             <View style={styles.topSection}>
 
                 {/* Full-width blurred background image */}
-                {channelImage ? (
+                {channelLogo ? (
                     <Image
-                        source={{ uri: channelImage }}
+                        source={{ uri: channelLogo }}
                         style={styles.topBgImage}
                         contentFit="cover"
                     />
@@ -120,7 +193,7 @@ export default function ChannelDetailScreen() {
                 <VideoPreviewCard
                     title={programme.showTitle}
                     channelName={channelName}
-                    channelImage={channelImage}
+                    channelImage={channelLogo}
                     date={programme.date}
                     episode={programme.episode}
                     timeLeft={programme.timeLeft}
@@ -137,7 +210,7 @@ export default function ChannelDetailScreen() {
                         <Text style={styles.metaDot}>•</Text>
                         <Text style={styles.metaText}>{programme.episode}</Text>
                         <Text style={styles.metaDot}>•</Text>
-                        <Text style={styles.metaText}>{programme.timeLeft} left</Text>
+                        <Text style={styles.metaText}>{programme.timeLeft} {t('detail.left')}</Text>
                     </View>
 
                     <Text style={styles.showTitle}>{programme.showTitle}</Text>
@@ -151,12 +224,15 @@ export default function ChannelDetailScreen() {
                             icon={<MaterialCommunityIcons name={isFavorite ? 'heart' : 'heart-outline'} size={scale(20)} color={isFavorite ? '#E0334C' : Colors.gray[300]} />}
                             isActive={isFavorite}
                             activeBackgroundColor="#E0334C"
-                            onPress={() => setIsFavorite(v => !v)}
+                            onPress={handleFavoritePress}
+                            disabled={isAdding}
                         />
                         <NavIconButton
-                            icon={<MaterialCommunityIcons name={isLocked ? 'lock' : 'lock-open-outline'} size={scale(20)} color={Colors.gray[300]} />}
+                            icon={<MaterialCommunityIcons name={isLocked ? 'lock' : 'lock-open-outline'} size={scale(20)} color={isLocked ? '#E0334C' : Colors.gray[300]} />}
                             isActive={isLocked}
-                            onPress={() => setParentalModalVisible(true)}
+                            activeBackgroundColor="#E0334C"
+                            onPress={handleParentalLockPress}
+                            disabled={isAddingParental}
                         />
                     </View>
                 </View>
@@ -166,7 +242,7 @@ export default function ChannelDetailScreen() {
             <View style={styles.epgSection}>
                 <View style={styles.epgHeader}>
                     <TouchableOpacity style={styles.todaySelector}>
-                        <Text style={styles.todayText}>Today</Text>
+                        <Text style={styles.todayText}>{t('detail.today')}</Text>
                         <MaterialCommunityIcons name="chevron-down" size={scale(18)} color={Colors.gray[400]} />
                     </TouchableOpacity>
 
@@ -184,7 +260,7 @@ export default function ChannelDetailScreen() {
                     {/* Channel logo */}
                     <View style={styles.epgLogoCell}>
                         <Image
-                            source={{ uri: channelImage }}
+                            source={{ uri: channelLogo }}
                             style={styles.epgLogo}
                             contentFit="contain"
                         />
@@ -194,7 +270,7 @@ export default function ChannelDetailScreen() {
                     <TouchableOpacity style={[styles.programCard, styles.programCardActive]}>
                         <View style={styles.cardInfo}>
                             <Text style={styles.cardTitle}>{programme.showTitle}</Text>
-                            <Text style={styles.cardSub}>{programme.timeLeft} left</Text>
+                            <Text style={styles.cardSub}>{programme.timeLeft} {t('detail.left')}</Text>
                         </View>
                         <View style={styles.progressBarBg}>
                             <View style={[styles.progressBarFill, { width: '35%' }]} />

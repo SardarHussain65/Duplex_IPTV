@@ -1,9 +1,12 @@
 import { SettingCard } from '@/components/ui/cards/SettingCard';
 import { Colors } from '@/constants';
 import { useTab } from '@/context/TabContext';
+import i18n from '@/lib/i18n/i18n';
 import { panelStyles } from '@/styles/settings_panel.styles';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { findNodeHandle, View } from 'react-native';
 
 interface LanguageSectionProps {
@@ -19,7 +22,14 @@ export const LanguageSection: React.FC<LanguageSectionProps> = ({
     startRef,
     sidebarRef,
 }) => {
+    const { t } = useTranslation();
     const { settingsTabNode } = useTab();
+
+    const handleLanguageChange = async (lang: string) => {
+        onSelect(lang);
+        await i18n.changeLanguage(lang);
+        await AsyncStorage.setItem('app_language', lang);
+    };
 
     return (
         <View style={panelStyles.options}>
@@ -32,13 +42,13 @@ export const LanguageSection: React.FC<LanguageSectionProps> = ({
                 nextFocusLeft={findNodeHandle(sidebarRef.current) || undefined}
                 nextFocusUp={settingsTabNode || undefined}
                 nextFocusDown={findNodeHandle(sidebarRef.current) || undefined}
-                icon={selected === 'English' ? <MaterialCommunityIcons name="check" size={20} color={Colors.gray[100]} /> : null}
+                icon={selected === 'en' ? <MaterialCommunityIcons name="check" size={20} color={Colors.gray[100]} /> : null}
                 iconPosition="right"
                 title="English"
-                subtitle="English"
+                subtitle={t('languages.en')}
                 style={panelStyles.languageCard}
-                isActive={selected === 'English'}
-                onPress={() => onSelect('English')}
+                isActive={selected === 'en'}
+                onPress={() => handleLanguageChange('en')}
                 testID="lang-en"
             />
             <SettingCard
@@ -46,15 +56,44 @@ export const LanguageSection: React.FC<LanguageSectionProps> = ({
                 nextFocusRight="self"
                 nextFocusUp={settingsTabNode || undefined}
                 nextFocusDown={findNodeHandle(sidebarRef.current) || undefined}
-                icon={selected === 'German' ? <MaterialCommunityIcons name="check" size={20} color={Colors.gray[100]} /> : null}
+                icon={selected === 'pt' ? <MaterialCommunityIcons name="check" size={20} color={Colors.gray[100]} /> : null}
                 iconPosition="right"
-                title="German"
-                subtitle="Deutsh"
+                title="Português (Brasil)"
+                subtitle={t('languages.pt')}
                 style={panelStyles.languageCard}
-                isActive={selected === 'German'}
-                onPress={() => onSelect('German')}
+                isActive={selected === 'pt'}
+                onPress={() => handleLanguageChange('pt')}
+                testID="lang-pt"
+            />
+            <SettingCard
+                nextFocusLeft={findNodeHandle(sidebarRef.current) || undefined}
+                nextFocusRight="self"
+                nextFocusUp={settingsTabNode || undefined}
+                nextFocusDown={findNodeHandle(sidebarRef.current) || undefined}
+                icon={selected === 'es' ? <MaterialCommunityIcons name="check" size={20} color={Colors.gray[100]} /> : null}
+                iconPosition="right"
+                title="Español"
+                subtitle={t('languages.es')}
+                style={panelStyles.languageCard}
+                isActive={selected === 'es'}
+                onPress={() => handleLanguageChange('es')}
+                testID="lang-es"
+            />
+            <SettingCard
+                nextFocusLeft={findNodeHandle(sidebarRef.current) || undefined}
+                nextFocusRight="self"
+                nextFocusUp={settingsTabNode || undefined}
+                nextFocusDown={findNodeHandle(sidebarRef.current) || undefined}
+                icon={selected === 'de' ? <MaterialCommunityIcons name="check" size={20} color={Colors.gray[100]} /> : null}
+                iconPosition="right"
+                title="Deutsch"
+                subtitle={t('languages.de')}
+                style={panelStyles.languageCard}
+                isActive={selected === 'de'}
+                onPress={() => handleLanguageChange('de')}
                 testID="lang-de"
             />
+
         </View>
     );
 };

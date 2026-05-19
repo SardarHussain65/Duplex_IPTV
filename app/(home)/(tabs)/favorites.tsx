@@ -1,22 +1,34 @@
-import { BackdropCard, EmptyState, PosterCard } from '@/components/ui';
-import { CategoryButton } from '@/components/ui/buttons/CategoryButton';
+import { BackdropCard, EmptyState, PosterCard, Skeleton, CategoryButtonSkeleton, PosterGridSkeleton, BackdropGridSkeleton, CategoryButton } from '@/components/ui';
 import { Colors } from '@/constants';
-import { FAVORITE_CATEGORIES, MOCK_FAVORITES } from '@/constants/appData';
+import { FAVORITE_CATEGORIES } from '@/constants/appData';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useTab } from '@/context/TabContext';
 import { FavoriteItem, FavoriteType } from '@/types';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, StyleSheet, Text, View, findNodeHandle } from 'react-native';
-
-
+import { useTranslation } from 'react-i18next';
+import { useFavorites } from '@/lib/api';
 
 // ── Screen ────────────────────────────────────────────────────
 
 export default function FavoritesScreen() {
+    const { t } = useTranslation();
     const router = useRouter();
     const { setIsScrolled } = useTab();
     const [activeTab, setActiveTab] = useState<FavoriteType>('Live TV');
+
+    const { useGetFavorites } = useFavorites();
+
+    const apiTabMap: Record<FavoriteType, string> = {
+        'Live TV': 'LIVE',
+        'Movies': 'MOVIE',
+        'Series': 'SERIES'
+    };
+
+    const { data, loading, error } = useGetFavorites({
+        type: apiTabMap[activeTab]
+    });
 
     useEffect(() => {
         return () => setIsScrolled(false);
@@ -33,6 +45,28 @@ export default function FavoritesScreen() {
     const categoryAllRef = useRef<any>(null);
     const lastCategoryRef = useRef<any>(null);
     const itemRefs = useRef<Record<number, any>>({});
+
+    const filteredItems: FavoriteItem[] = useMemo(() => {
+        if (!data?.getFavorites?.items) return [];
+
+        return data.getFavorites.items
+            .filter((item) => item && item.metadata) // Filter out items with null or missing metadata
+            .map((item) => {
+                const meta = item.metadata!;
+                return {
+                    id: item.id,
+                    name: meta.name || '',
+                    type: activeTab, // Use current tab type for local UI consistency
+                    logo: meta.tvgLogo || meta.logoUrl || '', // Fallback for image
+                    category: meta.genre || meta.category || '',
+                    year: meta.releaseYear?.toString() || '',
+                    duration: '', 
+                    description: '', 
+                    streamUrl: meta.streamUrl || '',
+                    tvgId: meta.tvgId || '',
+                };
+            });
+    }, [data, activeTab]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -59,12 +93,15 @@ export default function FavoritesScreen() {
             if (firstNode) setFirstItemNode(firstNode);
         }, 1200);
         return () => clearTimeout(timer);
-    }, [activeTab]);
-
-    const filteredItems = MOCK_FAVORITES.filter(item => item.type === activeTab);
+    }, [activeTab, filteredItems]);
 
     const getCount = (type: FavoriteType) => {
-        return MOCK_FAVORITES.filter(item => item.type === type).length;
+        if (!data?.getFavorites) return 0;
+        const favs = data.getFavorites;
+        if (type === 'Live TV') return favs.totalLive || 0;
+        if (type === 'Movies') return favs.totalMovies || 0;
+        if (type === 'Series') return favs.totalSeries || 0;
+        return 0;
     };
 
     const handlePress = (item: FavoriteItem) => {
@@ -73,9 +110,11 @@ export default function FavoritesScreen() {
                 pathname: '/channel/[id]',
                 params: {
                     id: item.id,
-                    name: item.title,
-                    category: item.genre || '',
-                    image: item.image,
+                    name: item.name,
+                    category: item.category || '',
+                    logo: item.logo,
+                    streamUrl: item.streamUrl,
+                    tvgId: item.tvgId,
                 },
             });
         } else if (item.type === 'Movies') {
@@ -83,12 +122,14 @@ export default function FavoritesScreen() {
                 pathname: '/movie/[id]',
                 params: {
                     id: item.id,
-                    title: item.title,
-                    genre: item.genre || '',
+                    name: item.name,
+                    category: item.category || '',
                     year: item.year || '',
                     duration: item.duration || '',
-                    image: item.image,
+                    logo: item.logo,
                     description: item.description || '',
+                    streamUrl: item.streamUrl,
+                    tvgId: item.tvgId,
                 },
             });
         } else {
@@ -96,12 +137,14 @@ export default function FavoritesScreen() {
                 pathname: '/series-detail/[id]',
                 params: {
                     id: item.id,
-                    title: item.title,
-                    genre: item.genre || '',
+                    name: item.name,
+                    category: item.category || '',
                     year: item.year || '',
                     season: item.season || '',
-                    image: item.image,
+                    logo: item.logo,
                     description: item.description || '',
+                    streamUrl: item.streamUrl,
+                    tvgId: item.tvgId,
                 },
             });
         }
@@ -124,8 +167,8 @@ export default function FavoritesScreen() {
             return (
                 <BackdropCard
                     innerRef={(ref) => { if (ref) itemRefs.current[index] = ref; }}
-                    title={item.title}
-                    image={item.image}
+                    title={item.name}
+                    image={item.logo}
                     width={xdWidth(160)}
                     height={xdHeight(90)}
                     style={styles.cardSpacing}
@@ -141,9 +184,9 @@ export default function FavoritesScreen() {
         return (
             <PosterCard
                 innerRef={(ref) => { if (ref) itemRefs.current[index] = ref; }}
-                title={item.title}
-                subtitle={item.subtitle}
-                image={item.image}
+                title={item.name}
+                subtitle={(item as any).subtitle}
+                image={item.logo}
                 width={xdWidth(132)}
                 style={styles.cardSpacing}
                 onPress={() => handlePress(item)}
@@ -156,9 +199,14 @@ export default function FavoritesScreen() {
     };
 
     const renderCategoryLabel = (cat: FavoriteType) => {
+        const labelMap: Record<FavoriteType, string> = {
+            'Live TV': t('common.liveTv'),
+            'Movies': t('common.movies'),
+            'Series': t('common.series')
+        };
         return (
             <Text>
-                {cat}
+                {labelMap[cat] || cat}
                 <Text style={{ opacity: 0.6, fontSize: scale(12) }}> {`(${getCount(cat)})`}</Text>
             </Text>
         );
@@ -167,7 +215,7 @@ export default function FavoritesScreen() {
     const renderHeader = () => (
         <View style={styles.headerContainer}>
             {/* Page Title */}
-            <Text style={styles.pageTitle}>Favorites</Text>
+            <Text style={styles.pageTitle}>{t('favorites.title')}</Text>
 
             {/* Category Filter */}
             <View style={styles.categoryRow}>
@@ -195,32 +243,60 @@ export default function FavoritesScreen() {
         </View>
     );
 
+    if (error) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <EmptyState
+                    icon="alert-circle-outline"
+                    title={t('common.error')}
+                    subtitle={error.message}
+                />
+            </View>
+        );
+    }
+
     return (
         <View style={styles.container}>
-            <FlatList
-                key={`fav-${activeTab}-${numColumns}`}
-                data={filteredItems}
-                contentContainerStyle={[styles.content, styles.gridContainer]}
-                keyExtractor={(item) => item.id}
-                ListHeaderComponent={renderHeader}
-                renderItem={renderItem}
-                numColumns={numColumns}
-                columnWrapperStyle={{ gap: xdWidth(activeTab === 'Live TV' ? 16 : 12) }}
-                onScroll={handleScroll}
-                scrollEventThrottle={16}
-                showsVerticalScrollIndicator={false}
-                initialNumToRender={10}
-                windowSize={5}
-                removeClippedSubviews={false}
-                ListEmptyComponent={
-                    <EmptyState
-                        icon="heart-outline"
-                        title="No Favorites Yet"
-                        subtitle="You haven't added any to your favorites."
-                        style={styles.emptyState}
-                    />
-                }
-            />
+            {loading && !data ? (
+                <View style={[styles.content, styles.gridContainer]}>
+                    <Skeleton width="40%" height={scale(22)} borderRadius={8} style={{ marginBottom: xdHeight(16) }} />
+                    <View style={styles.categoryRow}>
+                        {Array.from({ length: 3 }).map((_, i) => (
+                            <CategoryButtonSkeleton key={i} />
+                        ))}
+                    </View>
+                    {activeTab === 'Live TV' ? (
+                        <BackdropGridSkeleton rows={3} columns={5} />
+                    ) : (
+                        <PosterGridSkeleton rows={3} columns={6} />
+                    )}
+                </View>
+            ) : (
+                <FlatList
+                    key={`fav-${activeTab}-${numColumns}`}
+                    data={filteredItems}
+                    contentContainerStyle={[styles.content, styles.gridContainer]}
+                    keyExtractor={(item) => item.id}
+                    ListHeaderComponent={renderHeader}
+                    renderItem={renderItem}
+                    numColumns={numColumns}
+                    columnWrapperStyle={{ gap: xdWidth(activeTab === 'Live TV' ? 16 : 12) }}
+                    onScroll={handleScroll}
+                    scrollEventThrottle={16}
+                    showsVerticalScrollIndicator={false}
+                    initialNumToRender={10}
+                    windowSize={5}
+                    removeClippedSubviews={false}
+                    ListEmptyComponent={
+                        <EmptyState
+                            icon="heart-outline"
+                            title={t('favorites.emptyTitle')}
+                            subtitle={t('favorites.emptySubtitle')}
+                            style={styles.emptyState}
+                        />
+                    }
+                />
+            )}
         </View>
     );
 }
@@ -229,6 +305,11 @@ export default function FavoritesScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#141416' },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     content: {
         paddingTop: xdHeight(90),
         paddingBottom: xdHeight(40),

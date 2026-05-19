@@ -10,12 +10,12 @@ export function useGenerateDeviceId() {
   const setDeviceData = useDeviceStore((state) => state.setDeviceData);
 
   const [generateDeviceIdMutation, { data, loading, error }] = useMutation(GENERATE_DEVICE_ID, {
-    onCompleted: (data) => {
+    onCompleted: async (data) => {
       const result = data?.generateDeviceId;
       if (result) {
         // 1. Store auth tokens securely
         if (result.accessToken && result.refreshToken) {
-          tokenStorage.setTokens(result.accessToken, result.refreshToken);
+          await tokenStorage.setTokens(result.accessToken, result.refreshToken);
         }
 
         // 2. Update device and subscription state
@@ -23,6 +23,8 @@ export function useGenerateDeviceId() {
           const isBlocked = result.subscription?.status === 'blocked' || result.subscription?.status === 'blocked_device';
           setDeviceData({
             id: result.device.id,
+            deviceKey: result.device.deviceKey,
+            deviceStatus: result.device.status,
             hasUsedTrial: result.device.hasUsedTrial,
             isTrial: result.device.isTrial,
             isBlocked: isBlocked,

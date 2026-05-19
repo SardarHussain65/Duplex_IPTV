@@ -46,6 +46,7 @@ export interface Playlist {
   id: string;
   name: string;
   url: string;
+  type: string;
   isPinRequired: boolean;
 }
 
@@ -62,6 +63,22 @@ export interface GetPlaylistsByDeviceResponse {
 
 // ─── Channels ────────────────────────────────────────────────────────────────
 
+export interface Episode {
+  name: string;
+  tvgId: string;
+  tvgName: string;
+  tvgLogo: string;
+  groupTitle: string;
+  contentType: string;
+  category: string;
+  genre: string;
+  seriesTitle: string;
+  seasonNumber: number;
+  episodeNumber: number;
+  seriesStreamId: string;
+  streamUrl: string;
+}
+
 export interface Channel {
   name: string;
   tvgId: string;
@@ -71,9 +88,271 @@ export interface Channel {
   contentType: string;
   category: string;
   genre: string;
-  streamHash: string;
+  streamUrl: string;
+  ep?: Episode[];
 }
+
 
 export interface GetChannelsResponse {
   items: Channel[];
+}
+
+export interface ChannelCategory {
+  name: string;
+  count: number;
+  isCategoryLocked?: boolean;
+  renamedCategory?: string | null;
+}
+
+export interface GetCategoriesResponse {
+  items: ChannelCategory[];
+}
+
+
+// ─── Favorites ───────────────────────────────────────────────────────────────
+
+export interface FavoriteMetadata {
+  Id?: string;
+  name: string;
+  logoUrl?: string; // Keep for compatibility if needed
+  tvgId?: string;
+  tvgName?: string;
+  tvgLogo?: string;
+  groupTitle?: string;
+  type?: string;     // Generic type (LIVE, MOVIE, SERIES)
+  contentType?: string; // Specific type from backend
+  category?: string;
+  genre?: string;
+  seriesTitle?: string;
+  releaseYear?: number | string;
+  streamUrl?: string;
+  /** @deprecated use streamUrl */
+  streamHash?: string;
+}
+
+export interface Favorite {
+  id: string;
+  metadata: FavoriteMetadata;
+  playlistId?: string;
+  name?: string;
+  type?: string;
+}
+
+export interface CreateFavoriteInput {
+  playlistId: string;
+  name: string;
+  type: string;
+  metadata: FavoriteMetadata;
+}
+
+export interface QueryFavoriteInput {
+  playlistId: string;
+  page?: number;
+  limit?: number;
+  type?: string;
+}
+
+export interface GetFavoritesResponse {
+  getFavorites: {
+    items: Favorite[];
+    total: number;
+    totalLive: number;
+    totalMovies: number;
+    totalSeries: number;
+  };
+}
+
+// ─── Watch History ────────────────────────────────────────────────────────────
+
+export interface WatchHistoryMetadata {
+  name: string;
+  tvgId?: string;
+  tvgName?: string;
+  tvgLogo?: string | null;
+  groupTitle?: string;
+  contentType?: string;
+  category?: string;
+  genre?: string;
+  releaseYear?: number | null;
+  streamUrl?: string | null;
+  /** @deprecated use streamUrl */
+  streamHash?: string | null;
+}
+
+/** Input for the saveWatchHistory mutation */
+export interface CreateWatchHistoryInput {
+  playlistId: string;
+  name: string;
+  externalId: string;
+  type: 'LIVE' | 'MOVIE' | 'SERIES';
+  metadata: WatchHistoryMetadata;
+  /** 0 for LIVE channels — backend expects Int! */
+  duration: number;
+  /** 0 for LIVE channels — backend expects Int! */
+  currentTime: number;
+}
+
+/** Filters for the getWatchHistory query */
+export interface QueryWatchHistoryInput {
+  playlistId: string;
+  page?: number;
+  limit?: number;
+  type?: 'LIVE' | 'MOVIE' | 'SERIES';
+}
+
+/** Single item returned by getWatchHistory */
+export interface WatchHistoryItem {
+  id: string;
+  name: string;
+  metadata: WatchHistoryMetadata;
+  /** Total duration in seconds — null for LIVE */
+  duration: number | null;
+  /** Last saved playback position in seconds — null for LIVE */
+  currentTime: number | null;
+  /** 0–100, server-computed — null for LIVE */
+  watchedPercent: number | null;
+  type: 'LIVE' | 'MOVIE' | 'SERIES';
+  isCompleted: boolean;
+  externalId: string;
+  lastWatchedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GetWatchHistoryResponse {
+  getWatchHistory: {
+    items: WatchHistoryItem[];
+    total: number;
+    totalLive: number;
+    totalMovies: number;
+    totalSeries: number;
+  };
+}
+
+export interface ClearWatchHistoryResponse {
+  clearWatchHistory: boolean;
+}
+
+// ─── Parental Controls ────────────────────────────────────────────────────────
+
+export interface ParentalControlMetadata {
+  name: string;
+  tvgId?: string;
+  tvgName?: string;
+  tvgLogo?: string;
+  groupTitle?: string;
+  contentType?: string;
+  category?: string;
+  genre?: string;
+  seriesTitle?: string;
+  releaseYear?: number | string;
+  streamUrl?: string;
+  /** @deprecated use streamUrl */
+  streamHash?: string;
+}
+
+export interface ParentalControl {
+  id: string;
+  metadata: ParentalControlMetadata;
+  playlistId?: string;
+  name?: string;
+  type?: string;
+  deviceId?: string;
+}
+
+export interface CreateParentalControlInput {
+  playlistId: string;
+  name: string;
+  type: string;
+  metadata?: ParentalControlMetadata;
+  isCategoryLock?: boolean;
+  category?: string;
+}
+
+export interface QueryParentalControlInput {
+  playlistId: string;
+  page?: number;
+  limit?: number;
+  type?: string;
+}
+
+export interface GetParentalControlsResponse {
+  getParentalControls: {
+    items: ParentalControl[];
+    total: number;
+    totalLive: number;
+    totalMovies: number;
+    totalSeries: number;
+  };
+}
+
+export interface UpsertParentalControlPinInput {
+  pin: string;
+  playlistId: string;
+}
+
+export interface SetParentalControlPinResponse {
+  setParentalControlPin: boolean;
+}
+
+export interface VerifyParentalControlPinInput {
+  pin: string;
+  playlistId: string;
+}
+
+export interface VerifyParentalControlPinResponse {
+  verifyParentalControlPin: boolean;
+}
+
+export interface ToggleParentalControlStatus {
+  id: string;
+  isRestricted: boolean;
+  pin?: string | null;
+}
+
+export interface GetToggleParentalControlResponse {
+  getToggleParentalControl: ToggleParentalControlStatus;
+}
+
+export interface ToggleParentalControlResponse {
+  toggleParentalControl: ToggleParentalControlStatus;
+}
+
+export interface RemoveParentalControlInput {
+  category: string;
+  playlistId: string;
+  type: string;
+}
+
+export interface RemoveParentalControlResponse {
+  removeParentalControl: boolean;
+}
+
+// ─── Autoplay ────────────────────────────────────────────────────────────────
+
+export interface Autoplay {
+  autoplay: boolean;
+  playlistId: string;
+  createdAt?: string;
+}
+
+export interface ToggleAutoplayResponse {
+  autoplayToggle: Autoplay;
+}
+
+export interface GetAutoplayResponse {
+  getAutoplayByPlaylistId: Autoplay;
+}
+export interface RenameCategoryInput {
+  category: string;
+  playlistId: string;
+  renamedCategory: string;
+  contentType: 'MOVIE' | 'SERIES' | 'LIVE';
+}
+
+export interface RenameCategoryResponse {
+  renamePlaylistCategory: {
+    category: string;
+    renamedCategory: string;
+  };
 }

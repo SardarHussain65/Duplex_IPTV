@@ -1,27 +1,23 @@
-/**
- * ─────────────────────────────────────────────────────────────
- *  DUPLEX IPTV — Video Player Screen
- *  Full-screen player with controls, progress bar & settings
- * ─────────────────────────────────────────────────────────────
- */
-
 import { NavIconButton } from '@/components/ui';
 import { EpisodeCard } from '@/components/ui/cards/EpisodeCard';
 import { SettingCard } from '@/components/ui/cards/SettingCard';
 import { scale, xdHeight, xdWidth } from '@/constants/scaling';
 import { useTab } from '@/context/TabContext';
-import { useStreamUrl } from '@/lib/api/hooks/useStreamUrl';
+import { useWatchHistory } from '@/lib/api';
+import type { WatchableItem, VideoPlayerRef } from '@/lib/api';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { ResizeMode, Video } from 'expo-av';
+import Slider from '@react-native-community/slider';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import { AudioTrack, SubtitleTrack, useVideoPlayer, VideoView } from 'expo-video';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
 import {
+    ActivityIndicator,
     Animated,
     FlatList,
-    LayoutChangeEvent,
-    PanResponder,
     StyleSheet,
     Text,
+    useTVEventHandler,
     View
 } from 'react-native';
 
@@ -40,48 +36,122 @@ type Episode = {
 };
 
 // ── Mock Episodes ──────────────────────────────────────────────
-const generateEpisodes = (): Episode[] =>
-    Array.from({ length: 10 }, (_, i) => ({
-        id: `ep${i + 1}`,
-        number: i + 1,
-        title: 'Echoes of the Past',
-        description: 'A key piece of evidence in a cold case suddenly resurfaces...',
-        duration: '1h 20m',
-        image: 'https://image.tmdb.org/t/p/w500/8UlWHLMpgZm9bx6QYh0NFoq67TZ.jpg',
-        progress: i === 0 ? 0.35 : undefined,
-    }));
+// REMOVED generateEpisodes
+
+
+import { useAutoplay } from '@/lib/api/hooks/useAutoplay';
 
 // ── Screen ─────────────────────────────────────────────────────
 export default function VideoPlayerScreen() {
+    const { refetch: syncAutoplay } = useAutoplay();
     const router = useRouter();
+
     const params = useLocalSearchParams<{
-        title: string;
-        genre: string;
+        id: string;
+        name: string;
+        category: string;
         year: string;
         duration: string;
-        image: string;
+        logo: string;
         isSeries?: string;
-        streamHash?: string;
+        streamUrl?: string;
+        contentType?: string;
+        startTime?: string;
+        episodes?: string;
     }>();
 
-    const title = params.title ?? 'The World Poker Toure';
-    const genre = params.genre ?? 'Action / Thriller';
+
+
+
+    const streamUrl = params.streamUrl;
+
+    const name = params.name ?? 'The World Poker Toure';
+    const category = params.category ?? 'Action / Thriller';
     const year = params.year ?? '2021';
     const duration = params.duration ?? '1h 48m';
-    const image = params.image ?? '';
+    const logo = params.logo ?? '';
     const isSeries = params.isSeries === 'true';
 
-    // ── Player state ──────────────────────────────────────────
-    const [isPlaying, setIsPlaying] = useState(true);
+    // Detect LIVE: channel screens pass contentType='LIVE' or duration='Live'
+    const isLive = params.contentType === 'LIVE' || params.duration === 'Live';
+    const contentType: 'LIVE' | 'MOVIE' | 'SERIES' = isLive
+        ? 'LIVE'
+        : isSeries
+            ? 'SERIES'
+            : 'MOVIE';
+
+    // ── Watch History ─────────────────────────────────────────
+    const { saveHistory, startProgressTracking, stopProgressTracking } = useWatchHistory();
+    // A stable ref the interval can read currentTime from without re-renders
+    const historyPlayerRef = useRef<VideoPlayerRef | null>(null);
+
+    // ── UI state ──────────────────────────────────────────
     const [isFavorite, setIsFavorite] = useState(false);
     const [isLocked, setIsLocked] = useState(false);
-    const [progress, setProgress] = useState(0.42); // 0-1
+    const [progress, setProgress] = useState(0); // 0-1
     const [viewMode, setViewMode] = useState<ViewMode>('normal');
     const [settingsPanel, setSettingsPanel] = useState<SettingsPanel>('main');
     const [selectedCaption, setSelectedCaption] = useState('Off');
-    const [selectedLanguage, setSelectedLanguage] = useState('German');
-    const [currentEpisodeIndex, setCurrentEpisodeIndex] = useState(0);
-    const episodes = generateEpisodes();
+    const [selectedLanguage, setSelectedLanguage] = useState('Default');
+    const [availableAudioTracks, setAvailableAudioTracks] = useState<AudioTrack[]>([]);
+    const [availableSubtitleTracks, setAvailableSubtitleTracks] = useState<SubtitleTrack[]>([]);
+    const [currentAudioTrack, setCurrentAudioTrack] = useState<AudioTrack | null>(null);
+    const [currentSubtitleTrack, setCurrentSubtitleTrack] = useState<SubtitleTrack | null>(null);
+
+    const episodes = useMemo(() => {
+        try {
+            return params.episodes ? JSON.parse(params.episodes) : [];
+        } catch (e) {
+            console.error('Failed to parse episodes:', e);
+            return [];
+        }
+    }, [params.episodes]);
+
+    const currentEpisodeIndex = useMemo(() => {
+        return episodes.findIndex((ep: any) => ep.streamUrl === streamUrl);
+    }, [episodes, streamUrl]);
+
+
+    // ── Controls Visibility logic ──────────────────────────────
+    const [showControls, setShowControls] = useState(true);
+    const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pauseButtonRef = useRef<any>(null);
+
+    const resetControlsTimer = useCallback(() => {
+        setShowControls(true);
+        if (controlsTimeoutRef.current) {
+            clearTimeout(controlsTimeoutRef.current);
+        }
+        controlsTimeoutRef.current = setTimeout(() => {
+            setShowControls(false);
+        }, 5000);
+    }, []);
+
+    // Handle TV interactions
+    useTVEventHandler((evt) => {
+        if (evt && evt.eventType !== 'blur' && evt.eventType !== 'focus') {
+            resetControlsTimer();
+        }
+    });
+
+    useEffect(() => {
+        resetControlsTimer(); // Initial show
+        return () => {
+            if (controlsTimeoutRef.current) {
+                clearTimeout(controlsTimeoutRef.current);
+            }
+        };
+    }, [resetControlsTimer]);
+
+    // Handle focus when controls are shown
+    useEffect(() => {
+        if (showControls && pauseButtonRef.current) {
+            const timer = setTimeout(() => {
+                pauseButtonRef.current?.setNativeProps({ hasTVPreferredFocus: true });
+            }, 100);
+            return () => clearTimeout(timer);
+        }
+    }, [showControls]);
 
     // Shrink animation for video
     const shrinkAnim = useRef(new Animated.Value(0)).current;
@@ -94,53 +164,112 @@ export default function VideoPlayerScreen() {
         }).start();
     }, [viewMode]);
 
-    const videoRef = useRef<Video>(null);
-    const [videoDurationMs, setVideoDurationMs] = useState(0);
+    // Use streamUrl directly from params — no API resolution needed
+    const videoSource = streamUrl
+        ? streamUrl
+        : 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+
+    const isStreamLoading = false; // No async loading needed
+
+    const player = useVideoPlayer(videoSource, (player) => {
+        player.loop = false;
+
+        
+        // Resume from saved position if provided
+        if (params.startTime && Number(params.startTime) > 0) {
+            player.currentTime = Number(params.startTime);
+        }
+        
+        player.play();
+    });
+
+    // Use player state instead of manual local state mirrors where possible
+    const [isBuffering, setIsBuffering] = useState(false);
+    const [isPlaying, setIsPlaying] = useState(true);
     const [currentTimeMs, setCurrentTimeMs] = useState(0);
-    const [isSeeking, setIsSeeking] = useState(false);
-    const [progressBarWidth, setProgressBarWidth] = useState(0);
+    const [durationMs, setDurationMs] = useState(0);
 
-    const onPlaybackStatusUpdate = (status: any) => {
-        if (!status.isLoaded) return;
+    const isSeekingRef = useRef(false);
 
-        if (!isSeeking) {
-            setVideoDurationMs(status.durationMillis || 0);
-            setCurrentTimeMs(status.positionMillis || 0);
-            setProgress(status.positionMillis / (status.durationMillis || 1));
-        }
+    useEffect(() => {
+        // Periodically update UI state from player properties
+        const interval = setInterval(() => {
+            if (!isSeekingRef.current) {
+                const current = player.currentTime * 1000;
+                const total = player.duration * 1000;
+
+                setCurrentTimeMs(current);
+                setDurationMs(total);
+                setIsPlaying(player.playing);
+                setIsBuffering(player.status === 'loading');
+
+                // Update tracks
+                setAvailableAudioTracks(player.availableAudioTracks);
+                setAvailableSubtitleTracks(player.availableSubtitleTracks);
+                setCurrentAudioTrack(player.audioTrack);
+                setCurrentSubtitleTrack(player.subtitleTrack);
+
+                // Update labels
+                setSelectedLanguage(player.audioTrack?.label || 'Default');
+                setSelectedCaption(player.subtitleTrack?.label || 'Off');
+
+                if (total > 0) {
+                    setProgress(current / total);
+                }
+
+                // Keep historyPlayerRef in sync so the 2-min interval
+                // can read currentTime without accessing player directly
+                historyPlayerRef.current = {
+                    currentTime: player.currentTime,
+                    duration: player.duration,
+                };
+            }
+        }, 1000);
+
+        return () => {
+            clearInterval(interval);
+        };
+    }, [player]);
+
+    // ── Autoplay ──────────────────────────────────────────────
+    const { isAutoplayEnabled } = useTab();
+
+    useEffect(() => {
+        const subscription = player.addListener('playToEnd', () => {
+            if (isSeries && isAutoplayEnabled) {
+                console.log('[VideoPlayer] Episode ended, triggering autoplay...');
+                handleSkipNext();
+            }
+        });
+        return () => subscription.remove();
+    }, [player, isSeries, isAutoplayEnabled, handleSkipNext]);
+
+
+    const handleSeek = (newProgress: number) => {
+        player.currentTime = newProgress * player.duration;
     };
 
-    const handleSeek = async (newProgress: number) => {
-        if (videoRef.current) {
-            const seekPosition = newProgress * videoDurationMs;
-            await videoRef.current.setPositionAsync(seekPosition);
-        }
-    };
+    // Watch History effect
+    useEffect(() => {
+        if (!streamUrl) return;
 
-    const panResponder = useRef(
-        PanResponder.create({
-            onStartShouldSetPanResponder: () => true,
-            onMoveShouldSetPanResponder: () => true,
-            onPanResponderGrant: () => {
-                setIsSeeking(true);
-            },
-            onPanResponderMove: (_, gestureState) => {
-                // Calculation relative to full screen width if needed, but better to use layout
-                const newProgress = Math.max(0, Math.min(1, gestureState.moveX / progressBarWidth));
-                setProgress(newProgress);
-                setCurrentTimeMs(newProgress * videoDurationMs);
-            },
-            onPanResponderRelease: async (_, gestureState) => {
-                const newProgress = Math.max(0, Math.min(1, gestureState.moveX / progressBarWidth));
-                await handleSeek(newProgress);
-                setIsSeeking(false);
-            },
-        })
-    ).current;
+        const item: WatchableItem = {
+            streamUrl: streamUrl,
+            name,
+            type: contentType,
+            tvgLogo: logo || undefined,
+            groupTitle: category,
+            contentType,
+            category,
+        };
 
-    const onProgressBarLayout = (event: LayoutChangeEvent) => {
-        setProgressBarWidth(event.nativeEvent.layout.width);
-    };
+        saveHistory(item, 0);
+        startProgressTracking(item, historyPlayerRef);
+
+        return () => {
+            stopProgressTracking();
+        };
+    }, [streamUrl]);
 
     // Time formatting
     const fmt = (ms: number) => {
@@ -151,7 +280,7 @@ export default function VideoPlayerScreen() {
         if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
         return `${m}:${String(sec).padStart(2, '0')}`;
     };
-    const totalFmt = fmt(videoDurationMs);
+    const totalFmt = fmt(durationMs);
     const currentFmt = fmt(currentTimeMs);
 
     const toggleSettings = () => {
@@ -162,80 +291,69 @@ export default function VideoPlayerScreen() {
         setViewMode(v => v === 'episodes' ? 'normal' : 'episodes');
     };
 
-    const handleSkipPrevious = async () => {
+    const handleSkipPrevious = () => {
         if (isSeries && currentEpisodeIndex > 0) {
-            setCurrentEpisodeIndex(currentEpisodeIndex - 1);
-            setProgress(0);
-            setIsPlaying(true);
-        } else if (videoRef.current) {
-            // Skip backward 10s for movies
-            const status = await videoRef.current.getStatusAsync();
-            if (status.isLoaded) {
-                const newPos = Math.max(0, status.positionMillis - 10000);
-                await videoRef.current.setPositionAsync(newPos);
-            }
+            const prevEp = episodes[currentEpisodeIndex - 1];
+            router.setParams({
+                id: prevEp.streamUrl,
+                streamUrl: prevEp.streamUrl,
+                name: prevEp.name,
+                startTime: '0',
+            });
+        } else {
+            player.seekBy(-10);
         }
     };
 
-    const handleSkipNext = async () => {
+
+    const handleSkipNext = () => {
         if (isSeries && currentEpisodeIndex < episodes.length - 1) {
-            setCurrentEpisodeIndex(currentEpisodeIndex + 1);
-            setProgress(0);
-            setIsPlaying(true);
-        } else if (videoRef.current) {
-            // Skip forward 10s for movies
-            const status = await videoRef.current.getStatusAsync();
-            if (status.isLoaded) {
-                const newPos = Math.min(videoDurationMs, status.positionMillis + 10000);
-                await videoRef.current.setPositionAsync(newPos);
-            }
+            const nextEp = episodes[currentEpisodeIndex + 1];
+            router.setParams({
+                id: nextEp.streamUrl,
+                streamUrl: nextEp.streamUrl,
+                name: nextEp.name,
+                startTime: '0',
+            });
+        } else {
+            player.seekBy(10);
         }
     };
 
-    const { data: streamUrl, isLoading: isStreamLoading } = useStreamUrl(
-        params.streamHash || null,
-        true
-    );
 
-    // If streamHash is provided, try to use it. Only use dummy as a last resort if it fails or isn't provided.
-    const videoSource = streamUrl
-        ? { uri: streamUrl }
-        : params.streamHash
-            ? null // Wait for fetch
-            : { uri: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' };
-
-    const handleSelectEpisode = (episodeIndex: number) => {
-        setCurrentEpisodeIndex(episodeIndex);
-        setProgress(0);
-        setIsPlaying(true);
+    const handleSelectEpisode = useCallback((episodeIndex: number) => {
+        const ep = episodes[episodeIndex];
+        router.setParams({
+            id: ep.streamUrl,
+            streamUrl: ep.streamUrl,
+            name: ep.name,
+            startTime: '0',
+        });
         setViewMode('normal');
-    };
+    }, [episodes, router]);
 
-    const renderEpisodeItem = ({ item, index }: { item: Episode, index: number }) => (
+
+    const renderEpisodeItem = useCallback(({ item, index }: { item: any, index: number }) => (
         <EpisodeCard
-            key={item.id}
+            key={item.streamUrl || index}
             variant="mini"
-            number={item.number}
-            title={item.title}
-            description={item.description}
-            duration={item.duration}
-            image={item.image}
-            progress={item.progress}
+            number={item.episodeNumber || item.number}
+            title={item.name}
+            description={params.description || ""}
+            duration={""}
+            image={item.tvgLogo || item.image || logo}
+            progress={undefined}
             isPlaying={index === currentEpisodeIndex}
             onPress={() => handleSelectEpisode(index)}
         />
-    );
+    ), [currentEpisodeIndex, handleSelectEpisode, logo, params.description]);
+
 
     const { setParentalModalVisible } = useTab();
 
     const videoWidth = shrinkAnim.interpolate({
         inputRange: [0, 1],
         outputRange: ['100%', '68%'],
-    });
-
-    const videoTranslateX = shrinkAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: [0, -xdWidth(20)],
     });
 
     return (
@@ -252,45 +370,68 @@ export default function VideoPlayerScreen() {
                 ]}>
                     <View style={styles.videoWrapper}>
                         {videoSource && (
-                            <Video
-                                ref={videoRef}
-                                source={videoSource}
+                            <VideoView
+                                key={streamUrl}
+                                player={player}
                                 style={styles.videoBg}
-                                resizeMode={ResizeMode.COVER}
-                                shouldPlay={isPlaying}
-                                isLooping
-                                useNativeControls={false}
-                                onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+                                contentFit="cover"
+                                nativeControls={false}
+                                fullscreenOptions={{ enable: false }}
+                                allowsPictureInPicture={false}
                             />
                         )}
+
                         {!videoSource && (
                             <View style={[styles.videoBg, { backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }]}>
-                                <Text style={{ color: '#fff' }}>{isStreamLoading ? 'Loading Stream...' : 'No Stream Available'}</Text>
+                                <Text style={{ color: '#fff' }}>{'No Stream Available'}</Text>
                             </View>
                         )}
+
+                        {(isStreamLoading || isBuffering) && (
+                            <View style={styles.loadingOverlay}>
+                                <ActivityIndicator size="large" color="#E0334C" />
+                            </View>
+                        )}
+
                         <View style={styles.vignette} />
 
-                        {/* Controls (only show in normal mode or as mini controls) */}
-                        <View style={styles.overlayControls}>
+                        {/* Controls (only show in normal mode) */}
+                        <View
+                            style={[
+                                styles.overlayControls,
+                                !showControls && { opacity: 0, pointerEvents: 'none' }
+                            ]}
+                        >
                             {/* Top Info */}
                             <View style={styles.topInfo}>
-                                <Text style={styles.videoTitle}>{title}</Text>
+                                <Text style={styles.videoTitle}>{name}</Text>
                                 <Text style={styles.videoMeta}>
-                                    {isSeries ? 'Brooklyn Nine-Nine • S1 • EP 1' : `${genre} • ${year} • ${duration}`}
+                                    {isSeries ? `${name} • S1 • EP ${currentEpisodeIndex + 1}` : `${category} • ${year} • ${duration}`}
                                 </Text>
                             </View>
 
                             {/* Bottom controls */}
                             <View style={styles.controlsBar}>
                                 <View style={styles.progressRow}>
-                                    <View
-                                        style={styles.progressBg}
-                                        onLayout={onProgressBarLayout}
-                                        {...panResponder.panHandlers}
-                                    >
-                                        <View style={[styles.progressFill, { width: `${progress * 100}%` as any }]} />
-                                        <View style={[styles.progressKnob, { left: `${progress * 100}%` as any }]} />
-                                    </View>
+                                    <Slider
+                                        style={styles.slider}
+                                        value={progress}
+                                        minimumValue={0}
+                                        maximumValue={1}
+                                        step={0.001}
+                                        minimumTrackTintColor="#E0334C"
+                                        maximumTrackTintColor="rgba(255,255,255,0.2)"
+                                        thumbTintColor="#E0334C"
+                                        onSlidingStart={() => { isSeekingRef.current = true; }}
+                                        onValueChange={(val) => {
+                                            setProgress(val);
+                                            setCurrentTimeMs(val * (player.duration * 1000));
+                                        }}
+                                        onSlidingComplete={(val) => {
+                                            handleSeek(val);
+                                            isSeekingRef.current = false;
+                                        }}
+                                    />
                                     <Text style={styles.timeLabel}>{currentFmt} / {totalFmt}</Text>
                                 </View>
 
@@ -302,9 +443,11 @@ export default function VideoPlayerScreen() {
                                             disabled={isSeries && currentEpisodeIndex === 0}
                                         />
                                         <NavIconButton
+                                            innerRef={pauseButtonRef}
                                             icon={<MaterialCommunityIcons name={isPlaying ? 'pause' : 'play'} size={scale(24)} />}
-                                            onPress={() => setIsPlaying(!isPlaying)}
+                                            onPress={() => isPlaying ? player.pause() : player.play()}
                                             style={styles.playBtn}
+                                            hasTVPreferredFocus={showControls}
                                         />
                                         <NavIconButton
                                             icon={<MaterialCommunityIcons name="skip-next" size={scale(24)} />}
@@ -323,6 +466,19 @@ export default function VideoPlayerScreen() {
                                         )}
                                         <NavIconButton
                                             icon={<MaterialCommunityIcons name="closed-caption-outline" size={scale(20)} />}
+                                            isActive={viewMode === 'settings' && settingsPanel === 'caption'}
+                                            onPress={() => {
+                                                setViewMode('settings');
+                                                setSettingsPanel('caption');
+                                            }}
+                                        />
+                                        <NavIconButton
+                                            icon={<MaterialCommunityIcons name="translate" size={scale(20)} />}
+                                            isActive={viewMode === 'settings' && settingsPanel === 'language'}
+                                            onPress={() => {
+                                                setViewMode('settings');
+                                                setSettingsPanel('language');
+                                            }}
                                         />
                                         <NavIconButton
                                             icon={<MaterialCommunityIcons name={isLocked ? "lock" : "lock-open-outline"} size={scale(20)} />}
@@ -337,7 +493,7 @@ export default function VideoPlayerScreen() {
                                         />
                                         <NavIconButton
                                             icon={<MaterialCommunityIcons name="cog-outline" size={scale(20)} />}
-                                            isActive={viewMode === 'settings'}
+                                            isActive={viewMode === 'settings' && settingsPanel === 'main'}
                                             onPress={toggleSettings}
                                         />
                                     </View>
@@ -366,7 +522,7 @@ export default function VideoPlayerScreen() {
                                         <SettingCard
                                             icon={<MaterialCommunityIcons name="translate" size={scale(22)} color="#ccc" />}
                                             title="Language"
-                                            subtitle="Not Available"
+                                            subtitle={selectedLanguage}
                                             onPress={() => setSettingsPanel('language')}
                                         />
                                     </View>
@@ -374,19 +530,37 @@ export default function VideoPlayerScreen() {
 
                                 {settingsPanel === 'caption' && (
                                     <View style={styles.settingsList}>
-                                        {['Off', 'English', 'Hindi'].map((opt) => (
+                                        <SettingCard
+                                            icon={
+                                                <MaterialCommunityIcons
+                                                    name={currentSubtitleTrack === null ? 'check-circle' : 'circle-outline'}
+                                                    size={scale(22)}
+                                                    color={currentSubtitleTrack === null ? '#fff' : '#666'}
+                                                />
+                                            }
+                                            title="Off"
+                                            subtitle={currentSubtitleTrack === null ? 'Selected' : ''}
+                                            onPress={() => {
+                                                player.subtitleTrack = null;
+                                                setSettingsPanel('main');
+                                            }}
+                                        />
+                                        {availableSubtitleTracks.map((track, idx) => (
                                             <SettingCard
-                                                key={opt}
+                                                key={`${track.language}-${idx}`}
                                                 icon={
                                                     <MaterialCommunityIcons
-                                                        name={selectedCaption === opt ? 'check-circle' : 'circle-outline'}
+                                                        name={currentSubtitleTrack?.label === track.label ? 'check-circle' : 'circle-outline'}
                                                         size={scale(22)}
-                                                        color={selectedCaption === opt ? '#fff' : '#666'}
+                                                        color={currentSubtitleTrack?.label === track.label ? '#fff' : '#666'}
                                                     />
                                                 }
-                                                title={opt}
-                                                subtitle={selectedCaption === opt ? 'Selected' : ''}
-                                                onPress={() => { setSelectedCaption(opt); setSettingsPanel('main'); }}
+                                                title={track.label || track.language || `Track ${idx + 1}`}
+                                                subtitle={currentSubtitleTrack?.label === track.label ? 'Selected' : ''}
+                                                onPress={() => {
+                                                    player.subtitleTrack = track;
+                                                    setSettingsPanel('main');
+                                                }}
                                             />
                                         ))}
                                     </View>
@@ -394,19 +568,22 @@ export default function VideoPlayerScreen() {
 
                                 {settingsPanel === 'language' && (
                                     <View style={styles.settingsList}>
-                                        {['English', 'German', 'Hindi'].map((opt) => (
+                                        {availableAudioTracks.map((track, idx) => (
                                             <SettingCard
-                                                key={opt}
+                                                key={`${track.language}-${idx}`}
                                                 icon={
                                                     <MaterialCommunityIcons
-                                                        name={selectedLanguage === opt ? 'check-circle' : 'circle-outline'}
+                                                        name={currentAudioTrack?.label === track.label ? 'check-circle' : 'circle-outline'}
                                                         size={scale(22)}
-                                                        color={selectedLanguage === opt ? '#fff' : '#666'}
+                                                        color={currentAudioTrack?.label === track.label ? '#fff' : '#666'}
                                                     />
                                                 }
-                                                title={opt}
-                                                subtitle={selectedLanguage === opt ? 'Selected' : ''}
-                                                onPress={() => { setSelectedLanguage(opt); setSettingsPanel('main'); }}
+                                                title={track.label || track.language || `Track ${idx + 1}`}
+                                                subtitle={currentAudioTrack?.label === track.label ? 'Selected' : ''}
+                                                onPress={() => {
+                                                    player.audioTrack = track;
+                                                    setSettingsPanel('main');
+                                                }}
                                             />
                                         ))}
                                     </View>
@@ -419,9 +596,10 @@ export default function VideoPlayerScreen() {
                                 <FlatList
                                     showsVerticalScrollIndicator={false}
                                     data={episodes}
-                                    keyExtractor={(item) => item.id}
+                                    keyExtractor={(item: any, index) => item.streamUrl || `${index}`}
                                     renderItem={renderEpisodeItem}
                                 />
+
                             </View>
                         )}
                     </View>
@@ -450,6 +628,13 @@ const styles = StyleSheet.create({
     },
     videoBg: {
         ...StyleSheet.absoluteFillObject,
+    },
+    loadingOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10,
     },
     vignette: {
         ...StyleSheet.absoluteFillObject,
@@ -481,26 +666,9 @@ const styles = StyleSheet.create({
         gap: 12,
         marginBottom: 16,
     },
-    progressBg: {
+    slider: {
         flex: 1,
-        height: 6,
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        borderRadius: 3,
-        position: 'relative',
-    },
-    progressFill: {
-        height: '100%',
-        backgroundColor: '#E0334C',
-        borderRadius: 3,
-    },
-    progressKnob: {
-        position: 'absolute',
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-        backgroundColor: '#E0334C',
-        top: -3,
-        marginLeft: -6,
+        height: 40,        // tall enough for comfortable touch/D-pad target
     },
     timeLabel: {
         fontSize: scale(11),

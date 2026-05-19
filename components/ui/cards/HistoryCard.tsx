@@ -132,7 +132,7 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({
 
 const styles = StyleSheet.create({
     card: {
-        width: WIDTH,
+        flex: 1,
         height: HEIGHT,
         flexDirection: 'row',
         backgroundColor: Colors.dark[10],

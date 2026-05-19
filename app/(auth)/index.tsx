@@ -317,6 +317,9 @@ const ActivationScreen = () => {
                         </View>
                     )}
                 </View>
+
+
+
             </View>
 
         </View>

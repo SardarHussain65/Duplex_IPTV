@@ -2,46 +2,66 @@ export type FavoriteType = 'Live TV' | 'Movies' | 'Series';
 
 export interface FavoriteItem {
     id: string;
-    title: string;
+    name: string;
     type: FavoriteType;
-    image: string;
-    subtitle?: string;
-    genre?: string;
+    logo: string;
+    category?: string;
     year?: string;
     duration?: string;
     season?: string;
     description?: string;
+    tvgId?: string;
+    streamUrl?: string;
 }
+
 
 export type Channel = {
     id: string;
     name: string;
     category: string;
-    image: string;
-    streamHash: string;
+    logo: string;
+    streamUrl: string;
+    tvgId?: string;
+    contentType?: string;
 };
 
 export type Movie = {
     id: string;
-    title: string;
-    genre: string;
+    name: string;
+    category: string;
     year: string;
     duration: string;
-    image: string;
+    logo: string;
     description: string;
-    streamHash: string;
+    streamUrl: string;
+    tvgId?: string;
+    contentType?: string;
+};
+
+export type SeriesEpisode = {
+    name: string;
+    seasonNumber: number;
+    episodeNumber: number;
+    streamUrl: string;
+    tvgLogo?: string;
+    seriesTitle?: string;
 };
 
 export type Series = {
     id: string;
-    title: string;
-    genre: string;
+    name: string;
+    category: string;
     year: string;
     season: string;
-    image: string;
+    logo: string;
     description: string;
-    streamHash: string;
+    streamUrl: string;
+    tvgId?: string;
+    contentType?: string;
+    seriesTitle?: string;
+    episodes?: SeriesEpisode[];
 };
+
 
 export type EPGSlot = {
     id: string;

@@ -14,12 +14,15 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     ScrollView,
     StyleSheet,
     Text,
     View
 } from 'react-native';
+
+import { useFavorites, useParentalControls, useWatchHistory } from '@/lib/api';
 
 // ── Mock cast data ─────────────────────────────────────────────
 const CAST = [
@@ -35,21 +38,53 @@ const CAST = [
 // ── Screen ─────────────────────────────────────────────────────
 
 export default function MovieDetailScreen() {
+    const { t } = useTranslation();
     const router = useRouter();
     const { setIsScrolled } = useTab();
     const params = useLocalSearchParams<{
         id: string;
-        title: string;
-        genre: string;
-        year: string;
-        duration: string;
-        image: string;
-        description: string;
-        streamHash?: string;
+        name?: string;
+        category?: string;
+        year?: string;
+        duration?: string;
+        logo?: string;
+        description?: string;
+        streamUrl?: string;
+        tvgId?: string;
+        contentType?: string;
+        startTime?: string;
     }>();
 
-    const [isFavorite, setIsFavorite] = useState(false);
-    const [isLocked, setIsLocked] = useState(false);
+
+    const { useGetFavorites, addFavorite, removeFavorite, isAdding, isRemoving } = useFavorites();
+    const { data: favData } = useGetFavorites({ type: 'MOVIE' });
+
+    const favoriteItem = favData?.getFavorites?.items?.find(item =>
+        item?.metadata?.streamUrl === params.streamUrl || item?.metadata?.streamHash === params.streamUrl || item.id === params.id
+    );
+    const isFavorite = !!favoriteItem;
+
+    const { useGetParentalControls, addParentalControl, removeParentalControl, isAdding: isAddingParental } = useParentalControls();
+    const { data: parentalData } = useGetParentalControls({ type: 'MOVIE' });
+
+    const parentalItem = parentalData?.getParentalControls?.items?.find(item =>
+        item?.metadata?.streamUrl === params.streamUrl || item?.metadata?.streamHash === params.streamUrl || item.id === params.id
+    );
+    const isLocked = !!parentalItem;
+
+    // ── Watch History ─────────────────────────────────────────
+    const { useGetWatchHistory } = useWatchHistory();
+    const { data: historyData } = useGetWatchHistory({ type: 'MOVIE' });
+
+    // Find this movie in history to get current progress
+    const historyItem = historyData?.getWatchHistory?.items?.find(item =>
+        item.externalId === params.streamUrl || item.id === params.id
+    );
+
+    // Use startTime from params (higher priority) or from history
+    const resumeTime = params.startTime ? Number(params.startTime) : (historyItem?.currentTime ?? 0);
+    const watchedPercent = historyItem?.watchedPercent ?? 0;
+
     const { setParentalModalVisible } = useTab();
 
     useEffect(() => {
@@ -57,11 +92,11 @@ export default function MovieDetailScreen() {
         return () => setIsScrolled(false);
     }, []);
 
-    const title = params.title ?? '96 Minutes';
-    const genre = params.genre ?? 'Action / Thriller';
+    const name = params.name ?? '96 Minutes';
+    const category = params.category ?? 'Action / Thriller';
     const year = params.year ?? '2021';
     const duration = params.duration ?? '1h 48m';
-    const image = params.image ?? '';
+    const logo = params.logo ?? '';
     const description =
         params.description ??
         'A skilled investigator is pulled into a high-risk case after a series of unexplained crimes disturb the city. As the pressure mounts, hidden connections begin to surface, revealing a powerful network working behind the scenes. With limited time and rising danger, every decision pushes him closer to the truth, forcing him to choose between justice, sacrifice, and survival before everything falls apart.';
@@ -71,12 +106,66 @@ export default function MovieDetailScreen() {
         setIsScrolled(offsetY > xdHeight(60));
     };
 
+    const handleFavoritePress = async () => {
+        try {
+            if (isFavorite && favoriteItem) {
+                await removeFavorite(favoriteItem.id);
+            } else {
+                await addFavorite({
+                    name: name,
+                    type: 'MOVIE',
+                    metadata: {
+                        name: name,
+                        tvgId: params.tvgId || '',
+                        tvgName: name,
+                        tvgLogo: logo,
+                        groupTitle: category,
+                        contentType: params.contentType || 'MOVIE',
+                        category: category,
+                        genre: category,
+                        releaseYear: year,
+                        streamUrl: params.streamUrl || params.id || '',
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Failed to toggle favorite:', error);
+        }
+    };
+
+    const handleParentalLockPress = async () => {
+        try {
+            if (isLocked && parentalItem) {
+                await removeParentalControl(parentalItem.id);
+            } else {
+                await addParentalControl({
+                    name: name,
+                    type: 'MOVIE',
+                    metadata: {
+                        name: name,
+                        tvgId: params.tvgId || '',
+                        tvgName: name,
+                        tvgLogo: logo,
+                        groupTitle: category,
+                        contentType: params.contentType || 'MOVIE',
+                        category: category,
+                        genre: category,
+                        releaseYear: year,
+                        streamUrl: params.streamUrl || params.id || '',
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Failed to toggle parental control:', error);
+        }
+    };
+
     return (
         <View style={styles.screen}>
             {/* ── Full-screen blurred background ── */}
-            {image ? (
+            {logo ? (
                 <Image
-                    source={{ uri: image }}
+                    source={{ uri: logo }}
                     style={styles.bgImage}
                     contentFit="cover"
                     blurRadius={60}
@@ -94,17 +183,19 @@ export default function MovieDetailScreen() {
                 <View style={styles.mainRow}>
                     {/* Left: Poster */}
                     <View style={styles.posterWrapper}>
-                        {image ? (
+                        {logo ? (
                             <View>
                                 <Image
-                                    source={{ uri: image }}
+                                    source={{ uri: logo }}
                                     style={styles.poster}
                                     contentFit="cover"
                                 />
                                 {/* Progress Bar on Poster */}
-                                <View style={styles.posterProgressTrack}>
-                                    <View style={[styles.posterProgressBar, { width: '65%' }]} />
-                                </View>
+                                {watchedPercent > 0 && (
+                                    <View style={styles.posterProgressTrack}>
+                                        <View style={[styles.posterProgressBar, { width: `${watchedPercent}%` }]} />
+                                    </View>
+                                )}
                             </View>
                         ) : (
                             <View style={[styles.poster, styles.posterPlaceholder]} />
@@ -115,11 +206,11 @@ export default function MovieDetailScreen() {
                     <View style={styles.infoPanel}>
                         {/* Meta */}
                         <Text style={styles.metaText}>
-                            {genre}{'  •  '}{year}{'  •  '}{duration}
+                            {category}{'  •  '}{year}{'  •  '}{duration}
                         </Text>
 
                         {/* Title */}
-                        <Text style={styles.title}>{title}</Text>
+                        <Text style={styles.title}>{name}</Text>
 
                         {/* Rating + Age badge */}
                         <View style={styles.ratingRow}>
@@ -144,17 +235,18 @@ export default function MovieDetailScreen() {
                                         pathname: '/player/[id]',
                                         params: {
                                             id: params.id || 'movie',
-                                            title,
-                                            genre,
+                                            name,
+                                            category,
                                             year,
                                             duration,
-                                            image,
-                                            streamHash: params.streamHash,
+                                            logo,
+                                            streamUrl: params.streamUrl || params.id,
+                                            startTime: String(resumeTime),
                                         },
                                     })
                                 }
                             >
-                                Watch Now
+                                {t('common.watchNow')}
                             </NavButton>
 
                             <NavIconButton
@@ -167,24 +259,27 @@ export default function MovieDetailScreen() {
                                 }
                                 isActive={isFavorite}
                                 activeBackgroundColor="#E0334C"
-                                onPress={() => setIsFavorite((v) => !v)}
+                                onPress={handleFavoritePress}
+                                disabled={isAdding}
                             />
                             <NavIconButton
                                 icon={
                                     <MaterialCommunityIcons
                                         name={isLocked ? 'lock' : 'lock-open-outline'}
                                         size={scale(20)}
-                                        color={Colors.gray[300]}
+                                        color={isLocked ? '#E0334C' : Colors.gray[300]}
                                     />
                                 }
                                 isActive={isLocked}
-                                onPress={() => setParentalModalVisible(true)}
+                                activeBackgroundColor="#E0334C"
+                                onPress={handleParentalLockPress}
+                                disabled={isAddingParental}
                             />
                         </View>
 
                         {/* Cast */}
                         <View style={styles.castRow}>
-                            <Text style={styles.castLabel}>Cast:</Text>
+                            <Text style={styles.castLabel}>{t('detail.cast')}</Text>
                             <Text style={styles.castNames} numberOfLines={2}>
                                 {CAST.join('  •  ')}
                             </Text>

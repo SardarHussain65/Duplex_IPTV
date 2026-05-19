@@ -23,22 +23,53 @@ export function useSeries() {
             pathname: '/series-detail/[id]',
             params: {
                 id: series.id,
-                title: series.title,
-                genre: series.genre,
+                name: series.name,
+                category: series.category,
                 year: series.year,
                 season: series.season,
-                image: series.image,
+                logo: series.logo,
                 description: series.description,
-                streamHash: series.streamHash,
+                streamUrl: series.streamUrl,
+                tvgId: series.tvgId,
+                contentType: series.contentType,
+                seriesTitle: series.seriesTitle,
+                episodes: JSON.stringify(series.episodes || []),
             },
         });
     };
 
+    const handleWatchNow = (series: Series) => {
+        // Use the first episode's stream hash if available, otherwise fallback to series streamHash
+        const firstEpisode = series.episodes?.[0];
+        const streamUrl = firstEpisode?.streamUrl || series.streamUrl;
+
+        router.push({
+            pathname: '/player/[id]',
+            params: {
+                id: series.id,
+                name: firstEpisode?.name || series.name,
+                category: series.category,
+                year: series.year,
+                duration: series.season,
+                logo: series.logo,
+                isSeries: 'true',
+                streamUrl: streamUrl,
+                contentType: 'SERIES',
+                episodes: JSON.stringify(series.episodes || []),
+            },
+        });
+    };
+
+    const goToHero = (index: number) => {
+        setHeroIndex(index);
+    };
+
+
     const filteredSeries = useMemo(() => {
         let result = MOCK_SERIES;
         if (searchQuery.trim()) {
-            result = result.filter((s) =>
-                s.title.toLowerCase().includes(searchQuery.toLowerCase())
+            result = result.filter((s: any) =>
+                ((s.name || s.title) || '').toLowerCase().includes(searchQuery.toLowerCase())
             );
         }
         return result;
@@ -58,6 +89,8 @@ export function useSeries() {
         setHeroIndex,
         currentHero,
         handleSeriesPress,
+        handleWatchNow,
+        goToHero,
         filteredSeries,
         handleScroll,
     };

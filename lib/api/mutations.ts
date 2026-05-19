@@ -1,5 +1,6 @@
 import { gql } from '@apollo/client';
 
+
 export const GENERATE_DEVICE_ID = gql`
   mutation GenerateDeviceId($input: GenerateDeviceIdInput!) {
     generateDeviceId(input: $input) {
@@ -8,6 +9,7 @@ export const GENERATE_DEVICE_ID = gql`
         hasUsedTrial
         isTrial
         deviceKey
+        status
       }
       subscription {
         id
@@ -44,5 +46,95 @@ export const CREATE_PLAYLIST = gql`
 export const VERIFY_PLAYLIST_PIN = gql`
   mutation VerifyPlaylistPin($input: VerifyPlaylistPinInput!) {
     verifyPlaylistPin(input: $input)
+  }
+`;
+
+export const ADD_FAVORITE = gql`
+  mutation AddFavorite($input: CreateFavoriteInput!) {
+    addFavorite(input: $input) {
+      deviceId
+      id
+      name
+      type
+    }
+  }
+`;
+
+export const REMOVE_FAVORITE = gql`
+  mutation RemoveFavorite($removeFavoriteId: ID!) {
+    removeFavorite(id: $removeFavoriteId)
+  }
+`;
+
+export const SAVE_WATCH_HISTORY = gql`
+  mutation SaveWatchHistory($input: CreateWatchHistoryInput!) {
+    saveWatchHistory(input: $input) {
+      id
+      name
+      metadata
+    }
+  }
+`;
+
+export const CLEAR_WATCH_HISTORY = gql`
+  mutation ClearWatchHistory($playlistId: ID!, $type: ContentType) {
+    clearWatchHistory(playlistId: $playlistId, type: $type)
+  }
+`;
+
+export const ADD_PARENTAL_CONTROL = gql`
+  mutation AddParentalControl($input: CreateParentalControlInput!) {
+    addParentalControl(input: $input) {
+      deviceId
+      id
+      name
+      type
+    }
+  }
+`;
+
+export const REMOVE_PARENTAL_CONTROL = gql`
+  mutation RemoveParentalControl($input: RemoveParentalControlInput!) {
+    removeParentalControl(input: $input)
+  }
+`;
+
+export const AUTOPLAY_TOGGLE = gql`
+  mutation AutoplayToggle($autoplay: Boolean!, $playlistId: String!) {
+    autoplayToggle(autoplay: $autoplay, playlistId: $playlistId) {
+      autoplay
+      playlistId
+      createdAt
+    }
+  }
+`;
+
+export const SET_PARENTAL_CONTROL_PIN = gql`
+  mutation SetParentalControlPin($input: VerifyPlaylistPinInput!) {
+    setParentalControlPin(input: $input)
+  }
+`;
+
+export const VERIFY_PARENTAL_CONTROL_PIN = gql`
+  mutation VerifyParentalControlPin($input: VerifyPlaylistPinInput!) {
+    verifyParentalControlPin(input: $input)
+  }
+`;
+
+export const TOGGLE_PARENTAL_CONTROL = gql`
+  mutation ToggleParentalControl($playlistId: ID!) {
+    toggleParentalControl(playlistId: $playlistId) {
+      id
+      isRestricted
+    }
+  }
+`;
+
+export const RENAME_PLAYLIST_CATEGORY = gql`
+  mutation RenamePlaylistCategory($input: RenameCategoryInput!) {
+    renamePlaylistCategory(input: $input) {
+      category
+      renamedCategory
+    }
   }
 `;

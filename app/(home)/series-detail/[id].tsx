@@ -15,7 +15,8 @@ import { useTab } from '@/context/TabContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+
 import {
     FlatList,
     ScrollView,
@@ -23,6 +24,9 @@ import {
     Text,
     View
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
+
+import { useFavorites, useParentalControls, useWatchHistory } from '@/lib/api';
 
 // ── Types ──────────────────────────────────────────────────────
 type Episode = {
@@ -33,7 +37,9 @@ type Episode = {
     duration: string;
     image: string;
     progress?: number; // 0-1, undefined = not started
+    streamHash?: string;
 };
+
 
 // ── Mock Data ──────────────────────────────────────────────────
 const CAST = [
@@ -69,21 +75,54 @@ const generateEpisodes = (season: number): Episode[] =>
 // ── Screen ─────────────────────────────────────────────────────
 
 export default function SeriesDetailScreen() {
+    const { t } = useTranslation();
     const router = useRouter();
     const { setIsScrolled, setParentalModalVisible } = useTab();
     const params = useLocalSearchParams<{
         id: string;
-        title: string;
-        genre: string;
+        name: string;
+        category: string;
         year: string;
         season: string;
-        image: string;
+        logo: string;
         description: string;
-        streamHash?: string;
+        streamUrl?: string;
+        tvgId?: string;
+        contentType?: string;
+        seriesTitle?: string;
+        startTime?: string;
+        episodes?: string;
     }>();
 
-    const [isFavorite, setIsFavorite] = useState(false);
-    const [isLocked, setIsLocked] = useState(false);
+
+    const { useGetFavorites, addFavorite, removeFavorite, isAdding, isRemoving } = useFavorites();
+    const { data: favData } = useGetFavorites({ type: 'SERIES' });
+
+    const favoriteItem = favData?.getFavorites?.items?.find(item => 
+        item?.metadata?.streamUrl === params.streamUrl || item?.metadata?.streamHash === params.streamUrl || item.id === params.id
+    );
+    const isFavorite = !!favoriteItem;
+
+    const { useGetParentalControls, addParentalControl, removeParentalControl, isAdding: isAddingParental } = useParentalControls();
+    const { data: parentalData } = useGetParentalControls({ type: 'SERIES' });
+    const parentalItem = parentalData?.getParentalControls?.items?.find(item =>
+        item?.metadata?.streamUrl === params.streamUrl || item?.metadata?.streamHash === params.streamUrl || item.id === params.id
+    );
+    const isLocked = !!parentalItem;
+
+    // ── Watch History ─────────────────────────────────────────
+    const { useGetWatchHistory } = useWatchHistory();
+    const { data: historyData } = useGetWatchHistory({ type: 'SERIES' });
+
+    // Find this series in history
+    const historyItem = historyData?.getWatchHistory?.items?.find(item =>
+        item.externalId === params.streamUrl || item.id === params.id
+    );
+
+    // Use startTime from params (higher priority) or from history
+    const resumeTime = params.startTime ? Number(params.startTime) : (historyItem?.currentTime ?? 0);
+    const watchedPercent = historyItem?.watchedPercent ?? 0;
+
     const [activeSeason, setActiveSeason] = useState(0);
 
     useEffect(() => {
@@ -91,22 +130,108 @@ export default function SeriesDetailScreen() {
         return () => setIsScrolled(false);
     }, []);
 
-    const title = params.title ?? 'Brooklyn Nine-Nine';
-    const genre = params.genre ?? 'Action / Thriller';
+    const name = params.name ?? 'Brooklyn Nine-Nine';
+    const category = params.category ?? 'Action / Thriller';
     const year = params.year ?? '2021';
     const season = params.season ?? 'S4';
-    const image = params.image ?? '';
+    const logo = params.logo ?? '';
     const description =
         params.description ??
         'Set in a modern city, this series follows a group of individuals whose lives secretly intersect through crime, power, and ambition. Each episode uncovers new layers of mystery, personal conflict, and unexpected alliances. As tensions rise across multiple seasons, hidden motives are revealed, relationships are tested, and one wrong move can change everything forever.';
 
-    console.log(`[SeriesDetailScreen] title: ${title}, streamHash: ${params.streamHash}`);
+    console.log(`[SeriesDetailScreen] name: ${name}, streamUrl: ${params.streamUrl}`);
 
-    const episodes = generateEpisodes(activeSeason + 1);
+    const allEpisodes = useMemo(() => {
+        try {
+            return params.episodes ? JSON.parse(params.episodes) : [];
+        } catch (e) {
+            console.error('Failed to parse episodes:', e);
+            return [];
+        }
+    }, [params.episodes]);
+
+    const seasons = useMemo(() => {
+        const s = new Set<number>();
+        allEpisodes.forEach((ep: any) => s.add(ep.seasonNumber || 1));
+        return Array.from(s).sort((a, b) => a - b);
+    }, [allEpisodes]);
+
+    const episodes = useMemo(() => {
+        const seasonNum = seasons[activeSeason] || 1;
+        return allEpisodes
+            .filter((ep: any) => (ep.seasonNumber || 1) === seasonNum)
+            .map((ep: any) => ({
+                id: `${ep.streamUrl}-${ep.seasonNumber}-${ep.episodeNumber}`,
+                number: ep.episodeNumber,
+                title: ep.name,
+                description: params.description || '',
+                duration: "",
+                image: ep.tvgLogo || logo,
+                streamUrl: ep.streamUrl,
+            }));
+
+    }, [allEpisodes, activeSeason, seasons, logo, params.description]);
+
 
     const handleScroll = (event: any) => {
         const offsetY = event.nativeEvent.contentOffset.y;
         setIsScrolled(offsetY > xdHeight(60));
+    };
+
+    const handleFavoritePress = async () => {
+        try {
+            if (isFavorite && favoriteItem) {
+                await removeFavorite(favoriteItem.id);
+            } else {
+                await addFavorite({
+                    name: name,
+                    type: 'SERIES',
+                    metadata: {
+                        name: name,
+                        tvgId: params.tvgId || '',
+                        tvgName: name,
+                        tvgLogo: logo,
+                        groupTitle: category,
+                        contentType: params.contentType || 'SERIES',
+                        category: category,
+                        genre: category,
+                        seriesTitle: params.seriesTitle || name,
+                        releaseYear: year,
+                        streamUrl: params.streamUrl || params.id || '',
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Failed to toggle favorite:', error);
+        }
+    };
+
+    const handleParentalLockPress = async () => {
+        try {
+            if (isLocked && parentalItem) {
+                await removeParentalControl(parentalItem.id);
+            } else {
+                await addParentalControl({
+                    name: name,
+                    type: 'SERIES',
+                    metadata: {
+                        name: name,
+                        tvgId: params.tvgId || '',
+                        tvgName: name,
+                        tvgLogo: logo,
+                        groupTitle: category,
+                        contentType: params.contentType || 'SERIES',
+                        category: category,
+                        genre: category,
+                        seriesTitle: params.seriesTitle || name,
+                        releaseYear: year,
+                        streamUrl: params.streamUrl || params.id || '',
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Failed to toggle parental control:', error);
+        }
     };
 
     const renderEpisodeItem = ({ item }: { item: Episode }) => (
@@ -123,18 +248,21 @@ export default function SeriesDetailScreen() {
                     pathname: '/player/[id]',
                     params: {
                         id: item.id,
-                        title: item.title,
-                        genre,
+                        name: item.title,
+                        category,
                         year,
                         duration: item.duration,
-                        image: item.image,
+                        logo: item.image,
                         isSeries: 'true',
-                        streamHash: params.streamHash, // Assuming episodes share the same hash for now or have their own
+                        streamUrl: item.streamUrl || params.streamUrl,
+                        episodes: params.episodes, // Pass the same episodes string
                     },
                 })
             }
+
         />
     );
+
 
     return (
         <ScrollView
@@ -145,9 +273,9 @@ export default function SeriesDetailScreen() {
             scrollEventThrottle={16}
         >
             {/* ── Full-screen blurred background ── */}
-            {image ? (
+            {logo ? (
                 <Image
-                    source={{ uri: image }}
+                    source={{ uri: logo }}
                     style={styles.bgImage}
                     contentFit="cover"
                     blurRadius={55}
@@ -159,17 +287,19 @@ export default function SeriesDetailScreen() {
             <View style={styles.mainRow}>
                 {/* Left: Poster */}
                 <View style={styles.posterWrapper}>
-                    {image ? (
+                    {logo ? (
                         <View>
                             <Image
-                                source={{ uri: image }}
+                                source={{ uri: logo }}
                                 style={styles.poster}
                                 contentFit="cover"
                             />
                             {/* Progress Bar on Poster */}
-                            <View style={styles.posterProgressTrack}>
-                                <View style={[styles.posterProgressBar, { width: '45%' }]} />
-                            </View>
+                            {watchedPercent > 0 && (
+                                <View style={styles.posterProgressTrack}>
+                                    <View style={[styles.posterProgressBar, { width: `${watchedPercent}%` }]} />
+                                </View>
+                            )}
                         </View>
                     ) : (
                         <View style={[styles.poster, styles.posterPlaceholder]} />
@@ -179,9 +309,9 @@ export default function SeriesDetailScreen() {
                 {/* Right: Info */}
                 <View style={styles.infoPanel}>
                     <Text style={styles.metaText}>
-                        {genre}{'  •  '}{year}{'  •  '}{season}
+                        {category}{'  •  '}{year}{'  •  '}{season}
                     </Text>
-                    <Text style={styles.title}>{title}</Text>
+                    <Text style={styles.title}>{name}</Text>
 
                     {/* Rating + Age */}
                     <View style={styles.ratingRow}>
@@ -200,23 +330,53 @@ export default function SeriesDetailScreen() {
                     <View style={styles.actionRow}>
                         <NavButton
                             icon={<MaterialCommunityIcons name="play" size={scale(18)} />}
-                            onPress={() =>
-                                router.push({
-                                    pathname: '/player/[id]',
-                                    params: {
-                                        id: params.id || 'series',
-                                        title,
-                                        genre,
-                                        year,
-                                        duration: season,
-                                        image,
-                                        isSeries: 'true',
-                                        streamHash: params.streamHash,
-                                    },
-                                })
-                            }
+                            onPress={() => {
+                                let targetEp = null;
+                                if (allEpisodes && allEpisodes.length > 0) {
+                                    targetEp = [...allEpisodes].sort((a: any, b: any) => {
+                                        const sA = a.seasonNumber || 1;
+                                        const sB = b.seasonNumber || 1;
+                                        if (sA !== sB) return sA - sB;
+                                        return (a.episodeNumber || 1) - (b.episodeNumber || 1);
+                                    })[0];
+                                }
+                                
+                                if (targetEp) {
+                                    router.push({
+                                        pathname: '/player/[id]',
+                                        params: {
+                                            id: `${targetEp.streamUrl}-${targetEp.seasonNumber}-${targetEp.episodeNumber}`,
+                                            name: targetEp.name || name,
+                                            category,
+                                            year,
+                                            duration: season,
+                                            logo: targetEp.tvgLogo || logo,
+                                            isSeries: 'true',
+                                            streamUrl: targetEp.streamUrl || params.streamUrl,
+                                            startTime: String(resumeTime),
+                                            episodes: params.episodes,
+                                        },
+                                    });
+                                } else {
+                                    router.push({
+                                        pathname: '/player/[id]',
+                                        params: {
+                                            id: params.id || 'series',
+                                            name: name,
+                                            category,
+                                            year,
+                                            duration: season,
+                                            logo: logo,
+                                            isSeries: 'true',
+                                            streamUrl: params.streamUrl || params.id,
+                                            startTime: String(resumeTime),
+                                            episodes: params.episodes,
+                                        },
+                                    });
+                                }
+                            }}
                         >
-                            Watch Now
+                            {t('common.watchNow')}
                         </NavButton>
                         <NavIconButton
                             icon={
@@ -228,24 +388,27 @@ export default function SeriesDetailScreen() {
                             }
                             isActive={isFavorite}
                             activeBackgroundColor="#E0334C"
-                            onPress={() => setIsFavorite((v) => !v)}
+                            onPress={handleFavoritePress}
+                            disabled={isAdding}
                         />
                         <NavIconButton
                             icon={
                                 <MaterialCommunityIcons
                                     name={isLocked ? 'lock' : 'lock-open-outline'}
                                     size={scale(20)}
-                                    color={Colors.gray[300]}
+                                    color={isLocked ? '#E0334C' : Colors.gray[300]}
                                 />
                             }
                             isActive={isLocked}
-                            onPress={() => setParentalModalVisible(true)}
+                            activeBackgroundColor="#E0334C"
+                            onPress={handleParentalLockPress}
+                            disabled={isAddingParental}
                         />
                     </View>
 
                     {/* Cast */}
                     <View style={styles.castRow}>
-                        <Text style={styles.castLabel}>Cast:</Text>
+                        <Text style={styles.castLabel}>{t('detail.cast')}</Text>
                         <Text style={styles.castNames} numberOfLines={2}>
                             {CAST.join('  •  ')}
                         </Text>
@@ -256,25 +419,27 @@ export default function SeriesDetailScreen() {
             {/* ── Season Tabs ── */}
             <View style={styles.divider} />
             <ScrollView
+
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 style={styles.seasonsScroll}
                 contentContainerStyle={styles.seasonsContent}
             >
-                {SEASONS.map((s, i) => (
+                {seasons.map((s, i) => (
                     <CategoryButton
-                        key={s}
+                        key={`season-${s}`}
                         isActive={i === activeSeason}
                         onPress={() => setActiveSeason(i)}
                     >
-                        {s}
+                        {t('detail.season')} {s}
                     </CategoryButton>
                 ))}
             </ScrollView>
 
+
             {/* ── Episodes List ── */}
             <Text style={styles.episodesHeader}>
-                Episodes ({episodes.length})
+                {t('detail.episodes', { count: episodes.length })}
             </Text>
             <View style={styles.episodesDivider} />
 

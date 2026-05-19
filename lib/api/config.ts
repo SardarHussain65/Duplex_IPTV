@@ -3,7 +3,7 @@
  * Central place for all API-related constants.
  */
 
-export const API_BASE_URL = 'https://duplex-iptv-backend.replatechnologies.com';
+export const API_BASE_URL = 'https://backend.duplexnew.com';
 
 export const REST_BASE_URL = `${API_BASE_URL}`;
 

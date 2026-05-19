@@ -1,7 +1,10 @@
+import { useDeviceInfo } from '@/hooks/useDeviceInfo';
 import { useTab } from '@/context/TabContext';
+import { useDeviceStore } from '@/lib/store/useDeviceStore';
 import { panelStyles } from '@/styles/settings_panel.styles';
 import React, { useEffect, useRef, useState } from 'react';
 import { findNodeHandle, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 interface DeviceInfoSectionProps {
     startRef: React.RefObject<any>;
@@ -49,7 +52,7 @@ const DeviceInfoRow: React.FC<DeviceInfoRowProps> = ({
             nextFocusLeft={index === 0 ? findNodeHandle(sidebarRef.current) || undefined : undefined}
             nextFocusRight={handle}
             nextFocusUp={settingsTabNode || undefined}
-            nextFocusDown={index === 2 ? findNodeHandle(sidebarRef.current) || undefined : undefined}
+            nextFocusDown={index === 4 ? findNodeHandle(sidebarRef.current) || undefined : undefined}
             focusable={true}
         >
             <Text style={panelStyles.rowLabel}>{label}</Text>
@@ -59,19 +62,27 @@ const DeviceInfoRow: React.FC<DeviceInfoRowProps> = ({
 };
 
 export const DeviceInfoSection: React.FC<DeviceInfoSectionProps> = ({ startRef, sidebarRef }) => {
+    const { t } = useTranslation();
     const { settingsTabNode } = useTab();
+    const deviceInfo = useDeviceInfo();
+    const { deviceKey, deviceStatus } = useDeviceStore();
+
+    const infoRows = [
+        { label: t('settings.deviceOptions.macAddress'), value: deviceInfo.macAddress },
+        { label: t('settings.deviceOptions.deviceKey'), value: deviceKey || 'N/A' },
+        { label: t('settings.deviceOptions.deviceStatus'), value: deviceStatus || 'N/A' },
+        { label: t('settings.deviceOptions.model'), value: deviceInfo.model },
+        { label: t('settings.deviceOptions.systemVersion'), value: deviceInfo.osVersion },
+    ];
+
     return (
         <View style={panelStyles.card}>
-            <Text style={panelStyles.cardTitle}>Account Details</Text>
-            {[
-                ['Mac Address', '31:d8:ea:df:33:45'],
-                ['Device Key', '234831'],
-                ['Device State', 'Activate'],
-            ].map(([label, val], index) => (
+            <Text style={panelStyles.cardTitle}>{t('settings.deviceOptions.accountDetails')}</Text>
+            {infoRows.map((row, index) => (
                 <DeviceInfoRow
-                    key={label}
-                    label={label}
-                    val={val}
+                    key={row.label}
+                    label={row.label}
+                    val={row.value}
                     index={index}
                     startRef={startRef}
                     sidebarRef={sidebarRef}

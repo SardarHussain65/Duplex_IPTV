@@ -12,6 +12,8 @@ import {
     View
 } from 'react-native';
 
+import { useTranslation } from 'react-i18next';
+
 interface EnterPinModalProps {
     visible: boolean;
     onClose: () => void;
@@ -26,12 +28,16 @@ export const EnterPinModal: React.FC<EnterPinModalProps> = ({
     onClose,
     onSuccess,
     onVerify,
-    title = 'Enter PIN to Continue',
-    buttonText = 'Continue'
+    title,
+    buttonText
 }) => {
+    const { t } = useTranslation();
     const [pin, setPin] = useState<string>('');
     const [error, setError] = useState<string | null>(null);
     const [isVerifying, setIsVerifying] = useState(false);
+
+    const displayTitle = title || t('enterPin.title');
+    const displayButtonText = buttonText || t('enterPin.button');
 
     const handleNumberPress = (num: number) => {
         if (pin.length < 4) {
@@ -51,11 +57,11 @@ export const EnterPinModal: React.FC<EnterPinModalProps> = ({
                 onSuccess();
                 setPin('');
             } else {
-                setError('Incorrect PIN. Please try again.');
+                setError(t('enterPin.incorrect'));
                 setPin('');
             }
         } catch (err) {
-            setError('Verification failed. Please try again.');
+            setError(t('enterPin.failed'));
         } finally {
             setIsVerifying(false);
         }
@@ -94,7 +100,7 @@ export const EnterPinModal: React.FC<EnterPinModalProps> = ({
         >
             <View style={styles.overlay}>
                 <View style={styles.modalBox}>
-                    <Text style={styles.title}>{title}</Text>
+                    <Text style={styles.title}>{displayTitle}</Text>
 
                     <View style={styles.pinContainer}>
                         {renderPinDots()}
@@ -122,7 +128,7 @@ export const EnterPinModal: React.FC<EnterPinModalProps> = ({
                     <View style={styles.buttonRow}>
                         <View style={styles.btnWrapper}>
                             <ActionOutlineButton onPress={handleCancel} style={[styles.btn, { borderRadius: scale(10) }]}>
-                                Cancel
+                                {t('enterPin.cancel')}
                             </ActionOutlineButton>
                         </View>
                         <View style={styles.btnWrapper}>
@@ -135,7 +141,7 @@ export const EnterPinModal: React.FC<EnterPinModalProps> = ({
                                 {isVerifying ? (
                                     <ActivityIndicator color={Colors.dark[11]} />
                                 ) : (
-                                    buttonText
+                                    displayButtonText
                                 )}
                             </ActionFilledButton>
                         </View>

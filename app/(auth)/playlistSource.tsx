@@ -1,4 +1,5 @@
 import { EnterPinModal } from "@/components/ui/modals/EnterPinModal";
+import { PlaylistCardSkeleton } from "@/components/ui";
 import { Colors, scale as s, width } from "@/constants";
 import { usePlaylists } from "@/lib/api/hooks/usePlaylists";
 import { useVerifyPlaylistPin } from "@/lib/api/hooks/useVerifyPlaylistPin";
@@ -9,7 +10,6 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
     FlatList,
     Pressable,
     StyleSheet,
@@ -118,9 +118,10 @@ const PlaylistSourceScreen = () => {
                     {/* Left: Playlists List */}
                     <View style={styles.listContainer}>
                         {loading ? (
-                            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                                <ActivityIndicator size="large" color="#FFFFFF" />
-                                <Text style={{ color: '#FFFFFF', marginTop: s(10) }}>Loading Playlists...</Text>
+                            <View style={{ flex: 1 }}>
+                                {Array.from({ length: 4 }).map((_, i) => (
+                                    <PlaylistCardSkeleton key={i} />
+                                ))}
                             </View>
                         ) : error ? (
                             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>

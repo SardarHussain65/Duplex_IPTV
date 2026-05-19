@@ -5,10 +5,8 @@
  * ─────────────────────────────────────────────────────────────
  */
 
-import { CategoryLockedState, EmptyState, SearchBar } from '@/components/ui';
-import { CategoryButton } from '@/components/ui/buttons/CategoryButton';
-import { NavButton } from '@/components/ui/buttons/NavButton';
-import { BackdropCard } from '@/components/ui/cards/BackdropCard';
+import { BackdropCard, CategoryLockedState, EmptyState, SearchBar, HeroSkeleton, PosterGridSkeleton, PosterCardSkeleton, Skeleton, CategoryButtonSkeleton, NavButton, CategoryButton } from '@/components/ui';
+import { RecentlyWatchedRow } from '@/components/shared/RecentlyWatchedRow';
 import { PosterCard } from '@/components/ui/cards/PosterCard';
 import { EnterPinModal, ManageCategoryModal, RenameCategoryModal } from '@/components/ui/modals';
 import { HERO_MOVIES_SLIDES } from '@/constants/appData';
@@ -17,7 +15,7 @@ import { useCategoryManagement } from '@/context/CategoryManagementContext';
 import { Movie } from '@/types';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     FlatList,
     ScrollView,
@@ -25,37 +23,54 @@ import {
     Text,
     TouchableOpacity,
     View,
-    findNodeHandle,
+    findNodeHandle
 } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { useTab } from '@/context/TabContext';
 import { useMovies } from '@/hooks/useMovies';
-import { usePlaylistChannels } from '@/lib/api';
+import { usePlaylistChannels, useParentalControlPin } from '@/lib/api';
+import { useCategories } from '@/lib/api/hooks/useCategories';
 import { useDeviceStore } from '@/lib/store/useDeviceStore';
+
 import { styles } from '@/styles/movies.styles';
-import { ActivityIndicator } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 // ── Screen ─────────────────────────────────────────────────────
 
 export default function MoviesScreen() {
+    const { t } = useTranslation();
     const {
         activeCategory,
         setActiveCategory,
         searchQuery,
         setSearchQuery,
         heroIndex,
+        setHeroIndex,
         handleMoviePress,
+        handleWatchNow,
         goToHero,
         handleScroll,
     } = useMovies();
+    const isFocused = useIsFocused();
     const { setSearchBarNode, settingsTabNode, searchBarNode } = useTab();
-    const { isCategoryLocked, lockCategory, unlockCategory, renameCategory, getCategoryLabel } = useCategoryManagement();
+    const { lockCategory, unlockCategory, renameCategory, getCategoryLabel } = useCategoryManagement();
+    const { verifyPin } = useParentalControlPin();
     const activePlaylistId = useDeviceStore((state) => state.activePlaylistId);
 
     // Debounce the search query so we only hit the API after typing stops
     const [inputValue, setInputValue] = useState('');
     const [committedSearch, setCommittedSearch] = useState('');
+
+    const { data: categoriesData, isFetching: isCategoriesFetching, isLoading: isCategoriesLoading } = useCategories({
+        playlistId: activePlaylistId || '',
+        contentType: 'MOVIE',
+        enabled: !!activePlaylistId && isFocused
+    });
+
+    const activeCategoryData = categoriesData?.items?.find(c => c.name === activeCategory);
+    const isCurrentCategoryLocked = activeCategory !== 'All' && !!activeCategoryData?.isCategoryLocked;
 
     const {
         data: apiData,
@@ -67,48 +82,66 @@ export default function MoviesScreen() {
         playlistId: activePlaylistId || '',
         limit: 48,
         contentType: 'MOVIE',
+        category: activeCategory === 'All' ? null : activeCategory,
         search: committedSearch,
-        enabled: !!activePlaylistId
+        enabled: !!activePlaylistId && !isCurrentCategoryLocked && isFocused
     });
+
 
     const movies: Movie[] = useMemo(() => {
         if (!apiData?.pages) return [];
         return apiData.pages.flatMap((page) =>
             page.items.map((item) => ({
-                id: item.streamHash,
-                title: item.name,
-                genre: item.category,
+                id: item.streamUrl,
+                name: item.name,
+                category: item.category,
                 year: "2024",
                 duration: item.genre || "2h",
-                image: item.tvgLogo,
+                logo: item.tvgLogo,
                 description: item.name,
-                streamHash: item.streamHash,
+                streamUrl: item.streamUrl,
+                tvgId: item.tvgId,
+                contentType: item.contentType,
             }))
         );
     }, [apiData]);
 
     const categories = useMemo(() => {
-        const uniqueCats = Array.from(new Set(movies.map((m) => m.genre)));
-        return ['All', ...uniqueCats];
-    }, [movies]);
+        if (!categoriesData?.items) return ['All'];
+        const apiCats = categoriesData.items.map(c => c.name);
+        return ['All', ...apiCats];
+    }, [categoriesData]);
 
-    const recentlyWatched = useMemo(() => {
-        return movies.slice(0, 5).map((m, idx) => ({
-            ...m,
-            progress: [0.45, 0.2, 0.8, 0.1, 0.65][idx] || 0.5
-        }));
-    }, [movies]);
 
-    const filteredMovies = useMemo(() => {
-        // Text search is handled by the backend via the `search` query param.
-        // Only category filtering is done client-side here.
-        if (activeCategory === 'All') return movies;
-        return movies.filter(
-            (m) => m.genre.toLowerCase() === activeCategory.toLowerCase()
-        );
-    }, [activeCategory, movies]);
 
-    const currentHero = HERO_MOVIES_SLIDES[heroIndex] || HERO_MOVIES_SLIDES[0];
+
+    const filteredMovies = movies;
+
+    const [bannerMovies, setBannerMovies] = useState<Movie[]>([]);
+
+    // Pick 10 random movies for the banner once data is loaded
+    useEffect(() => {
+        if (movies.length > 0 && bannerMovies.length === 0) {
+            const shuffled = [...movies].sort(() => 0.5 - Math.random());
+            setBannerMovies(shuffled.slice(0, 10));
+        }
+    }, [movies, bannerMovies.length]);
+
+    // 10 second auto-cycle timer
+    useEffect(() => {
+        if (bannerMovies.length === 0) return;
+
+        const interval = setInterval(() => {
+            setHeroIndex((prev) => (prev + 1) % bannerMovies.length);
+        }, 10000);
+
+        return () => clearInterval(interval);
+    }, [bannerMovies.length, setHeroIndex]);
+
+
+    const currentHero = bannerMovies.length > 0 
+        ? bannerMovies[heroIndex] || bannerMovies[0]
+        : HERO_MOVIES_SLIDES[heroIndex] || HERO_MOVIES_SLIDES[0];
 
     const [isManageModalVisible, setManageModalVisible] = useState(false);
     const [isRenameModalVisible, setRenameModalVisible] = useState(false);
@@ -127,7 +160,7 @@ export default function MoviesScreen() {
     const movieRefs = useRef<Record<number, any>>({});
 
     useEffect(() => {
-        const timer = setTimeout(() => {
+        const handle = requestIdleCallback(() => {
             if (searchRef.current) {
                 const node = findNodeHandle(searchRef.current);
                 if (node) setSearchBarNode(node);
@@ -153,65 +186,68 @@ export default function MoviesScreen() {
             });
             setMovieNodes(newNodes);
             if (firstNode) setFirstMovieNode(firstNode);
-        }, 1200);
-        return () => clearTimeout(timer);
+        });
+        return () => cancelIdleCallback(handle);
     }, [activeCategory, filteredMovies]);
 
-    const handleCategoryLongPress = (category: string) => {
+    const handleCategoryLongPress = useCallback((category: string) => {
         setCategoryToManage(category);
         setManageModalVisible(true);
-    };
+    }, []);
 
-    const handleLockToggle = () => {
+    const handleLockToggle = useCallback(() => {
         setManageModalVisible(false);
         setPinModalVisible(true);
-    };
+    }, []);
 
-    const handleRenamePress = () => {
+    const handleRenamePress = useCallback(() => {
         setManageModalVisible(false);
         setRenameModalVisible(true);
-    };
+    }, []);
 
-    const handlePinSuccess = () => {
+    const handlePinSuccess = useCallback(async () => {
         if (categoryToManage) {
-            if (isCategoryLocked(categoryToManage)) {
-                unlockCategory(categoryToManage);
-            } else {
-                lockCategory(categoryToManage);
+            setPinModalVisible(false);
+            try {
+                const catData = categoriesData?.items?.find(c => c.name === categoryToManage);
+                const isLocked = !!catData?.isCategoryLocked;
+                if (isLocked) {
+                    await unlockCategory(categoryToManage, "MOVIE");
+                } else {
+                    await lockCategory(categoryToManage, "MOVIE");
+                }
+            } catch (err) {
+                console.error("Failed to update category lock:", err);
             }
         }
-        setPinModalVisible(false);
-    };
+    }, [categoryToManage, lockCategory, unlockCategory, categoriesData]);
 
-    const handleRenameSave = (newName: string) => {
+    const handleRenameSave = useCallback(async (newName: string) => {
         if (categoryToManage) {
-            renameCategory(categoryToManage, newName);
+            try {
+                await renameCategory(categoryToManage, newName, "MOVIE");
+            } catch (err) {
+                console.error("Failed to rename category:", err);
+            }
         }
         setRenameModalVisible(false);
-    };
+    }, [categoryToManage, renameCategory]);
 
-    const renderMovieItem = ({ item, index }: { item: Movie; index: number }) => {
-        const isRowEnd = index % 6 === 5;
-
-        return (
-            <PosterCard
-                innerRef={(ref) => { if (ref) movieRefs.current[index] = ref; }}
-                image={item.image}
-                title={item.title}
-                subtitle={item.duration}
-                width={xdWidth(132)}
-                onPress={() => handleMoviePress(item)}
-                style={styles.cardSpacing}
-                // Up navigation: first row goes to categories
-                nextFocusUp={index < 6 ? lastCategoryNode : movieNodes[index - 6]}
-                nextFocusDown={movieNodes[index + 6]}
-                // Left navigation: ONLY index 0 wraps back to category menu
-                nextFocusLeft={index === 0 ? lastCategoryNode : movieNodes[index - 1]}
-                // Right navigation: wrap row-by-row
-                nextFocusRight={index === filteredMovies.length - 1 ? undefined : movieNodes[index + 1]}
-            />
-        );
-    };
+    const renderMovieItem = useCallback(({ item, index }: { item: Movie; index: number }) => (
+        <PosterCard
+            innerRef={(ref) => { if (ref) movieRefs.current[index] = ref; }}
+            image={item.logo}
+            title={item.name}
+            subtitle={item.duration}
+            width={xdWidth(136)}
+            onPress={() => handleMoviePress(item)}
+            style={styles.cardSpacing}
+            nextFocusUp={index < 6 ? lastCategoryNode : movieNodes[index - 6]}
+            nextFocusDown={movieNodes[index + 6]}
+            nextFocusLeft={index === 0 ? lastCategoryNode : movieNodes[index - 1]}
+            nextFocusRight={index === filteredMovies.length - 1 ? undefined : movieNodes[index + 1]}
+        />
+    ), [handleMoviePress, lastCategoryNode, movieNodes, filteredMovies.length]);
 
     const renderHeader = () => (
         <View style={styles.headerContainer}>
@@ -219,7 +255,7 @@ export default function MoviesScreen() {
             <View style={styles.heroContainer}>
                 {/* Background image */}
                 <Image
-                    source={{ uri: currentHero.image }}
+                    source={{ uri: currentHero.logo }}
                     style={styles.heroBg}
                     contentFit="cover"
                 />
@@ -244,9 +280,9 @@ export default function MoviesScreen() {
                 {/* Text content */}
                 <View style={styles.heroContent}>
                     <Text style={styles.heroMeta}>
-                        {currentHero.genre}{'  •  '}{currentHero.year}{'  •  '}{currentHero.duration}
+                        {currentHero.category}{'  •  '}{currentHero.year}{'  •  '}{currentHero.duration}
                     </Text>
-                    <Text style={styles.heroTitle}>{currentHero.title}</Text>
+                    <Text style={styles.heroTitle}>{currentHero.name}</Text>
                     <Text style={styles.heroDesc} numberOfLines={2}>
                         {currentHero.description}
                     </Text>
@@ -255,22 +291,22 @@ export default function MoviesScreen() {
                     <View style={styles.heroBtns}>
                         <NavButton
                             icon={<MaterialCommunityIcons name="play" size={scale(18)} />}
-                            onPress={() => handleMoviePress(currentHero)}
+                            onPress={() => handleWatchNow(currentHero)}
                         >
-                            Watch now
+                            {t('common.watchNow')}
                         </NavButton>
                         <NavButton
                             icon={<MaterialCommunityIcons name="information-outline" size={scale(18)} />}
                             onPress={() => handleMoviePress(currentHero)}
                         >
-                            Learn More
+                            {t('common.learnMore')}
                         </NavButton>
                     </View>
                 </View>
 
                 {/* Carousel Dots */}
                 <View style={styles.dotsRow}>
-                    {HERO_MOVIES_SLIDES.map((_, i) => (
+                    {(bannerMovies.length > 0 ? bannerMovies : HERO_MOVIES_SLIDES).map((_, i) => (
                         <TouchableOpacity
                             key={i}
                             onPress={() => goToHero(i)}
@@ -281,29 +317,7 @@ export default function MoviesScreen() {
             </View>
 
             {/* ── Recently Watched ── */}
-            {recentlyWatched.length > 0 && (
-                <View style={{ marginBottom: xdHeight(32) }}>
-                    <Text style={styles.sectionTitle}>Recently Watched</Text>
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        style={{ marginHorizontal: -xdWidth(40) }}
-                        contentContainerStyle={{ paddingHorizontal: xdWidth(40) }}
-                    >
-                        {recentlyWatched.map((movie, index) => (
-                            <BackdropCard
-                                key={`recent-${movie.id}`}
-                                image={{ uri: movie.image }}
-                                progress={movie.progress}
-                                width={xdWidth(170)}
-                                height={xdHeight(96)}
-                                style={{ marginRight: xdWidth(12) }}
-                                onPress={() => handleMoviePress(movie)}
-                            />
-                        ))}
-                    </ScrollView>
-                </View>
-            )}
+            <RecentlyWatchedRow type="MOVIE" />
 
             {/* ── Search Bar ── */}
             <View style={styles.searchWrapper}>
@@ -312,7 +326,7 @@ export default function MoviesScreen() {
                     value={inputValue}
                     onChangeText={setInputValue}
                     onSubmit={(text) => setCommittedSearch(text)}
-                    placeholder="Search for movies...."
+                    placeholder={t('movies.searchPlaceholder')}
                     nextFocusLeft={settingsTabNode || undefined}
                     nextFocusUp={settingsTabNode || undefined}
                     nextFocusRight={categoryAllNode}
@@ -321,7 +335,7 @@ export default function MoviesScreen() {
             </View>
 
             {/* ── Category Filter ── */}
-            <Text style={styles.sectionTitle}>Browse by Categories</Text>
+            <Text style={styles.sectionTitle}>{t('common.browseCategories')}</Text>
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -331,6 +345,11 @@ export default function MoviesScreen() {
                 {categories.map((cat, index) => {
                     const isFirst = index === 0;
                     const isLast = index === categories.length - 1;
+                    
+                    // Find the category object to check its backend lock status
+                    const catData = categoriesData?.items?.find(c => c.name === cat);
+                    const isLocked = catData?.isCategoryLocked ?? false;
+
                     return (
                         <CategoryButton
                             key={cat}
@@ -338,14 +357,15 @@ export default function MoviesScreen() {
                             isActive={activeCategory === cat}
                             onPress={() => setActiveCategory(cat)}
                             onLongPress={() => handleCategoryLongPress(cat)}
-                            isLocked={isCategoryLocked(cat)}
+                            isLocked={isLocked}
+                            isUpdating={isCategoriesFetching && categoryToManage === cat}
                             style={{ marginRight: xdWidth(8) }}
                             nextFocusLeft={isFirst ? (searchBarNode || undefined) : undefined}
                             nextFocusUp={isFirst ? (searchBarNode || undefined) : undefined}
                             nextFocusRight={isLast ? firstMovieNode : undefined}
                             nextFocusDown={firstMovieNode}
                         >
-                            {getCategoryLabel(cat)}
+                            {catData?.renamedCategory || cat}
                         </CategoryButton>
                     );
                 })}
@@ -353,14 +373,36 @@ export default function MoviesScreen() {
         </View>
     );
 
-    const isCurrentCategoryLocked = activeCategory !== 'All' && isCategoryLocked(activeCategory);
+    // Memoized header — stable reference prevents full header reconciliation on every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Memoized header — stable reference prevents full header reconciliation on every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const listHeader = useMemo(() => renderHeader(), [
+        currentHero, heroIndex, handleMoviePress, inputValue,
+        settingsTabNode, categoryAllNode, searchBarNode, categories, activeCategory,
+        firstMovieNode, getCategoryLabel, handleCategoryLongPress,
+        filteredMovies.length, isCategoriesFetching, categoryToManage
+    ]);
 
-    if (isLoading) {
+    if (isLoading && bannerMovies.length === 0) {
         return (
-            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-                <ActivityIndicator size="large" color="#FFD700" />
-                <Text style={{ color: '#9DA3B4', marginTop: xdHeight(16) }}>Loading Movies...</Text>
-            </View>
+            <ScrollView
+                style={styles.container}
+                contentContainerStyle={[styles.content, styles.gridContainer]}
+                showsVerticalScrollIndicator={false}
+            >
+                <HeroSkeleton />
+                <View style={{ marginBottom: xdHeight(32) }}>
+                    <Skeleton width="100%" height={xdHeight(50)} borderRadius={12} />
+                </View>
+                <View style={{ flexDirection: 'row', marginBottom: xdHeight(24) }}>
+                    {Array.from({ length: 10 }).map((_, i) => (
+                        <CategoryButtonSkeleton key={i} />
+                    ))}
+                </View>
+                <PosterGridSkeleton rows={3} columns={6} />
+            </ScrollView>
         );
     }
 
@@ -368,13 +410,13 @@ export default function MoviesScreen() {
         <View style={styles.container}>
             <FlatList
                 key="movies-grid"
-                data={isCurrentCategoryLocked ? [] : filteredMovies}
+                data={(isCurrentCategoryLocked || isCategoriesFetching) ? [] : filteredMovies}
                 keyExtractor={(item) => item.id}
-                ListHeaderComponent={renderHeader()}
-                renderItem={(props) => renderMovieItem({ ...props })}
+                ListHeaderComponent={listHeader}
+                renderItem={renderMovieItem}
                 numColumns={6}
                 contentContainerStyle={[styles.content, styles.gridContainer, { flexGrow: 1 }]}
-                columnWrapperStyle={filteredMovies.length > 1 ? { gap: xdWidth(12) } : undefined}
+                columnWrapperStyle={filteredMovies.length > 1 ? styles.columnWrapper : undefined}
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
                 showsVerticalScrollIndicator={false}
@@ -391,19 +433,25 @@ export default function MoviesScreen() {
                 onEndReachedThreshold={2.0}
                 ListFooterComponent={() =>
                     isFetchingNextPage ? (
-                        <View style={{ paddingVertical: xdHeight(20), alignItems: 'center' }}>
-                            <ActivityIndicator size="small" color="#FFD700" />
+                        <View style={styles.footerLoader}>
+                            <View style={styles.footerGrid}>
+                                {Array.from({ length: 6 }).map((_, i) => (
+                                    <PosterCardSkeleton key={i} />
+                                ))}
+                            </View>
                         </View>
                     ) : null
                 }
                 ListEmptyComponent={
-                    isCurrentCategoryLocked ? (
+                    isLoading || isCategoriesFetching ? (
+                        <PosterGridSkeleton rows={3} columns={6} />
+                    ) : isCurrentCategoryLocked ? (
                         <CategoryLockedState />
                     ) : (
                         <EmptyState
                             icon="movie-open"
-                            title="No Movies Found"
-                            subtitle="On this categories we can't find any movie. Try another category"
+                            title={t('movies.noMoviesFound')}
+                            subtitle={t('movies.noMoviesSubtitle')}
                         />
                     )
                 }
@@ -417,23 +465,23 @@ export default function MoviesScreen() {
                 onClose={() => setManageModalVisible(false)}
                 onLockPress={handleLockToggle}
                 onRenamePress={handleRenamePress}
-                isLocked={!!categoryToManage && isCategoryLocked(categoryToManage)}
-                categoryName={categoryToManage || ''}
+                isLocked={!!categoryToManage && !!categoriesData?.items?.find(c => c.name === categoryToManage)?.isCategoryLocked}
+                categoryName={categoriesData?.items?.find(c => c.name === categoryToManage)?.renamedCategory || categoryToManage || ''}
             />
 
             <RenameCategoryModal
                 visible={isRenameModalVisible}
                 onClose={() => setRenameModalVisible(false)}
                 onSave={handleRenameSave}
-                currentName={categoryToManage || ''}
+                currentName={categoriesData?.items?.find(c => c.name === categoryToManage)?.renamedCategory || categoryToManage || ''}
             />
 
             <EnterPinModal
                 visible={isPinModalVisible}
                 onClose={() => setPinModalVisible(false)}
                 onSuccess={handlePinSuccess}
-                onVerify={async (pin: string) => pin === "1234"}
-                title={categoryToManage && isCategoryLocked(categoryToManage) ? 'Enter PIN to Unlock' : 'Enter PIN to Lock'}
+                onVerify={verifyPin}
+                title={categoryToManage && categoriesData?.items?.find(c => c.name === categoryToManage)?.isCategoryLocked ? 'Enter PIN to Unlock' : 'Enter PIN to Lock'}
             />
         </View>
     );
