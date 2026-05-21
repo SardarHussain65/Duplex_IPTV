@@ -25,6 +25,7 @@ export default function TabsLayout() {
             <Tabs.Screen name="movies" />
             <Tabs.Screen name="series" />
             <Tabs.Screen name="favorites" />
+            <Tabs.Screen name="recent-watch" />
             <Tabs.Screen name="parental-control" />
             <Tabs.Screen name="settings" />
         </Tabs>

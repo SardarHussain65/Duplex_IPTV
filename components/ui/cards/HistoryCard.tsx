@@ -30,6 +30,7 @@ export interface HistoryCardProps {
     progress: number; // 0 to 1
     onPress?: () => void;
     style?: ViewStyle;
+    innerRef?: React.Ref<any>;
     nextFocusLeft?: number | 'self';
     nextFocusRight?: number | 'self';
     nextFocusUp?: number | 'self';
@@ -48,6 +49,7 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({
     progress,
     onPress,
     style,
+    innerRef: externalRef,
     nextFocusLeft,
     nextFocusRight,
     nextFocusUp,
@@ -86,6 +88,8 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({
                 ref={(node) => {
                     // @ts-ignore
                     innerRef.current = node;
+                    if (typeof externalRef === 'function') externalRef(node);
+                    else if (externalRef) (externalRef as any).current = node;
                 }}
                 onPress={handlePress}
                 onPressIn={handlePressIn}

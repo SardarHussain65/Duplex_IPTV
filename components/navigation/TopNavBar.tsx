@@ -2,7 +2,7 @@
  * ─────────────────────────────────────────────────────────────
  *  DUPLEX IPTV — Top Navigation Bar
  *  Persistent overlay nav bar across all screens (except player).
- *  Layout: Logo | [Live TV · Movies · Series · Favorite] | [🔒 ⚙]
+ *  Layout: Logo | [Live TV · Movies · Series · Favorite · Recent Watch] | [🔒 ⚙]
  * ─────────────────────────────────────────────────────────────
  */
 
@@ -25,6 +25,7 @@ type TabId =
     | 'movies'
     | 'series'
     | 'favorites'
+    | 'recent-watch'
     | 'parental-control'
     | 'settings';
 
@@ -37,6 +38,7 @@ const ROUTE_TAB_MAP: { prefix: string; tab: TabId }[] = [
     { prefix: '/series-detail', tab: 'series' },
     { prefix: '/series', tab: 'series' },
     { prefix: '/favorites', tab: 'favorites' },
+    { prefix: '/recent-watch', tab: 'recent-watch' },
     { prefix: '/parental-control', tab: 'parental-control' },
     { prefix: '/settings', tab: 'settings' },
 ];
@@ -55,6 +57,7 @@ export const TopNavBar: React.FC = () => {
         { id: 'movies', label: t('common.movies'), icon: <MoviesIcon />, route: '/movies' },
         { id: 'series', label: t('common.series'), icon: <SeriesIcon />, route: '/series' },
         { id: 'favorites', label: t('common.favorites'), icon: <FavoritesIcon />, route: '/favorites' },
+        { id: 'recent-watch', label: t('common.recentWatch'), icon: <Ionicons name="time-outline" size={scale(22)} />, route: '/recent-watch' },
     ];
 
     const ICON_TABS: { id: TabId; icon: ReactNode; route: string }[] = [
@@ -162,7 +165,7 @@ const styles = StyleSheet.create({
     logo: {
         width: xdWidth(32),
         height: xdHeight(32),
-        marginRight: '20%',
+        marginRight: xdWidth(160),
     },
     tabGroup: {
         flexDirection: 'row',

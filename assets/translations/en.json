@@ -12,6 +12,7 @@
     "search": "Search...",
     "browseCategories": "Browse Categories",
     "recentlyWatched": "Recently Watched",
+    "recentWatch": "Recent Watch",
     "all": "All",
     "ok": "OK",
     "save": "Save",
@@ -126,6 +127,11 @@
     "title": "Favorites",
     "emptyTitle": "No Favorites Yet",
     "emptySubtitle": "You haven't added any to your favorites."
+  },
+  "recentWatch": {
+    "title": "Recent Watch",
+    "emptyTitle": "No Watch History Yet",
+    "emptySubtitle": "Your recently watched content will appear here."
   },
   "parentalControl": {
     "title": "Parental Control",
