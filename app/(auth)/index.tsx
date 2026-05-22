@@ -1,6 +1,6 @@
 import { ActionFilledButton, ActionOutlineButton } from "@/components/ui/buttons";
 import { Colors, scale as s, width } from "@/constants";
-import { useDeviceInfo } from "@/hooks/useDeviceInfo";
+import { isValidMacAddress, useDeviceInfo } from "@/hooks/useDeviceInfo";
 import { useGenerateDeviceId } from "@/lib/api";
 import { useDeviceStore } from "@/lib/store/useDeviceStore";
 import { Ionicons } from "@expo/vector-icons";
@@ -87,13 +87,15 @@ const ActivationScreen = () => {
     const contentWidth = isLargeScreen ? width * 0.5 : width * 0.92;
 
     const [screenState, setScreenState] = useState<ScreenState>('intro');
+    const isMacAddressLoading = deviceInfo.macAddress === 'LOADING...';
+    const hasValidMacAddress = isValidMacAddress(deviceInfo.macAddress);
+    const hasMacAddressError = !isMacAddressLoading && !hasValidMacAddress;
+
     useEffect(() => {
-        if (deviceInfo.macAddress &&
-            deviceInfo.macAddress !== 'LOADING...' &&
-            deviceInfo.macAddress !== 'ERROR') {
+        if (hasValidMacAddress) {
             generateDeviceId(deviceInfo.macAddress);
         }
-    }, [deviceInfo.macAddress]);
+    }, [deviceInfo.macAddress, hasValidMacAddress]);
 
     useEffect(() => {
         if (!subscription) {
@@ -211,7 +213,18 @@ const ActivationScreen = () => {
                         <View style={{ flex: 1 }}>
                             <View style={[styles.infoBox, { padding: s(12), marginBottom: s(10), borderRadius: s(10) }]}>
                                 <Text style={[styles.boxLabel, { fontSize: s(12) }]}>Mac Address</Text>
-                                <Text style={[styles.boxValue, { fontSize: s(20) }]}>{deviceInfo.macAddress}</Text>
+                                <Text
+                                    style={[
+                                        styles.boxValue,
+                                        {
+                                            fontSize: hasValidMacAddress ? s(20) : s(13),
+                                            letterSpacing: hasValidMacAddress ? 2 : 0,
+                                            color: hasMacAddressError ? Colors.error[400] : Colors.dark[3],
+                                        },
+                                    ]}
+                                >
+                                    {deviceInfo.macAddress}
+                                </Text>
                             </View>
                             <View style={[styles.infoBox, { padding: s(12), borderRadius: s(10) }]}>
                                 <View style={styles.boxHeader}>
@@ -229,20 +242,32 @@ const ActivationScreen = () => {
                         <View style={[styles.verticalDivider, { marginHorizontal: s(24) }]} />
 
                         <View style={styles.qrSection}>
-                            <View style={{
-                                padding: s(8),
-                                backgroundColor: '#FFFFFF',
-                                borderRadius: s(8),
-                                marginBottom: s(8)
-                            }}>
-                                <QRCode
-                                    value={`https://duplex-iptv-website.vercel.app/?mac=${deviceInfo.macAddress}&deviceid=${deviceKey || ''}`}
-                                    size={s(110)}
-                                    backgroundColor="white"
-                                    color="black"
-                                />
-                            </View>
-                            <Text style={[styles.qrText, { fontSize: s(13) }]}>Scan to add playlist</Text>
+                            {hasValidMacAddress ? (
+                                <>
+                                    <View style={{
+                                        padding: s(8),
+                                        backgroundColor: '#FFFFFF',
+                                        borderRadius: s(8),
+                                        marginBottom: s(8)
+                                    }}>
+                                        <QRCode
+                                            value={`https://duplex-iptv-website.vercel.app/?mac=${deviceInfo.macAddress}&deviceid=${deviceKey || ''}`}
+                                            size={s(110)}
+                                            backgroundColor="white"
+                                            color="black"
+                                        />
+                                    </View>
+                                    <Text style={[styles.qrText, { fontSize: s(13) }]}>Scan to add playlist</Text>
+                                </>
+                            ) : hasMacAddressError ? (
+                                <Text style={[styles.qrText, { fontSize: s(13), color: Colors.error[400], textAlign: 'center' }]}>
+                                    QR unavailable until MAC address is detected.
+                                </Text>
+                            ) : (
+                                <Text style={[styles.qrText, { fontSize: s(13), textAlign: 'center' }]}>
+                                    Loading MAC address...
+                                </Text>
+                            )}
                         </View>
                     </View>
                 )}
