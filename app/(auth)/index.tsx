@@ -82,17 +82,11 @@ const bannerStyles = StyleSheet.create({
 const ActivationScreen = () => {
     const deviceInfo = useDeviceInfo();
     const { generateDeviceId, deviceId, deviceKey, loading: deviceIdLoading } = useGenerateDeviceId();
-    const { isTrial, hasUsedTrial, isBlocked, subscription } = useDeviceStore();
+    const { isTrial, hasUsedTrial, isBlocked, hasPlaylist, subscription } = useDeviceStore();
     const isLargeScreen = width >= 900;
     const contentWidth = isLargeScreen ? width * 0.5 : width * 0.92;
 
-    // Derived state from store/API
-    const [screenState, setScreenState] = useState<ScreenState>(
-        isBlocked ? 'blocked' :
-            (subscription?.status === 'expired' || subscription?.expired || (hasUsedTrial && !isTrial)) ? 'expired' :
-                isTrial ? 'trial' : 'intro'
-    );
-
+    const [screenState, setScreenState] = useState<ScreenState>('intro');
     useEffect(() => {
         if (deviceInfo.macAddress &&
             deviceInfo.macAddress !== 'LOADING...' &&
@@ -102,16 +96,27 @@ const ActivationScreen = () => {
     }, [deviceInfo.macAddress]);
 
     useEffect(() => {
-        if (isBlocked) {
+        if (!subscription) {
+            setScreenState('intro');
+            return;
+        }
+
+        const status = subscription.status?.toUpperCase();
+
+        if (status === 'SUSPENDED' || status === 'CANCELLED') {
             setScreenState('blocked');
-        } else if (subscription?.status === 'expired' || subscription?.expired || (hasUsedTrial && !isTrial)) {
+        } else if (status === 'EXPIRED') {
             setScreenState('expired');
-        } else if (isTrial) {
-            setScreenState('trial');
+        } else if (status === 'ACTIVE' || status === 'TRIAL') {
+            if (status === 'TRIAL' && !hasPlaylist) {
+                setScreenState('intro');
+            } else {
+                setScreenState('trial');
+            }
         } else {
             setScreenState('intro');
         }
-    }, [isTrial, isBlocked, subscription, hasUsedTrial]);
+    }, [subscription, hasPlaylist]);
 
     const calculateExpiryDays = () => {
         if (!subscription?.endDate) return 0;

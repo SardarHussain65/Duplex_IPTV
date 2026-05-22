@@ -19,6 +19,7 @@ export const GENERATE_DEVICE_ID = gql`
       }
       refreshToken
       accessToken
+      hasPlaylist
     }
   }
 `;

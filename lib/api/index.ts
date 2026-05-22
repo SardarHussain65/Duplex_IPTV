@@ -24,5 +24,8 @@ export { useParentalControls } from './hooks/useParentalControls';
 export { useParentalControlPin } from './hooks/useParentalControlPin';
 export { useWatchHistory } from './hooks/useWatchHistory';
 export type { WatchableItem, VideoPlayerRef } from './hooks/useWatchHistory';
+export { usePlaylistSyncSubscription } from './hooks/usePlaylistSyncSubscription';
+export { usePlaylists } from './hooks/usePlaylists';
+export * from './subscriptions';
 export * from './types';
 

@@ -9,6 +9,7 @@ interface DeviceState {
   hasUsedTrial: boolean;
   isTrial: boolean;
   isBlocked: boolean;
+  hasPlaylist: boolean;
   subscription: {
     startDate: string | null;
     endDate: string | null;
@@ -24,6 +25,7 @@ interface DeviceState {
     hasUsedTrial: boolean;
     isTrial: boolean;
     isBlocked?: boolean;
+    hasPlaylist?: boolean;
     subscription: DeviceState['subscription'];
   }) => void;
   setActivePlaylistId: (id: string | null) => void;
@@ -38,6 +40,7 @@ export const useDeviceStore = create<DeviceState>()(
       hasUsedTrial: false,
       isTrial: false,
       isBlocked: false,
+      hasPlaylist: false,
       subscription: null,
       activePlaylistId: null,
       setDeviceData: (data) => set(data),

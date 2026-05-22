@@ -9,6 +9,8 @@ export const REST_BASE_URL = `${API_BASE_URL}`;
 
 export const GRAPHQL_URL = `${API_BASE_URL}/graphql`;
 
+export const GRAPHQL_WS_URL = 'wss://backend.duplexnew.com/graphql';
+
 /** Default timeout for REST requests (ms) */
 export const REQUEST_TIMEOUT_MS = 15_000;
 

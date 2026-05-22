@@ -356,3 +356,21 @@ export interface RenameCategoryResponse {
     renamedCategory: string;
   };
 }
+
+// ─── Playlist Sync Subscription ──────────────────────────────────────────────
+
+export interface PlaylistSyncUpdatedPayload {
+  playlistSyncUpdated: {
+    channelCount: number;
+    deviceId: string;
+    errorCode: string | null;
+    message: string | null;
+    playlistId: string;
+    stage: string;
+    updatedAt: string;
+  };
+}
+
+export interface PlaylistSyncUpdatedVariables {
+  deviceId: string;
+}

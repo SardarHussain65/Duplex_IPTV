@@ -28,6 +28,7 @@ export function useGenerateDeviceId() {
             hasUsedTrial: result.device.hasUsedTrial,
             isTrial: result.device.isTrial,
             isBlocked: isBlocked,
+            hasPlaylist: result.hasPlaylist ?? false,
             subscription: result.subscription,
           });
         }
