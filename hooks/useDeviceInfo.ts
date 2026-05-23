@@ -71,3 +71,10 @@ export const useDeviceInfo = () => {
 
     return deviceInfo;
 };
+
+export const isValidMacAddress = (macAddress?: string | null): boolean => {
+    if (!macAddress) return false;
+    if (macAddress === 'LOADING...' || macAddress === 'ERROR') return false;
+    const cleanMac = macAddress.replace('DPX-', '').trim().toUpperCase();
+    return /^([0-9A-F]{2}:){5}[0-9A-F]{2}$/.test(cleanMac);
+};

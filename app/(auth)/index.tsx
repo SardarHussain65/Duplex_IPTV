@@ -1,6 +1,6 @@
 import { ActionFilledButton, ActionOutlineButton } from "@/components/ui/buttons";
 import { Colors, scale as s, width } from "@/constants";
-import { useDeviceInfo } from "@/hooks/useDeviceInfo";
+import { isValidMacAddress, useDeviceInfo } from "@/hooks/useDeviceInfo";
 import { useGenerateDeviceId } from "@/lib/api";
 import { useDeviceStore } from "@/lib/store/useDeviceStore";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,11 +15,11 @@ import {
 } from "react-native";
 import QRCode from 'react-native-qrcode-svg';
 
-type ScreenState = 'intro' | 'trial' | 'expired' | 'blocked';
+type ScreenState = 'trial' | 'active' | 'expired' | 'blocked';
 
 
 // ─── Free Trial Banner (pure code, no image) ─────────────────────────────────
-const FreeTrialBanner = ({ s }: { s: (n: number) => number }) => (
+const FreeTrialBanner = ({ s, title }: { s: (n: number) => number; title: string }) => (
     <View
         style={[
             bannerStyles.wrapper,
@@ -35,7 +35,7 @@ const FreeTrialBanner = ({ s }: { s: (n: number) => number }) => (
         {/* Text block */}
         <View style={bannerStyles.textBlock}>
             <Text style={[bannerStyles.title, { fontSize: s(14) }]}>
-                7-Day Free Trial Available
+                {title}
             </Text>
             <Text style={[bannerStyles.subtitle, { fontSize: s(12) }]}>
                 Enjoy your 7-day free trial! Activation will be required when the trial ends.
@@ -81,23 +81,36 @@ const bannerStyles = StyleSheet.create({
 
 const ActivationScreen = () => {
     const deviceInfo = useDeviceInfo();
-    const { generateDeviceId, deviceId, deviceKey, loading: deviceIdLoading } = useGenerateDeviceId();
+    const { generateDeviceId, deviceId, deviceKey, loading: deviceIdLoading, error: deviceIdError } = useGenerateDeviceId();
     const { isTrial, hasUsedTrial, isBlocked, hasPlaylist, subscription } = useDeviceStore();
     const isLargeScreen = width >= 900;
     const contentWidth = isLargeScreen ? width * 0.5 : width * 0.92;
 
-    const [screenState, setScreenState] = useState<ScreenState>('intro');
-    useEffect(() => {
-        if (deviceInfo.macAddress &&
-            deviceInfo.macAddress !== 'LOADING...' &&
-            deviceInfo.macAddress !== 'ERROR') {
-            generateDeviceId(deviceInfo.macAddress);
-        }
-    }, [deviceInfo.macAddress]);
+    const [screenState, setScreenState] = useState<ScreenState>('trial');
+    const isMacAddressLoading = deviceInfo.macAddress === 'LOADING...';
+    const hasValidMacAddress = isValidMacAddress(deviceInfo.macAddress);
+    const hasMacAddressError = !isMacAddressLoading && !hasValidMacAddress;
 
     useEffect(() => {
+        if (hasValidMacAddress) {
+            generateDeviceId(deviceInfo.macAddress);
+        }
+    }, [deviceInfo.macAddress, hasValidMacAddress]);
+
+    useEffect(() => {
+        const errorMessage = deviceIdError?.message?.toLowerCase() || '';
+
+        if (errorMessage.includes('suspend') || errorMessage.includes('block')) {
+            setScreenState('blocked');
+            return;
+        }
+        if (errorMessage.includes('expire')) {
+            setScreenState('expired');
+            return;
+        }
+
         if (!subscription) {
-            setScreenState('intro');
+            setScreenState('trial');
             return;
         }
 
@@ -107,16 +120,14 @@ const ActivationScreen = () => {
             setScreenState('blocked');
         } else if (status === 'EXPIRED') {
             setScreenState('expired');
-        } else if (status === 'ACTIVE' || status === 'TRIAL') {
-            if (status === 'TRIAL' && !hasPlaylist) {
-                setScreenState('intro');
-            } else {
-                setScreenState('trial');
-            }
+        } else if (status === 'ACTIVE') {
+            setScreenState('active');
+        } else if (status === 'TRIAL') {
+            setScreenState('trial');
         } else {
-            setScreenState('intro');
+            setScreenState('trial');
         }
-    }, [subscription, hasPlaylist]);
+    }, [subscription, deviceIdError]);
 
     const calculateExpiryDays = () => {
         if (!subscription?.endDate) return 0;
@@ -130,10 +141,12 @@ const ActivationScreen = () => {
     const expiryDays = calculateExpiryDays();
 
     const handleContinue = () => {
-        if (screenState === 'trial') {
-            router.push("/(auth)/playlistSource");
-        } else {
-            router.push("/(auth)/deviceVerification");
+        router.push("/(auth)/playlistSource");
+    };
+
+    const handleRefresh = () => {
+        if (hasValidMacAddress) {
+            generateDeviceId(deviceInfo.macAddress);
         }
     };
 
@@ -144,7 +157,12 @@ const ActivationScreen = () => {
     const renderHeader = () => {
         switch (screenState) {
             case 'trial':
-                return `Your subscription will expire in ${expiryDays} days`;
+                if (expiryDays > 0) {
+                    return `Your subscription will expire in ${expiryDays} days`;
+                }
+                return "Your MAC is Activated!";
+            case 'active':
+                return "Welcome back!";
             case 'expired':
                 return "License Expired!";
             case 'blocked':
@@ -171,6 +189,13 @@ const ActivationScreen = () => {
                 </Text>
             );
         }
+        if (screenState === 'active') {
+            return (
+                <Text style={[styles.instructions, { fontSize: s(14), lineHeight: s(20), marginBottom: s(14) }]}>
+                    Your subscription is active. Visit our website <Text style={styles.link}>www.duplexnew.tv/manageplaylists</Text> to add/manage playlists.
+                </Text>
+            );
+        }
         return (
             <Text style={[styles.instructions, { fontSize: s(14), lineHeight: s(20), marginBottom: s(14) }]}>
                 Visit our website <Text style={styles.link}>www.duplexnew.tv/manageplaylists</Text> to add/manage playlists.{" "}
@@ -189,15 +214,24 @@ const ActivationScreen = () => {
                 />
 
                 {/* Title */}
-                <Text style={[styles.title, { fontSize: s(20), marginBottom: s(6) }]} onPress={() => router.replace("/deviceVerification")}>
+                <Text style={[styles.title, { fontSize: s(20), marginBottom: s(6) }]}>
                     {renderHeader()}
                 </Text>
 
                 {/* Instructions */}
                 {renderInstructions()}
 
-                {/* ✅ Free Trial Banner — shown only in intro state */}
-                {screenState === 'intro' && <FreeTrialBanner s={s} />}
+                {/* ✅ Free Trial Banner — shown only in trial state */}
+                {screenState === 'trial' && (
+                    <FreeTrialBanner
+                        s={s}
+                        title={
+                            subscription?.status?.toUpperCase() === 'TRIAL'
+                                ? "7-Day Free Trial Active!"
+                                : "7-Day Free Trial Available"
+                        }
+                    />
+                )}
 
                 {/* Info Grid */}
                 {screenState !== 'blocked' && (
@@ -211,7 +245,18 @@ const ActivationScreen = () => {
                         <View style={{ flex: 1 }}>
                             <View style={[styles.infoBox, { padding: s(12), marginBottom: s(10), borderRadius: s(10) }]}>
                                 <Text style={[styles.boxLabel, { fontSize: s(12) }]}>Mac Address</Text>
-                                <Text style={[styles.boxValue, { fontSize: s(20) }]}>{deviceInfo.macAddress}</Text>
+                                <Text
+                                    style={[
+                                        styles.boxValue,
+                                        {
+                                            fontSize: hasValidMacAddress ? s(20) : s(13),
+                                            letterSpacing: hasValidMacAddress ? 2 : 0,
+                                            color: hasMacAddressError ? Colors.error[400] : Colors.dark[3],
+                                        },
+                                    ]}
+                                >
+                                    {deviceInfo.macAddress}
+                                </Text>
                             </View>
                             <View style={[styles.infoBox, { padding: s(12), borderRadius: s(10) }]}>
                                 <View style={styles.boxHeader}>
@@ -229,27 +274,39 @@ const ActivationScreen = () => {
                         <View style={[styles.verticalDivider, { marginHorizontal: s(24) }]} />
 
                         <View style={styles.qrSection}>
-                            <View style={{
-                                padding: s(8),
-                                backgroundColor: '#FFFFFF',
-                                borderRadius: s(8),
-                                marginBottom: s(8)
-                            }}>
-                                <QRCode
-                                    value={`https://duplex-iptv-website.vercel.app/?mac=${deviceInfo.macAddress}&deviceid=${deviceKey || ''}`}
-                                    size={s(110)}
-                                    backgroundColor="white"
-                                    color="black"
-                                />
-                            </View>
-                            <Text style={[styles.qrText, { fontSize: s(13) }]}>Scan to add playlist</Text>
+                            {hasValidMacAddress ? (
+                                <>
+                                    <View style={{
+                                        padding: s(8),
+                                        backgroundColor: '#FFFFFF',
+                                        borderRadius: s(8),
+                                        marginBottom: s(8)
+                                    }}>
+                                        <QRCode
+                                            value={`https://duplex-iptv-website.vercel.app/?mac=${deviceInfo.macAddress}&deviceid=${deviceKey || ''}`}
+                                            size={s(110)}
+                                            backgroundColor="white"
+                                            color="black"
+                                        />
+                                    </View>
+                                    <Text style={[styles.qrText, { fontSize: s(13) }]}>Scan to add playlist</Text>
+                                </>
+                            ) : hasMacAddressError ? (
+                                <Text style={[styles.qrText, { fontSize: s(13), color: Colors.error[400], textAlign: 'center' }]}>
+                                    QR unavailable until MAC address is detected.
+                                </Text>
+                            ) : (
+                                <Text style={[styles.qrText, { fontSize: s(13), textAlign: 'center' }]}>
+                                    Loading MAC address...
+                                </Text>
+                            )}
                         </View>
                     </View>
                 )}
 
                 {/* Warning / Secondary Info */}
                 <View style={[styles.warningContainer, { marginBottom: s(14) }]}>
-                    {screenState === 'intro' ? (
+                    {screenState === 'trial' ? (
                         <>
                             <Ionicons name="information-circle-outline" size={s(18)} color="#FF5252" />
                             <Text style={[styles.warningText, { fontSize: s(12), lineHeight: s(18), marginLeft: s(8) }]}>
@@ -270,11 +327,11 @@ const ActivationScreen = () => {
 
                 {/* Actions */}
                 <View style={[styles.actionsContainer, { marginTop: s(10) }]}>
-                    {screenState === 'intro' ? (
+                    {(!hasPlaylist && (screenState === 'trial' || screenState === 'active')) ? (
                         <>
                             <View style={{ flex: 1, marginRight: s(12) }}>
                                 <ActionOutlineButton
-                                    onPress={() => { }}
+                                    onPress={handleContinue}
                                     style={{
                                         backgroundColor: '#1C1C1E',
                                         borderColor: '#3A3A3C',
@@ -285,7 +342,7 @@ const ActivationScreen = () => {
                                         width: '100%',
                                     }}
                                 >
-                                    Refresh
+                                    Continue
                                 </ActionOutlineButton>
                             </View>
 
